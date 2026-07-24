@@ -24,6 +24,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       if (fitAddonInstance.current) {
         try {
           fitAddonInstance.current.fit();
+          xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
         } catch (e) {}
       }
     }
@@ -87,9 +88,11 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
 
+    // Delayed initial fit and refresh to ensure terminal text is 100% visible immediately upon load
     setTimeout(() => {
       try {
         fitAddon.fit();
+        term.refresh(0, term.rows - 1);
       } catch (e) {}
     }, 100);
 
@@ -118,6 +121,8 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     socket.onopen = () => {
       const { cols, rows } = fitAddon;
       socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
+      // Send a light carriage return to trigger immediate prompt render on load
+      socket.send('\r');
     };
 
     socket.onmessage = (event) => {
@@ -141,6 +146,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon.fit();
+        term.refresh(0, term.rows - 1);
         if (socket.readyState === WebSocket.OPEN) {
           const { cols, rows } = fitAddon;
           socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
@@ -173,7 +179,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
   };
 
   return (
-    <div className="terminal-wrapper" style={{ position: 'relative', width: '100%', height: '100%', flex: 1, background: theme?.bgEarth || '#141E26', overflow: 'hidden' }}>
+    <div className="terminal-wrapper">
       {copyToast && (
         <div className="copy-toast">
           <Copy size={13} />
@@ -181,7 +187,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
         </div>
       )}
 
-      <div ref={terminalRef} className="terminal-container" style={{ width: '100%', height: '100%', padding: '4px' }} />
+      <div ref={terminalRef} className="terminal-container" />
 
       {showScrollBottom && (
         <button className="scroll-bottom-btn" onClick={scrollToBottom}>

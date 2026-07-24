@@ -199,6 +199,8 @@ export const DEFAULT_THEME_PRESETS = {
 
 export function AppProvider({ children }) {
   const [activeMainTab, setActiveMainTab] = useState('terminal');
+  
+  // Restore saved custom themes from localStorage
   const [themes, setThemes] = useState(() => {
     try {
       const saved = localStorage.getItem('sovereign_custom_themes');
@@ -208,9 +210,55 @@ export function AppProvider({ children }) {
     }
   });
 
-  const [theme, setTheme] = useState(DEFAULT_THEME_PRESETS.VitniNordic);
-  const [fontSizeTerminal, setFontSizeTerminal] = useState(14);
-  const [fontSizeEditor, setFontSizeEditor] = useState(14);
+  // Restore saved active theme from localStorage
+  const [theme, setThemeState] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('sovereign_active_theme');
+      return savedTheme ? JSON.parse(savedTheme) : DEFAULT_THEME_PRESETS.VitniNordic;
+    } catch {
+      return DEFAULT_THEME_PRESETS.VitniNordic;
+    }
+  });
+
+  // Restore saved font sizes from localStorage
+  const [fontSizeTerminal, setFontSizeTerminalState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_font_terminal');
+      return saved ? Number(saved) : 14;
+    } catch {
+      return 14;
+    }
+  });
+
+  const [fontSizeEditor, setFontSizeEditorState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_font_editor');
+      return saved ? Number(saved) : 14;
+    } catch {
+      return 14;
+    }
+  });
+
+  const setTheme = (newTheme) => {
+    setThemeState(newTheme);
+    try {
+      localStorage.setItem('sovereign_active_theme', JSON.stringify(newTheme));
+    } catch (e) {}
+  };
+
+  const setFontSizeTerminal = (size) => {
+    setFontSizeTerminalState(size);
+    try {
+      localStorage.setItem('sovereign_font_terminal', size.toString());
+    } catch (e) {}
+  };
+
+  const setFontSizeEditor = (size) => {
+    setFontSizeEditorState(size);
+    try {
+      localStorage.setItem('sovereign_font_editor', size.toString());
+    } catch (e) {}
+  };
 
   // Dynamically apply CSS custom properties to document root & body
   useEffect(() => {
@@ -236,7 +284,8 @@ export function AppProvider({ children }) {
   }, [theme, fontSizeTerminal, fontSizeEditor]);
 
   const updateCustomColor = (key, value) => {
-    setTheme((prev) => ({ ...prev, [key]: value }));
+    const updated = { ...theme, [key]: value };
+    setTheme(updated);
   };
 
   const saveCustomTheme = (customThemeObject) => {
