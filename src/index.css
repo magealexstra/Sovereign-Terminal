@@ -1759,3 +1759,9 @@ html, body, #root {
   border-color: var(--accent-highlight);
   box-shadow: 0 0 12px rgba(136, 192, 208, 0.5);
 }
+
+/* Dynamic Auto-Scaling Font Utility Classes for Fixed 1:1 Squares */
+.square-slot-box.text-lg, .square-pool-tile.text-lg { font-size: 0.78rem; font-weight: 700; }
+.square-slot-box.text-md, .square-pool-tile.text-md { font-size: 0.70rem; font-weight: 600; }
+.square-slot-box.text-sm, .square-pool-tile.text-sm { font-size: 0.62rem; font-weight: 600; }
+.square-slot-box.text-xs, .square-pool-tile.text-xs { font-size: 0.54rem; font-weight: 600; }

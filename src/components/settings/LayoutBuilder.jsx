@@ -32,6 +32,16 @@ export default function LayoutBuilder() {
     'sudo', 'ls -la', 'nano', 'exit'
   ];
 
+  // Helper to compute dynamic font size class based on text length
+  const getFontSizeClass = (text) => {
+    if (!text) return 'text-md';
+    const len = text.length;
+    if (len <= 3) return 'text-lg';    // e.g. ESC, TAB, ^C, git
+    if (len <= 5) return 'text-md';    // e.g. htop, sudo, nano
+    if (len <= 7) return 'text-sm';    // e.g. docker, clear, ip a
+    return 'text-xs';                  // e.g. ⚡ MACROS, ls -la
+  };
+
   const handleTapPool = (key) => {
     setSelectedPoolKey(key);
   };
@@ -59,7 +69,7 @@ export default function LayoutBuilder() {
           {slots.top.map((key, idx) => (
             <div
               key={`top-${idx}`}
-              className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+              className={`square-slot-box ${getFontSizeClass(key)} ${selectedPoolKey ? 'target-pulse' : ''}`}
               onClick={() => handleTapSlot('top', idx)}
             >
               <span>{key}</span>
@@ -74,7 +84,7 @@ export default function LayoutBuilder() {
             {slots.left.map((key, idx) => (
               <div
                 key={`left-${idx}`}
-                className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+                className={`square-slot-box ${getFontSizeClass(key)} ${selectedPoolKey ? 'target-pulse' : ''}`}
                 onClick={() => handleTapSlot('left', idx)}
               >
                 <span>{key}</span>
@@ -92,7 +102,7 @@ export default function LayoutBuilder() {
                   <button
                     key={key}
                     type="button"
-                    className={`square-pool-tile ${isMacros ? 'macros-anchor' : ''} ${isSelected ? 'selected-glow' : ''}`}
+                    className={`square-pool-tile ${getFontSizeClass(key)} ${isMacros ? 'macros-anchor' : ''} ${isSelected ? 'selected-glow' : ''}`}
                     onClick={() => handleTapPool(key)}
                   >
                     {isMacros ? (
@@ -111,7 +121,7 @@ export default function LayoutBuilder() {
             {slots.right.map((key, idx) => (
               <div
                 key={`right-${idx}`}
-                className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+                className={`square-slot-box ${getFontSizeClass(key)} ${selectedPoolKey ? 'target-pulse' : ''}`}
                 onClick={() => handleTapSlot('right', idx)}
               >
                 <span>{key}</span>
@@ -125,7 +135,7 @@ export default function LayoutBuilder() {
           {slots.bottom.map((key, idx) => (
             <div
               key={`bottom-${idx}`}
-              className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+              className={`square-slot-box ${getFontSizeClass(key)} ${selectedPoolKey ? 'target-pulse' : ''}`}
               onClick={() => handleTapSlot('bottom', idx)}
             >
               <span>{key}</span>
