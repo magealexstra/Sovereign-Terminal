@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import { Terminal as TerminalIcon, FolderTree, Sliders } from 'lucide-react';
+import { Terminal as TerminalIcon, FolderTree, Sliders, Shield } from 'lucide-react';
 import { useApp } from './context/AppContext';
 
-// Tab 1 Components
 import Terminal from './components/terminal/Terminal';
 import SessionTabs from './components/terminal/SessionTabs';
 import TouchBar from './components/terminal/TouchBar';
 
-// Tab 2 Components
 import FileExplorer from './components/explorer/FileExplorer';
 import CodeEditor from './components/explorer/CodeEditor';
 
-// Tab 3 Component
 import SettingsManager from './components/settings/SettingsManager';
 
 export default function App() {
@@ -27,14 +24,14 @@ export default function App() {
   const [voiceInput, setVoiceInput] = useState('');
 
   // Tab 2 File Explorer & Multi-Document CodeEditor State
-  const [explorerSubTab, setExplorerSubTab] = useState('tree'); // 'tree' | 'editor'
+  const [explorerSubTab, setExplorerSubTab] = useState('tree');
   const [activeTerminalPath, setActiveTerminalPath] = useState('/workspace');
   const [openDocuments, setOpenDocuments] = useState([
     {
-      name: 'GUILD_CHARTER.md',
+      name: 'README.md',
       path: '/workspace/README.md',
       isModified: false,
-      content: '# ⚔️ THE GUILD CHARTER OF VERDAND ⚔️\n\n## 📜 I. The Guild Purpose\nVerdand is the living city where work is forged.'
+      content: '# 👑 THE SOVEREIGN TERMINAL\n\nWelcome to your mobile-first Linux control workstation.'
     }
   ]);
   const [activeFilePath, setActiveFilePath] = useState('/workspace/README.md');
@@ -151,43 +148,47 @@ export default function App() {
 
   return (
     <div className="sovereign-layout">
-      {/* Top Master 3-Tab Header */}
+      {/* Mobile-Optimized Top Master Header */}
       <header className="main-nav-bar">
         <div className="brand-title">
-          <TerminalIcon size={20} />
-          <span>THE SOVEREIGN TERMINAL</span>
+          <Shield size={18} color="#88C0D0" />
+          <span className="brand-text-desktop">SOVEREIGN TERMINAL</span>
+          <span className="brand-text-mobile">SOVEREIGN</span>
         </div>
 
         <div className="nav-tabs-group">
           <button
             className={`nav-tab-btn ${activeMainTab === 'terminal' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('terminal')}
+            title="Terminal View"
           >
-            <TerminalIcon size={15} />
-            <span>Terminal</span>
+            <TerminalIcon size={16} />
+            <span className="tab-label">Terminal</span>
           </button>
 
           <button
             className={`nav-tab-btn ${activeMainTab === 'explorer' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('explorer')}
+            title="File Explorer & Editor"
           >
-            <FolderTree size={15} />
-            <span>File Explorer & Editor</span>
+            <FolderTree size={16} />
+            <span className="tab-label">Files</span>
           </button>
 
           <button
             className={`nav-tab-btn ${activeMainTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('settings')}
+            title="Settings & Studio"
           >
-            <Sliders size={15} />
-            <span>Settings & Studio</span>
+            <Sliders size={16} />
+            <span className="tab-label">Settings</span>
           </button>
         </div>
       </header>
 
       {/* Tab 1: Multi-Tab WebGL Terminal */}
       {activeMainTab === 'terminal' && (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
           <SessionTabs
             sessions={sessions}
             activeSession={activeSession}
@@ -206,19 +207,19 @@ export default function App() {
             onKeyPress={handleKeyPress}
             onVoiceInput={handleVoiceInput}
           />
-        </>
+        </div>
       )}
 
       {/* Tab 2: GUI File Explorer & Multi-Document CodeEditor */}
       {activeMainTab === 'explorer' && (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
           <div className="settings-subtabs-bar">
             <button
               className={`subtab-btn ${explorerSubTab === 'tree' ? 'active' : ''}`}
               onClick={() => setExplorerSubTab('tree')}
             >
               <FolderTree size={14} />
-              <span>📂 File Explorer</span>
+              <span>📂 Files</span>
             </button>
 
             <button
@@ -226,7 +227,7 @@ export default function App() {
               onClick={() => setExplorerSubTab('editor')}
             >
               <TerminalIcon size={14} />
-              <span>📝 CodeEditor ({openDocuments.length})</span>
+              <span>📝 Editor ({openDocuments.length})</span>
             </button>
           </div>
 
@@ -248,7 +249,11 @@ export default function App() {
       )}
 
       {/* Tab 3: Settings, Themes & Button Studio */}
-      {activeMainTab === 'settings' && <SettingsManager />}
+      {activeMainTab === 'settings' && (
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
+          <SettingsManager />
+        </div>
+      )}
     </div>
   );
 }

@@ -903,3 +903,71 @@ html, body, #root {
   background: var(--accent-highlight);
   color: var(--bg-earth);
 }
+
+/* ==========================================
+   MOBILE & TABLET TOUCH RESPONSIVE STYLES
+   ========================================== */
+
+.brand-text-desktop { display: inline; }
+.brand-text-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .brand-text-desktop { display: none; }
+  .brand-text-mobile { display: inline; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; }
+
+  .main-nav-bar {
+    padding: 0.4rem 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .nav-tabs-group {
+    flex: 1;
+    justify-content: flex-end;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-tab-btn {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .settings-content-viewport {
+    padding: 0.75rem;
+  }
+
+  /* Preset Grid Mobile Adaptability */
+  .preset-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }
+
+  /* Button Studio Surround Mobile 1-Column Layout */
+  .studio-surround-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .studio-region.left { grid-column: 1; grid-row: 1; }
+  .studio-center-preview { grid-column: 1; grid-row: 2; padding: 1rem; }
+  .studio-region.right { grid-column: 1; grid-row: 3; }
+  .studio-region.bottom { grid-column: 1; grid-row: 4; }
+
+  /* Toolbar Actions Mobile Adjustments */
+  .explorer-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .dock-slots-row {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
