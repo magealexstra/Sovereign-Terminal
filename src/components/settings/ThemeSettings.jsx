@@ -11,18 +11,17 @@ export default function ThemeSettings() {
   const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
 
   const handleCreateCustom = () => {
-    const customKey = `Custom_${Date.now()}`;
     const newCustom = {
       name: 'Custom Theme',
-      bgEarth: '#141E26',
-      bgCanopy: '#1F2D3A',
-      bgPanel: 'rgba(31, 45, 58, 0.8)',
-      borderForest: '#3B4D61',
-      borderSage: '#88C0D0',
+      bgEarth: '#0A1118',
+      bgCanopy: '#141E26',
+      bgPanel: 'rgba(20, 30, 38, 0.85)',
+      borderForest: '#2A3B4C',
+      borderSage: '#5E81AC',
       textParchment: '#E6EDF0',
       textMuted: '#A3B1B8',
-      accentMana: '#88C0D0',
-      accentHighlight: '#5E81AC',
+      accentMana: '#5E81AC',
+      accentHighlight: '#88C0D0',
       statusActive: '#4C7864',
       fontMono: "'IBM Plex Mono', monospace",
       fontSans: "'IBM Plex Sans', sans-serif"
@@ -139,7 +138,7 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* 3. Theme Customizer Pop-up Modal */}
+      {/* 3. Theme Customizer Pop-up Modal (All 6 Signature Color Pickers) */}
       {editingTheme && (
         <div className="explorer-modal-overlay" onClick={() => setEditingTheme(null)}>
           <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -150,8 +149,8 @@ export default function ThemeSettings() {
               </button>
             </div>
 
-            {/* Hex Color Pickers */}
-            <div className="modal-section-title">Color Palette</div>
+            {/* All 6 Signature Hex Color Pickers */}
+            <div className="modal-section-title">Color Palette (6 Colors)</div>
             <div className="custom-hex-grid">
               <div className="hex-picker-card">
                 <span>Void Base</span>
@@ -181,6 +180,38 @@ export default function ThemeSettings() {
                     type="text"
                     value={theme?.bgCanopy || '#141E26'}
                     onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="hex-picker-card">
+                <span>Border / Grid</span>
+                <div className="color-input-group">
+                  <input
+                    type="color"
+                    value={theme?.borderForest || '#2A3B4C'}
+                    onChange={(e) => updateCustomColor('borderForest', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={theme?.borderForest || '#2A3B4C'}
+                    onChange={(e) => updateCustomColor('borderForest', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="hex-picker-card">
+                <span>Primary Text</span>
+                <div className="color-input-group">
+                  <input
+                    type="color"
+                    value={theme?.textParchment || '#E6EDF0'}
+                    onChange={(e) => updateCustomColor('textParchment', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={theme?.textParchment || '#E6EDF0'}
+                    onChange={(e) => updateCustomColor('textParchment', e.target.value)}
                   />
                 </div>
               </div>
