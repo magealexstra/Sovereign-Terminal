@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { json } from '@codemirror/lang-json';
@@ -31,7 +31,6 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
   // Single-Tap vs Long-Press Tab Close Safeguard
   const handleTabClosePress = (docPath) => {
     pressTimer.current = setTimeout(() => {
-      // Long-press: Force close without asking
       onCloseTab(docPath, true);
     }, 700);
   };
@@ -40,7 +39,6 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
-    // Single-tap: Check if modified
     if (isModified) {
       setCloseConfirmModal(docPath);
     } else {
@@ -97,7 +95,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
         </button>
       </div>
 
-      {/* Main Workspace (CodeMirror / Image Preview) */}
+      {/* Main Workspace (CodeMirror 6 with Word Wrap Enabled by Default / Image Preview) */}
       <div className="editor-viewport">
         {isImageFile(activeDoc.path) ? (
           <div className="image-preview-container">
@@ -109,7 +107,10 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
             value={activeDoc.content || ''}
             height="100%"
             theme={oneDark}
-            extensions={getLanguageExtension(activeDoc.path)}
+            extensions={[
+              ...getLanguageExtension(activeDoc.path),
+              EditorView.lineWrapping // Word Wrap Enabled by Default
+            ]}
             onChange={(value) => onContentChange(activeDoc.path, value)}
           />
         )}
