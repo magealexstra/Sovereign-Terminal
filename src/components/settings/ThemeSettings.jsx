@@ -1,37 +1,42 @@
-import React from 'react';
-import { Palette, Check, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Palette, Check, RefreshCw, Type, Sliders } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function ThemeSettings() {
   const { theme, setTheme, themes, updateCustomColor, resetToDefault } = useApp();
+  const [terminalFontSize, setTerminalFontSize] = useState(14);
+  const [editorFontSize, setEditorFontSize] = useState(14);
+  const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
 
   return (
     <div className="theme-settings-container">
-      {/* 1. Open-Source 12 MIT Presets (Compact 3-Column Mobile Micro Grid) */}
+      {/* 1. All 12 Open-Source MIT Theme Presets */}
       <div className="theme-section">
         <div className="section-header-compact">
           <Palette size={14} color="#88C0D0" />
           <span>12 Open-Source MIT Theme Presets</span>
         </div>
 
-        <div className="compact-preset-grid">
+        <div className="presets-full-grid">
           {Object.entries(themes || {}).map(([key, t]) => {
             const isActive = theme && theme.name === t.name;
             return (
               <div
                 key={key}
-                className={`micro-preset-card ${isActive ? 'active' : ''}`}
+                className={`full-preset-card ${isActive ? 'active' : ''}`}
                 onClick={() => setTheme(t)}
               >
-                <div className="micro-swatch-row">
-                  <span style={{ backgroundColor: t.bgEarth || '#0A1118' }} />
-                  <span style={{ backgroundColor: t.bgCanopy || '#141E26' }} />
-                  <span style={{ backgroundColor: t.accentMana || '#5E81AC' }} />
-                  <span style={{ backgroundColor: t.accentHighlight || '#88C0D0' }} />
+                <div className="preset-card-header">
+                  <span className="preset-full-title">{t.name}</span>
+                  {isActive && <Check size={12} color="#88C0D0" />}
                 </div>
-                <div className="micro-preset-footer">
-                  <span className="micro-preset-name">{t.name}</span>
-                  {isActive && <Check size={11} color="#88C0D0" />}
+
+                <div className="swatches-5-strip">
+                  <span style={{ backgroundColor: t.bgEarth || '#0A1118' }} title="Void" />
+                  <span style={{ backgroundColor: t.bgCanopy || '#141E26' }} title="Card" />
+                  <span style={{ backgroundColor: t.borderForest || '#2A3B4C' }} title="Border" />
+                  <span style={{ backgroundColor: t.accentMana || '#5E81AC' }} title="Mana Blue" />
+                  <span style={{ backgroundColor: t.accentHighlight || '#88C0D0' }} title="Polar Ice" />
                 </div>
               </div>
             );
@@ -112,6 +117,60 @@ export default function ThemeSettings() {
                 onChange={(e) => updateCustomColor('accentHighlight', e.target.value)}
               />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Typography & Font Controls (As specified in Blueprint TAB_3) */}
+      <div className="theme-section">
+        <div className="section-header-compact">
+          <Type size={14} color="#4C7864" />
+          <span>Typography & Font Sizing</span>
+        </div>
+
+        <div className="font-controls-grid">
+          <div className="font-control-card">
+            <div className="font-control-label">
+              <span>Terminal Font Size</span>
+              <strong>{terminalFontSize}px</strong>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="22"
+              value={terminalFontSize}
+              onChange={(e) => setTerminalFontSize(Number(e.target.value))}
+              className="font-slider"
+            />
+          </div>
+
+          <div className="font-control-card">
+            <div className="font-control-label">
+              <span>Editor Font Size</span>
+              <strong>{editorFontSize}px</strong>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="22"
+              value={editorFontSize}
+              onChange={(e) => setEditorFontSize(Number(e.target.value))}
+              className="font-slider"
+            />
+          </div>
+
+          <div className="font-control-card full-width">
+            <span>Font Family</span>
+            <select
+              value={fontFamily}
+              onChange={(e) => setFontFamily(e.target.value)}
+              className="font-select-dropdown"
+            >
+              <option value="IBM Plex Mono">IBM Plex Mono (Nordic Standard)</option>
+              <option value="Fira Code">Fira Code (Ligatures)</option>
+              <option value="JetBrains Mono">JetBrains Mono</option>
+              <option value="Inconsolata">Inconsolata</option>
+            </select>
           </div>
         </div>
       </div>

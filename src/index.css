@@ -1932,3 +1932,110 @@ html, body, #root {
   font-size: 0.68rem;
   text-align: center;
 }
+
+/* Theme Settings Presets Grid & Font Controls */
+.presets-full-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.full-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.full-preset-card:hover {
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.full-preset-card.active {
+  border-color: var(--accent-highlight);
+  background: rgba(136, 192, 208, 0.15);
+  box-shadow: 0 0 10px rgba(136, 192, 208, 0.3);
+}
+
+.preset-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.preset-full-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+  line-height: 1.1;
+}
+
+.swatches-5-strip {
+  display: flex;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.swatches-5-strip span {
+  flex: 1;
+  height: 100%;
+}
+
+.font-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.font-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.45rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+}
+
+.font-control-card.full-width {
+  grid-column: 1 / span 2;
+}
+
+.font-control-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.font-control-label strong {
+  color: var(--accent-highlight);
+  font-family: var(--font-mono);
+}
+
+.font-slider {
+  width: 100%;
+  accent-color: var(--accent-highlight);
+  cursor: pointer;
+}
+
+.font-select-dropdown {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
