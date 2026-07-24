@@ -25,22 +25,18 @@ def set_pty_size(fd, rows, cols):
 async def websocket_terminal(websocket: WebSocket, session: str = "mobile-voice"):
     await websocket.accept()
 
-    # Determine command to execute: tmux session or bash fallback
     tmux_bin = shutil.which("tmux")
     if tmux_bin:
         cmd = [tmux_bin, "new-session", "-A", "-s", session]
     else:
         cmd = [shutil.which("bash") or "/bin/sh"]
 
-    # Allocate Linux Pseudoterminal (PTY)
     master_fd, slave_fd = pty.openpty()
     
-    # Prepare environment variables with xterm-256color and truecolor
     env = os.environ.copy()
     env["TERM"] = "xterm-256color"
     env["COLORTERM"] = "truecolor"
 
-    # Spawn child process attached to slave PTY
     proc = subprocess.Popen(
         cmd,
         preexec_fn=os.setsid,
@@ -53,13 +49,11 @@ async def websocket_terminal(websocket: WebSocket, session: str = "mobile-voice"
     )
     os.close(slave_fd)
 
-    # Initial PTY size
     set_pty_size(master_fd, 24, 80)
 
     loop = asyncio.get_event_loop()
 
     async def pty_read_loop():
-        """Read output from Linux PTY and stream to WebSocket."""
         try:
             while True:
                 data = await loop.run_in_executor(
@@ -90,6 +84,11 @@ async def websocket_terminal(websocket: WebSocket, session: str = "mobile-voice"
                         cols = payload.get("cols", 80)
                         rows = payload.get("rows", 24)
                         set_pty_size(master_fd, rows, cols)
+                        if tmux_bin:
+                            try:
+                                subprocess.run([tmux_bin, "resize-window", "-t", session, "-x", str(cols), "-y", str(rows)], check=False)
+                            except Exception:
+                                pass
                         continue
                     elif msg_type == "sudo_macro":
                         if SUDO_MACRO_SECRET:

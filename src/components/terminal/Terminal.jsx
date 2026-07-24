@@ -88,7 +88,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
 
-    // Layout-Aware Fit Trigger: Wait for DOM container height to compute 100%
     const performFit = () => {
       requestAnimationFrame(() => {
         try {
@@ -123,13 +122,21 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
-    socket.onopen = () => {
-      performFit();
-      if (socket.readyState === WebSocket.OPEN) {
+    const sendResizeHandshake = () => {
+      if (socket.readyState === WebSocket.OPEN && fitAddon) {
+        fitAddon.fit();
         const { cols, rows } = fitAddon;
-        socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
-        socket.send('\r');
+        if (cols && rows) {
+          socket.send(JSON.stringify({ type: 'resize', cols: cols, rows: rows }));
+        }
       }
+    };
+
+    socket.onopen = () => {
+      sendResizeHandshake();
+      socket.send('\r');
+      // 2-Step Delayed Resize Handshake to ensure tmux session attaches after initial load
+      setTimeout(sendResizeHandshake, 250);
     };
 
     socket.onmessage = (event) => {
@@ -150,13 +157,9 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       }
     });
 
-    // ResizeObserver + visualViewport listener for full height pinning & mobile keyboard push
     const handleResize = () => {
       performFit();
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        const { cols, rows } = fitAddon;
-        socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
-      }
+      sendResizeHandshake();
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
