@@ -15,8 +15,8 @@ export default function ThemeSettings() {
         </div>
 
         <div className="compact-preset-grid">
-          {Object.entries(themes).map(([key, t]) => {
-            const isActive = theme.name === t.name;
+          {Object.entries(themes || {}).map(([key, t]) => {
+            const isActive = theme && theme.name === t.name;
             return (
               <div
                 key={key}
@@ -24,10 +24,10 @@ export default function ThemeSettings() {
                 onClick={() => setTheme(t)}
               >
                 <div className="micro-swatch-row">
-                  <span style={{ backgroundColor: t.bgVoid }} />
-                  <span style={{ backgroundColor: t.bgCard }} />
-                  <span style={{ backgroundColor: t.accentGlacier }} />
-                  <span style={{ backgroundColor: t.accentPolar }} />
+                  <span style={{ backgroundColor: t.bgEarth || '#0A1118' }} />
+                  <span style={{ backgroundColor: t.bgCanopy || '#141E26' }} />
+                  <span style={{ backgroundColor: t.accentMana || '#5E81AC' }} />
+                  <span style={{ backgroundColor: t.accentHighlight || '#88C0D0' }} />
                 </div>
                 <div className="micro-preset-footer">
                   <span className="micro-preset-name">{t.name}</span>
@@ -55,13 +55,13 @@ export default function ThemeSettings() {
             <div className="color-input-group">
               <input
                 type="color"
-                value={theme.bgVoid}
-                onChange={(e) => updateCustomColor('bgVoid', e.target.value)}
+                value={theme?.bgEarth || '#0A1118'}
+                onChange={(e) => updateCustomColor('bgEarth', e.target.value)}
               />
               <input
                 type="text"
-                value={theme.bgVoid}
-                onChange={(e) => updateCustomColor('bgVoid', e.target.value)}
+                value={theme?.bgEarth || '#0A1118'}
+                onChange={(e) => updateCustomColor('bgEarth', e.target.value)}
               />
             </div>
           </div>
@@ -71,13 +71,13 @@ export default function ThemeSettings() {
             <div className="color-input-group">
               <input
                 type="color"
-                value={theme.bgCard}
-                onChange={(e) => updateCustomColor('bgCard', e.target.value)}
+                value={theme?.bgCanopy || '#141E26'}
+                onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
               />
               <input
                 type="text"
-                value={theme.bgCard}
-                onChange={(e) => updateCustomColor('bgCard', e.target.value)}
+                value={theme?.bgCanopy || '#141E26'}
+                onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
               />
             </div>
           </div>
@@ -87,13 +87,13 @@ export default function ThemeSettings() {
             <div className="color-input-group">
               <input
                 type="color"
-                value={theme.accentGlacier}
-                onChange={(e) => updateCustomColor('accentGlacier', e.target.value)}
+                value={theme?.accentMana || '#5E81AC'}
+                onChange={(e) => updateCustomColor('accentMana', e.target.value)}
               />
               <input
                 type="text"
-                value={theme.accentGlacier}
-                onChange={(e) => updateCustomColor('accentGlacier', e.target.value)}
+                value={theme?.accentMana || '#5E81AC'}
+                onChange={(e) => updateCustomColor('accentMana', e.target.value)}
               />
             </div>
           </div>
@@ -103,13 +103,13 @@ export default function ThemeSettings() {
             <div className="color-input-group">
               <input
                 type="color"
-                value={theme.accentPolar}
-                onChange={(e) => updateCustomColor('accentPolar', e.target.value)}
+                value={theme?.accentHighlight || '#88C0D0'}
+                onChange={(e) => updateCustomColor('accentHighlight', e.target.value)}
               />
               <input
                 type="text"
-                value={theme.accentPolar}
-                onChange={(e) => updateCustomColor('accentPolar', e.target.value)}
+                value={theme?.accentHighlight || '#88C0D0'}
+                onChange={(e) => updateCustomColor('accentHighlight', e.target.value)}
               />
             </div>
           </div>
