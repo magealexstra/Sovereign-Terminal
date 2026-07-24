@@ -1,0 +1,23 @@
+# Logs & Temp Trash
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+_temp_trash
+
+# Environment Secrets
+config.env
+.env
+
+# Master Architecture Specifications (Private Workspace Specs)
+docs/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

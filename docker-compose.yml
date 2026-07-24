@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "${PORT:-2068}:${PORT:-2068}"
+    env_file:
+      - config.env
+    environment:
+      - PORT=${PORT:-2068}
+      - WORKSPACE_ROOT=${WORKSPACE_ROOT:-/workspace}
+      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
+      - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
+    volumes:
+      - ${HOST_WORKSPACE_PATH:-./}:/workspace
