@@ -8,7 +8,7 @@ import { useApp } from '../../context/AppContext';
 import '@xterm/xterm/css/xterm.css';
 
 export default function Terminal({ activeSession, voiceInput, onDataSent }) {
-  const { theme } = useApp();
+  const { theme, fontSizeTerminal } = useApp();
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
   const fitAddonInstance = useRef(null);
@@ -17,15 +17,27 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
 
+  // Dynamic font size updates across xterm instance
+  useEffect(() => {
+    if (xtermInstance.current) {
+      xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
+      if (fitAddonInstance.current) {
+        try {
+          fitAddonInstance.current.fit();
+        } catch (e) {}
+      }
+    }
+  }, [fontSizeTerminal]);
+
   useEffect(() => {
     if (!terminalRef.current) return;
 
     // High contrast terminal theme palette
     const termTheme = {
-      background: '#0A1118',
-      foreground: '#E6EDF0',
-      cursor: '#88C0D0',
-      cursorAccent: '#0A1118',
+      background: theme?.bgEarth || '#141E26',
+      foreground: theme?.textParchment || '#E6EDF0',
+      cursor: theme?.accentHighlight || '#88C0D0',
+      cursorAccent: theme?.bgEarth || '#141E26',
       selectionBackground: 'rgba(136, 192, 208, 0.4)',
       black: '#3B4252',
       red: '#BF616A',
@@ -49,7 +61,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       cursorBlink: true,
       cursorStyle: 'block',
       fontFamily: "'IBM Plex Mono', 'Courier New', monospace",
-      fontSize: 15,
+      fontSize: fontSizeTerminal || 14,
       lineHeight: 1.2,
       scrollback: 5000,
       theme: termTheme,
@@ -65,7 +77,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     term.loadAddon(webLinksAddon);
     term.open(terminalRef.current);
 
-    // Try WebGL addon for hardware-accelerated 60fps rendering
     try {
       const webglAddon = new WebglAddon();
       term.loadAddon(webglAddon);
@@ -76,14 +87,12 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
 
-    // Delayed initial fit to ensure DOM dimensions are calculated correctly
     setTimeout(() => {
       try {
         fitAddon.fit();
       } catch (e) {}
     }, 100);
 
-    // Automatic Copy-on-Select
     term.onSelectionChange(() => {
       const selection = term.getSelection();
       if (selection && selection.trim().length > 0) {
@@ -94,7 +103,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       }
     });
 
-    // Scroll position listener for floating [ ⬇️ Bottom ] button
     term.onScroll(() => {
       if (term.buffer && term.buffer.active) {
         const isScrolledUp = term.buffer.active.viewportY < term.buffer.active.baseY;
@@ -102,7 +110,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       }
     });
 
-    // Connect WebSocket to Sovereign Gateway
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.hostname}:2068/ws/terminal?session=${activeSession}`;
     const socket = new WebSocket(wsUrl);
@@ -131,7 +138,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       }
     });
 
-    // ResizeObserver for dynamic terminal resizing on screen/viewport changes
     const resizeObserver = new ResizeObserver(() => {
       try {
         fitAddon.fit();
@@ -153,7 +159,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     };
   }, [activeSession]);
 
-  // Handle Voice Input or Touch Bar key presses
   useEffect(() => {
     if (voiceInput && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(voiceInput);
@@ -168,8 +173,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
   };
 
   return (
-    <div className="terminal-wrapper" style={{ position: 'relative', width: '100%', height: '100%', flex: 1, background: '#0A1118', overflow: 'hidden' }}>
-      {/* Copy-on-Select Toast Alert */}
+    <div className="terminal-wrapper" style={{ position: 'relative', width: '100%', height: '100%', flex: 1, background: theme?.bgEarth || '#141E26', overflow: 'hidden' }}>
       {copyToast && (
         <div className="copy-toast">
           <Copy size={13} />
@@ -177,10 +181,8 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
         </div>
       )}
 
-      {/* Terminal Viewport */}
       <div ref={terminalRef} className="terminal-container" style={{ width: '100%', height: '100%', padding: '4px' }} />
 
-      {/* Floating Scroll-to-Bottom Button */}
       {showScrollBottom && (
         <button className="scroll-bottom-btn" onClick={scrollToBottom}>
           <ArrowDown size={14} />

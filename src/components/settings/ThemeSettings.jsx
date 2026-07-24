@@ -1,15 +1,29 @@
 import React, { useState } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, Terminal as TermIcon, FileCode } from 'lucide-react';
+import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, Terminal as TermIcon, FileCode, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function ThemeSettings() {
-  const { theme, setTheme, themes, updateCustomColor, saveCustomTheme, resetToDefault } = useApp();
+  const {
+    theme,
+    setTheme,
+    themes,
+    updateCustomColor,
+    saveCustomTheme,
+    resetToDefault,
+    fontSizeTerminal,
+    setFontSizeTerminal,
+    fontSizeEditor,
+    setFontSizeEditor
+  } = useApp();
+
   const [editingTheme, setEditingTheme] = useState(null);
   const [customName, setCustomName] = useState('My Sovereign Custom');
 
-  const [terminalFontSize, setTerminalFontSize] = useState(14);
-  const [editorFontSize, setEditorFontSize] = useState(14);
+  // Local draft font sizes for sliders
+  const [localTerminalFont, setLocalTerminalFont] = useState(fontSizeTerminal || 14);
+  const [localEditorFont, setLocalEditorFont] = useState(fontSizeEditor || 14);
   const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
+  const [appliedToast, setAppliedToast] = useState(false);
 
   // Predefined editable preview text
   const [terminalSampleText, setTerminalSampleText] = useState(
@@ -34,6 +48,20 @@ export default function ThemeSettings() {
     theme.statusActive || '#4C7864',
     '#282a36', '#bd93f9', '#ff79c6', '#50fa7b', '#f1fa8c', '#89b4fa'
   ];
+
+  const handleApplyFontSettings = () => {
+    setFontSizeTerminal(localTerminalFont);
+    setFontSizeEditor(localEditorFont);
+    setAppliedToast(true);
+    setTimeout(() => setAppliedToast(false), 2500);
+  };
+
+  const handleResetFonts = () => {
+    setLocalTerminalFont(14);
+    setLocalEditorFont(14);
+    setFontSizeTerminal(14);
+    setFontSizeEditor(14);
+  };
 
   const handleCreateCustom = () => {
     const clonedActiveTheme = {
@@ -116,24 +144,25 @@ export default function ThemeSettings() {
         <div className="section-header-compact">
           <Type size={14} color="#4C7864" />
           <span>Typography & Live Previews</span>
-          <button type="button" className="reset-theme-btn" onClick={resetToDefault}>
-            <RefreshCw size={11} />
-            <span>Reset Default</span>
-          </button>
+          {appliedToast && (
+            <span className="applied-toast-badge">
+              <CheckCircle2 size={12} /> Applied Live
+            </span>
+          )}
         </div>
 
         <div className="font-controls-grid">
           <div className="font-control-card">
             <div className="font-control-label">
               <span>Terminal Font Size</span>
-              <strong>{terminalFontSize}pt</strong>
+              <strong>{localTerminalFont}pt</strong>
             </div>
             <input
               type="range"
               min="6"
               max="20"
-              value={terminalFontSize}
-              onChange={(e) => setTerminalFontSize(Number(e.target.value))}
+              value={localTerminalFont}
+              onChange={(e) => setLocalTerminalFont(Number(e.target.value))}
               className="font-slider"
             />
           </div>
@@ -141,14 +170,14 @@ export default function ThemeSettings() {
           <div className="font-control-card">
             <div className="font-control-label">
               <span>Editor Font Size</span>
-              <strong>{editorFontSize}pt</strong>
+              <strong>{localEditorFont}pt</strong>
             </div>
             <input
               type="range"
               min="6"
               max="20"
-              value={editorFontSize}
-              onChange={(e) => setEditorFontSize(Number(e.target.value))}
+              value={localEditorFont}
+              onChange={(e) => setLocalEditorFont(Number(e.target.value))}
               className="font-slider"
             />
           </div>
@@ -174,7 +203,7 @@ export default function ThemeSettings() {
           <div className="preview-window-card">
             <div className="preview-card-header">
               <TermIcon size={12} color={theme.accentHighlight || '#88C0D0'} />
-              <span>Terminal Font Preview ({terminalFontSize}pt)</span>
+              <span>Terminal Font Preview ({localTerminalFont}pt)</span>
             </div>
             <textarea
               className="live-preview-textarea"
@@ -182,7 +211,7 @@ export default function ThemeSettings() {
                 backgroundColor: theme.bgEarth || '#141E26',
                 color: theme.textParchment || '#E6EDF0',
                 borderColor: theme.accentMana || '#5E81AC',
-                fontSize: `${terminalFontSize}pt`,
+                fontSize: `${localTerminalFont}pt`,
                 fontFamily: fontFamily
               }}
               value={terminalSampleText}
@@ -194,7 +223,7 @@ export default function ThemeSettings() {
           <div className="preview-window-card">
             <div className="preview-card-header">
               <FileCode size={12} color={theme.accentMana || '#5E81AC'} />
-              <span>Editor Font Preview ({editorFontSize}pt)</span>
+              <span>Editor Font Preview ({localEditorFont}pt)</span>
             </div>
             <textarea
               className="live-preview-textarea"
@@ -202,13 +231,26 @@ export default function ThemeSettings() {
                 backgroundColor: theme.bgCanopy || '#1F2D3A',
                 color: theme.textParchment || '#E6EDF0',
                 borderColor: theme.accentHighlight || '#88C0D0',
-                fontSize: `${editorFontSize}pt`,
+                fontSize: `${localEditorFont}pt`,
                 fontFamily: fontFamily
               }}
               value={editorSampleText}
               onChange={(e) => setEditorSampleText(e.target.value)}
             />
           </div>
+        </div>
+
+        {/* ACTION BUTTONS: RESET DEFAULT & IMPLEMENT SETTINGS */}
+        <div className="font-action-btn-row">
+          <button type="button" className="font-reset-btn" onClick={handleResetFonts}>
+            <RefreshCw size={12} />
+            <span>Reset Default (14pt)</span>
+          </button>
+
+          <button type="button" className="font-apply-btn" onClick={handleApplyFontSettings}>
+            <CheckCircle2 size={12} />
+            <span>Implement Font Settings</span>
+          </button>
         </div>
       </div>
 
@@ -223,7 +265,6 @@ export default function ThemeSettings() {
               </button>
             </div>
 
-            {/* Theme Name Input */}
             <div className="theme-name-input-group">
               <label>Theme Name:</label>
               <input
@@ -235,7 +276,6 @@ export default function ThemeSettings() {
               />
             </div>
 
-            {/* Active Theme Base-16 Palette Swatches Bar */}
             <div className="modal-section-title">Active Base-16 Color Palette</div>
             <div className="modal-swatch-row">
               {activeThemeSwatches.map((color, idx) => (
@@ -248,7 +288,6 @@ export default function ThemeSettings() {
               ))}
             </div>
 
-            {/* All 6 Signature Hex Color Pickers */}
             <div className="modal-section-title" style={{ marginTop: '0.6rem' }}>Color Palette (6 Colors)</div>
             <div className="custom-hex-grid">
               <div className="hex-picker-card">

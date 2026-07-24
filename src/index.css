@@ -2402,3 +2402,59 @@ html, body, #root {
   outline: none;
   scrollbar-width: none;
 }
+
+/* Font Action Buttons & Applied Toast Badge */
+.font-action-btn-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.font-reset-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.70rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.font-apply-btn {
+  flex: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 8px;
+  color: #0d170b;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(76, 120, 100, 0.4);
+}
+
+.applied-toast-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.4rem;
+  background: rgba(76, 120, 100, 0.2);
+  border: 1px solid var(--status-active);
+  border-radius: 10px;
+  color: #89b4fa;
+  font-size: 0.65rem;
+  font-weight: 700;
+}

@@ -249,7 +249,6 @@ export function AppProvider({ children }) {
     setTheme(customThemeObject);
 
     try {
-      // Save user custom themes to localStorage
       const userCustomOnly = Object.fromEntries(
         Object.entries(updatedThemes).filter(([k]) => k.startsWith('Custom_'))
       );
@@ -261,6 +260,8 @@ export function AppProvider({ children }) {
 
   const resetToDefault = () => {
     setTheme(DEFAULT_THEME_PRESETS.VitniNordic);
+    setFontSizeTerminal(14);
+    setFontSizeEditor(14);
   };
 
   return (
