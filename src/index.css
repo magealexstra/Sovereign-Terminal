@@ -1788,3 +1788,673 @@ html, body, #root {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
+
+/* Theme Settings Compact Micro Grid & Touch Scrollable Viewport */
+.settings-content-viewport {
+  flex: 1;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.5rem;
+}
+
+.theme-settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 1.5rem;
+}
+
+.section-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+  margin-bottom: 0.5rem;
+}
+
+.reset-theme-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--accent-highlight);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compact-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.micro-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.micro-preset-card:hover {
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.micro-preset-card.active {
+  border-color: var(--accent-highlight);
+  background: rgba(136, 192, 208, 0.15);
+  box-shadow: 0 0 8px rgba(136, 192, 208, 0.3);
+}
+
+.micro-swatch-row {
+  display: flex;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.micro-swatch-row span {
+  flex: 1;
+  height: 100%;
+}
+
+.micro-preset-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+
+.micro-preset-name {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-parchment);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-hex-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem;
+}
+
+.hex-picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+}
+
+.hex-picker-card span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.color-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.color-input-group input[type="color"] {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.color-input-group input[type="text"] {
+  flex: 1;
+  width: 100%;
+  padding: 0.2rem 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+/* Theme Settings Presets Grid & Font Controls */
+.presets-full-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.full-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.full-preset-card:hover {
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.full-preset-card.active {
+  border-color: var(--accent-highlight);
+  background: rgba(136, 192, 208, 0.15);
+  box-shadow: 0 0 10px rgba(136, 192, 208, 0.3);
+}
+
+.preset-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.preset-full-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+  line-height: 1.1;
+}
+
+.swatches-5-strip {
+  display: flex;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.swatches-5-strip span {
+  flex: 1;
+  height: 100%;
+}
+
+.font-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.font-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.45rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+}
+
+.font-control-card.full-width {
+  grid-column: 1 / span 2;
+}
+
+.font-control-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.font-control-label strong {
+  color: var(--accent-highlight);
+  font-family: var(--font-mono);
+}
+
+.font-slider {
+  width: 100%;
+  accent-color: var(--accent-highlight);
+  cursor: pointer;
+}
+
+.font-select-dropdown {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/* Compact Native Theme Buttons Grid & Customizer Modal */
+.native-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.native-theme-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.native-theme-button.active {
+  border-width: 2px;
+}
+
+.native-theme-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+
+.native-theme-title {
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-gear-btn {
+  align-self: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  border-radius: 50%;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.native-gear-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.theme-modal-card {
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 92%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.modal-header-row h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-parchment);
+}
+
+.modal-close-x {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-highlight);
+  margin-bottom: 0.4rem;
+}
+
+/* Create Custom Theme Action Button */
+.create-custom-theme-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 12px;
+  color: #0d170b;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Touch Button Studio Target Layers & Audition Console */
+.studio-lower-color-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.target-layer-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.target-layer-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.2rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.target-layer-btn.active {
+  background: var(--accent-highlight);
+  color: #0A1118;
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+}
+
+.dual-color-console {
+  display: flex;
+  gap: 0.5rem;
+  height: 140px;
+}
+
+.vertical-swatch-palette {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.4rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.swatch-group-title {
+  font-size: 0.60rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.swatch-grid-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.custom-dot {
+  border-color: var(--accent-highlight) !important;
+}
+
+.right-audition-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.4rem;
+}
+
+.large-audition-box {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.large-audition-box span {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.audition-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.audition-native-picker {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.audition-hex-input {
+  flex: 1;
+  padding: 0.2rem 0.3rem;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.70rem;
+  text-align: center;
+}
+
+.audition-btn-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.add-swatch-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.2rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 10px;
+  color: #0d170b;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clear-swatch-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.2rem;
+  background: rgba(255, 0, 60, 0.2);
+  border: 1px solid rgba(255, 0, 60, 0.5);
+  border-radius: 10px;
+  color: #ff79c6;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Theme Customizer Modal Theme Naming Field */
+.theme-name-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.theme-name-input-group label {
+  font-size: 0.70rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.theme-name-field {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Theme Customizer Modal Active Swatches Row */
+.modal-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.35rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+}
+
+/* Live Theme-Styled Interactive Font Preview Windows */
+.live-font-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.preview-window-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.45rem;
+}
+
+.preview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+}
+
+.live-preview-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  resize: vertical;
+  line-height: 1.35;
+  outline: none;
+  scrollbar-width: none;
+}
+
+/* Font Action Buttons & Applied Toast Badge */
+.font-action-btn-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.font-reset-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.70rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.font-apply-btn {
+  flex: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 8px;
+  color: #0d170b;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(76, 120, 100, 0.4);
+}
+
+.applied-toast-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.4rem;
+  background: rgba(76, 120, 100, 0.2);
+  border: 1px solid var(--status-active);
+  border-radius: 10px;
+  color: #89b4fa;
+  font-size: 0.65rem;
+  font-weight: 700;
+}

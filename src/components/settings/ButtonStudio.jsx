@@ -1,17 +1,45 @@
 import React, { useState } from 'react';
-import { Plus, Sliders, Palette, Code } from 'lucide-react';
+import { Plus, Sliders, Palette, Code, Trash2, Check, Type, Square, Layers } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 export default function ButtonStudio() {
+  const { theme } = useApp();
+
+  // Active Buttons List
   const [buttons, setButtons] = useState([
-    { id: 'b1', label: 'ESC', value: '\x1b', width: 2.4, height: 2.0, shape: 'rounded', color: '#141E26' },
-    { id: 'b2', label: 'TAB', value: '\t', width: 2.4, height: 2.0, shape: 'rounded', color: '#141E26' },
-    { id: 'b3', label: '^C', value: '\x03', width: 2.4, height: 2.0, shape: 'rounded', color: '#141E26' },
-    { id: 'b4', label: 'htop', value: 'htop\n', width: 3.2, height: 2.0, shape: 'pill', color: '#5E81AC' },
-    { id: 'b5', label: 'docker ps', value: 'docker ps\n', width: 4.2, height: 2.0, shape: 'rounded', color: '#88C0D0' },
+    { id: 'b1', label: 'ESC', value: '\x1b', width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
+    { id: 'b2', label: 'TAB', value: '\t', width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
+    { id: 'b3', label: '^C', value: '\x03', width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
+    { id: 'b4', label: 'htop', value: 'htop\n', width: 3.2, height: 2.0, shape: 'pill', bg: '#141E26', text: '#5E81AC', border: '#4C7864' },
+    { id: 'b5', label: 'docker ps', value: 'docker ps\n', width: 4.2, height: 2.0, shape: 'rounded', bg: '#21252b', text: '#88C0D0', border: '#fcee0a' },
   ]);
 
   const [selectedId, setSelectedId] = useState('b4');
   const activeBtn = buttons.find((b) => b.id === selectedId) || buttons[0];
+
+  // Target Color Layer Selection: 'text' | 'bg' | 'border'
+  const [targetLayer, setTargetLayer] = useState('bg');
+
+  // Hex Audition State
+  const [auditionHex, setAuditionHex] = useState('#88C0D0');
+
+  // User Custom Created Swatches (Persists across theme swaps)
+  const [customSwatches, setCustomSwatches] = useState(['#FF003C', '#00FFCC', '#FFA500']);
+
+  // Extract Theme Base 16 Swatches dynamically from active theme
+  const themeSwatches = [
+    theme?.bgEarth || '#141E26',
+    theme?.bgCanopy || '#1F2D3A',
+    theme?.borderForest || '#2A3B4C',
+    theme?.borderSage || '#5E81AC',
+    theme?.textParchment || '#E6EDF0',
+    theme?.textMuted || '#A3B1B8',
+    theme?.textDim || '#4C566A',
+    theme?.accentMana || '#5E81AC',
+    theme?.accentHighlight || '#88C0D0',
+    theme?.statusActive || '#4C7864',
+    '#282a36', '#bd93f9', '#ff79c6', '#50fa7b', '#f1fa8c', '#89b4fa'
+  ];
 
   const updateActiveBtn = (fields) => {
     setButtons((prev) =>
@@ -21,9 +49,36 @@ export default function ButtonStudio() {
 
   const handleCreateNew = () => {
     const newId = `custom-${Date.now()}`;
-    const newBtn = { id: newId, label: 'NEW', value: 'echo Hello\n', width: 3.2, height: 2.0, shape: 'rounded', color: '#5E81AC' };
+    const newBtn = {
+      id: newId,
+      label: 'NEW',
+      value: 'echo Hello\n',
+      width: 3.2,
+      height: 2.0,
+      shape: 'rounded',
+      bg: theme?.bgCanopy || '#141E26',
+      text: theme?.textParchment || '#E6EDF0',
+      border: theme?.accentMana || '#5E81AC'
+    };
     setButtons([...buttons, newBtn]);
     setSelectedId(newId);
+  };
+
+  // Apply Swatch to Selected Layer ('text', 'bg', 'border')
+  const handleApplySwatch = (color) => {
+    if (targetLayer === 'bg') updateActiveBtn({ bg: color });
+    if (targetLayer === 'text') updateActiveBtn({ text: color });
+    if (targetLayer === 'border') updateActiveBtn({ border: color });
+  };
+
+  const handleAddSwatch = () => {
+    if (auditionHex && !customSwatches.includes(auditionHex)) {
+      setCustomSwatches([...customSwatches, auditionHex]);
+    }
+  };
+
+  const handleClearAudition = () => {
+    setAuditionHex('#88C0D0');
   };
 
   return (
@@ -47,7 +102,7 @@ export default function ButtonStudio() {
         </button>
       </div>
 
-      {/* Main Touch Surround Grid - Contained within Single Mobile Viewport */}
+      {/* Main Surround Grid */}
       <div className="studio-mobile-grid">
         {/* LEFT REGION: Command Output & Label */}
         <div className="region-box left">
@@ -65,7 +120,7 @@ export default function ButtonStudio() {
               className="micro-input"
               value={activeBtn.value}
               onChange={(e) => updateActiveBtn({ value: e.target.value })}
-              placeholder="Command String"
+              placeholder="Command Payload"
             />
           </div>
         </div>
@@ -79,7 +134,11 @@ export default function ButtonStudio() {
             style={{
               width: `${activeBtn.width}rem`,
               height: `${activeBtn.height}rem`,
-              backgroundColor: activeBtn.color,
+              backgroundColor: activeBtn.bg,
+              color: activeBtn.text,
+              borderColor: activeBtn.border,
+              borderWidth: '2px',
+              borderStyle: 'solid'
             }}
           >
             {activeBtn.label}
@@ -109,27 +168,108 @@ export default function ButtonStudio() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* BOTTOM REGION: Color Selector & Hex Code */}
-        <div className="region-box bottom">
-          <div className="region-tag"><Palette size={12} color="#4C7864" /> Color Palette</div>
-          <div className="bottom-palette-row">
-            <div className="swatch-strip">
-              {['#141E26', '#2A3B4C', '#5E81AC', '#88C0D0', '#4C7864', '#FF003C', '#fbbf24'].map((color) => (
+      {/* Target Color Layer & Audition Console */}
+      <div className="studio-lower-color-console">
+        <div className="target-layer-row">
+          <button
+            type="button"
+            className={`target-layer-btn ${targetLayer === 'text' ? 'active' : ''}`}
+            onClick={() => setTargetLayer('text')}
+          >
+            <Type size={12} />
+            <span>Text Color</span>
+          </button>
+
+          <button
+            type="button"
+            className={`target-layer-btn ${targetLayer === 'bg' ? 'active' : ''}`}
+            onClick={() => setTargetLayer('bg')}
+          >
+            <Square size={12} />
+            <span>Background</span>
+          </button>
+
+          <button
+            type="button"
+            className={`target-layer-btn ${targetLayer === 'border' ? 'active' : ''}`}
+            onClick={() => setTargetLayer('border')}
+          >
+            <Layers size={12} />
+            <span>Border / Icon</span>
+          </button>
+        </div>
+
+        <div className="dual-color-console">
+          <div className="vertical-swatch-palette">
+            <span className="swatch-group-title">Theme Swatches (16)</span>
+            <div className="swatch-grid-rows">
+              {themeSwatches.map((color, idx) => (
                 <span
-                  key={color}
+                  key={`theme-${idx}-${color}`}
                   className="palette-dot"
                   style={{ backgroundColor: color }}
-                  onClick={() => updateActiveBtn({ color })}
+                  onClick={() => handleApplySwatch(color)}
+                  title={`Apply ${color} to ${targetLayer}`}
                 />
               ))}
             </div>
-            <input
-              type="text"
-              className="micro-input hex-input"
-              value={activeBtn.color}
-              onChange={(e) => updateActiveBtn({ color: e.target.value })}
-            />
+
+            {customSwatches.length > 0 && (
+              <>
+                <span className="swatch-group-title" style={{ marginTop: '0.4rem' }}>User Custom Swatches</span>
+                <div className="swatch-grid-rows">
+                  {customSwatches.map((color, idx) => (
+                    <span
+                      key={`custom-${idx}-${color}`}
+                      className="palette-dot custom-dot"
+                      style={{ backgroundColor: color }}
+                      onClick={() => handleApplySwatch(color)}
+                      title={`Apply ${color} to ${targetLayer}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="right-audition-panel">
+            <div
+              className="large-audition-box"
+              style={{ backgroundColor: auditionHex }}
+              onClick={() => handleApplySwatch(auditionHex)}
+              title="Tap to apply color directly to selected layer"
+            >
+              <span>{auditionHex}</span>
+            </div>
+
+            <div className="audition-input-row">
+              <input
+                type="color"
+                className="audition-native-picker"
+                value={auditionHex}
+                onChange={(e) => setAuditionHex(e.target.value)}
+              />
+              <input
+                type="text"
+                className="audition-hex-input"
+                value={auditionHex}
+                onChange={(e) => setAuditionHex(e.target.value)}
+                placeholder="#HEX"
+              />
+            </div>
+
+            <div className="audition-btn-row">
+              <button type="button" className="add-swatch-btn" onClick={handleAddSwatch}>
+                <Plus size={12} />
+                <span>Add</span>
+              </button>
+              <button type="button" className="clear-swatch-btn" onClick={handleClearAudition}>
+                <Trash2 size={12} />
+                <span>Clear</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
