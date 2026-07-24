@@ -2039,3 +2039,100 @@ html, body, #root {
   font-family: var(--font-mono);
   font-size: 0.72rem;
 }
+
+/* Compact Native Theme Buttons Grid & Customizer Modal */
+.native-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.native-theme-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.native-theme-button.active {
+  border-width: 2px;
+}
+
+.native-theme-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+
+.native-theme-title {
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-gear-btn {
+  align-self: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  border-radius: 50%;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.native-gear-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.theme-modal-card {
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 92%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.modal-header-row h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-parchment);
+}
+
+.modal-close-x {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-highlight);
+  margin-bottom: 0.4rem;
+}
