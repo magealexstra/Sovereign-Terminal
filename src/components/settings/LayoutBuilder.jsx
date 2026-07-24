@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Zap, Target, AlignLeft, AlignCenter, AlignRight, Maximize2, MoveVertical } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Zap, AlignLeft, AlignCenter, AlignRight, Maximize2, MoveVertical } from 'lucide-react';
 
 export default function LayoutBuilder() {
   // Active Bar Selection: 'top' | 'bottom' | 'left' | 'right'
@@ -16,19 +16,20 @@ export default function LayoutBuilder() {
   // Selected Pool Button for 2-Tap Placement
   const [selectedPoolKey, setSelectedPoolKey] = useState(null);
 
-  // Perimeter Slot Allocations (~48px each)
+  // Perimeter Slot Allocations (Exact 1:1 Squares)
   const [slots, setSlots] = useState({
     top: ['ESC', 'TAB', '^C', '^Z', '|', '~'],
-    bottom: ['htop', 'docker ps', 'git status', 'clear', 'ip a', 'df -h'],
+    bottom: ['htop', 'docker', 'git', 'clear', 'ip a', 'df -h'],
     left: ['ESC', 'TAB', '^C', 'htop'],
-    right: ['^Z', '|', 'clear', 'docker ps'],
+    right: ['^Z', '|', 'clear', 'docker'],
   });
 
-  // Central Button Pool
+  // Central Button Pool (16 Buttons Matrix around ⚡ MACROS)
   const buttonPool = [
     'ESC', 'TAB', '^C', '^Z',
     '|', '⚡ MACROS', '~', '/',
-    'htop', 'docker ps', 'git status', 'clear'
+    'htop', 'docker', 'git', 'clear',
+    'sudo', 'ls -la', 'nano', 'exit'
   ];
 
   const handleTapPool = (key) => {
@@ -51,14 +52,14 @@ export default function LayoutBuilder() {
 
   return (
     <div className="layout-builder-wrapper">
-      {/* UPPER VIEWPORT: 3x3 Perimeter Surround Grid (~48px slots/buttons) */}
-      <div className="perimeter-grid-frame">
+      {/* UPPER VIEWPORT: Perfect 1:1 Square Matrix Surround Grid */}
+      <div className="perfect-square-frame">
         {/* TOP ROW SLOTS */}
         <div className={`perimeter-row top-row ${activeBar === 'top' ? 'active-bar' : ''}`}>
           {slots.top.map((key, idx) => (
             <div
               key={`top-${idx}`}
-              className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+              className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
               onClick={() => handleTapSlot('top', idx)}
             >
               <span>{key}</span>
@@ -73,7 +74,7 @@ export default function LayoutBuilder() {
             {slots.left.map((key, idx) => (
               <div
                 key={`left-${idx}`}
-                className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+                className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
                 onClick={() => handleTapSlot('left', idx)}
               >
                 <span>{key}</span>
@@ -81,10 +82,9 @@ export default function LayoutBuilder() {
             ))}
           </div>
 
-          {/* CENTER BUTTON POOL (4x3 Grid around ⚡ MACROS) */}
+          {/* CENTER BUTTON POOL (4x4 Matrix around ⚡ MACROS) */}
           <div className="center-pool-container">
-            <span className="pool-title">CENTER BUTTON POOL</span>
-            <div className="pool-4x3-grid">
+            <div className="pool-4x4-grid">
               {buttonPool.map((key) => {
                 const isMacros = key === '⚡ MACROS';
                 const isSelected = selectedPoolKey === key;
@@ -92,11 +92,11 @@ export default function LayoutBuilder() {
                   <button
                     key={key}
                     type="button"
-                    className={`pool-tile-btn ${isMacros ? 'macros-anchor' : ''} ${isSelected ? 'selected-glow' : ''}`}
+                    className={`square-pool-tile ${isMacros ? 'macros-anchor' : ''} ${isSelected ? 'selected-glow' : ''}`}
                     onClick={() => handleTapPool(key)}
                   >
                     {isMacros ? (
-                      <span className="macros-label"><Zap size={12} color="#88C0D0" /> MACROS</span>
+                      <span className="macros-label"><Zap size={11} color="#88C0D0" /> MACROS</span>
                     ) : (
                       key
                     )}
@@ -111,7 +111,7 @@ export default function LayoutBuilder() {
             {slots.right.map((key, idx) => (
               <div
                 key={`right-${idx}`}
-                className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+                className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
                 onClick={() => handleTapSlot('right', idx)}
               >
                 <span>{key}</span>
@@ -125,7 +125,7 @@ export default function LayoutBuilder() {
           {slots.bottom.map((key, idx) => (
             <div
               key={`bottom-${idx}`}
-              className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+              className={`square-slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
               onClick={() => handleTapSlot('bottom', idx)}
             >
               <span>{key}</span>
@@ -144,7 +144,7 @@ export default function LayoutBuilder() {
             onClick={() => setActiveBar('top')}
           >
             <ArrowUp size={13} />
-            <span>Top Bar</span>
+            <span>Top</span>
           </button>
 
           <button
@@ -153,7 +153,7 @@ export default function LayoutBuilder() {
             onClick={() => setActiveBar('bottom')}
           >
             <ArrowDown size={13} />
-            <span>Bottom Bar</span>
+            <span>Bottom</span>
           </button>
 
           <button
@@ -162,7 +162,7 @@ export default function LayoutBuilder() {
             onClick={() => setActiveBar('left')}
           >
             <ArrowLeft size={13} />
-            <span>Left Bar</span>
+            <span>Left</span>
           </button>
 
           <button
@@ -171,7 +171,7 @@ export default function LayoutBuilder() {
             onClick={() => setActiveBar('right')}
           >
             <ArrowRight size={13} />
-            <span>Right Bar</span>
+            <span>Right</span>
           </button>
         </div>
 
