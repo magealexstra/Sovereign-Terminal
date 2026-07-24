@@ -1466,3 +1466,214 @@ html, body, #root {
   margin-bottom: 0 !important;
   text-align: center;
 }
+
+/* Layout Builder Perimeter Grid & Lower Control Console */
+.layout-builder-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+.perimeter-grid-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 10px;
+  padding: 0.4rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.perimeter-row {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  background: var(--bg-canopy);
+  border: 1px dashed var(--border-forest);
+  border-radius: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.perimeter-row.active-bar, .perimeter-col.active-bar {
+  border-color: var(--accent-highlight);
+  background: rgba(136, 192, 208, 0.1);
+  box-shadow: 0 0 10px rgba(136, 192, 208, 0.2);
+}
+
+.perimeter-middle-section {
+  display: flex;
+  gap: 0.35rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.perimeter-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  background: var(--bg-canopy);
+  border: 1px dashed var(--border-forest);
+  border-radius: 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.slot-box {
+  min-width: 44px;
+  height: 44px;
+  padding: 0 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-sage);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-parchment);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.slot-box.target-pulse {
+  border-color: var(--accent-highlight);
+  animation: pulse-border 1.5s infinite;
+}
+
+.center-pool-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.5rem;
+  overflow: hidden;
+}
+
+.pool-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-highlight);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.pool-4x3-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+}
+
+.pool-tile-btn {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pool-tile-btn.macros-anchor {
+  background: rgba(136, 192, 208, 0.2);
+  border-color: var(--accent-highlight);
+  color: var(--accent-highlight);
+}
+
+.pool-tile-btn.selected-glow {
+  background: var(--accent-highlight);
+  color: #0A1118;
+  border-color: var(--accent-highlight);
+  box-shadow: 0 0 12px rgba(136, 192, 208, 0.5);
+}
+
+.macros-label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* Lower Thumb Control Console */
+.lower-thumb-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.bar-selector-row, .dynamic-sorting-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.bar-select-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bar-select-btn.active {
+  background: var(--accent-highlight);
+  color: #0A1118;
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+}
+
+.sort-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.25rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 14px;
+  color: var(--text-parchment);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sort-action-btn.active {
+  background: var(--status-active);
+  color: #0d170b;
+  border-color: var(--status-active);
+}

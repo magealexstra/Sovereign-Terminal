@@ -1,85 +1,132 @@
 import React, { useState } from 'react';
-import { Move, RefreshCw, Layout, Smartphone, Check } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Zap, Target, AlignLeft, AlignCenter, AlignRight, Maximize2, MoveVertical } from 'lucide-react';
 
 export default function LayoutBuilder() {
-  const [targetBar, setTargetBar] = useState('terminal'); // 'terminal' | 'editor'
-  const [dockPosition, setDockPosition] = useState('bottom'); // 'bottom' | 'right' | 'left' | 'top'
-  const [alignment, setAlignment] = useState('center'); // 'start' | 'center' | 'end' | 'disperse'
+  // Active Bar Selection: 'top' | 'bottom' | 'left' | 'right'
+  const [activeBar, setActiveBar] = useState('bottom');
+  
+  // Sorting State per Bar: 'start' | 'center' | 'end' | 'disperse'
+  const [barSorts, setBarSorts] = useState({
+    top: 'center',
+    bottom: 'center',
+    left: 'center',
+    right: 'center',
+  });
+
+  // Selected Pool Button for 2-Tap Placement
   const [selectedPoolKey, setSelectedPoolKey] = useState(null);
 
-  const [dockKeys, setDockKeys] = useState(['ESC', 'TAB', '^C', 'htop', 'docker ps']);
+  // Perimeter Slot Allocations (~48px each)
+  const [slots, setSlots] = useState({
+    top: ['ESC', 'TAB', '^C', '^Z', '|', '~'],
+    bottom: ['htop', 'docker ps', 'git status', 'clear', 'ip a', 'df -h'],
+    left: ['ESC', 'TAB', '^C', 'htop'],
+    right: ['^Z', '|', 'clear', 'docker ps'],
+  });
 
-  const buttonPool = ['ESC', 'TAB', '^C', '^Z', '|', '~', '/', '-', 'htop', 'docker ps', 'git status', 'aegis', 'clear'];
-
-  const cycleAlignment = () => {
-    const states = ['start', 'center', 'end', 'disperse'];
-    const nextIdx = (states.indexOf(alignment) + 1) % states.length;
-    setAlignment(states[nextIdx]);
-  };
+  // Central Button Pool
+  const buttonPool = [
+    'ESC', 'TAB', '^C', '^Z',
+    '|', '⚡ MACROS', '~', '/',
+    'htop', 'docker ps', 'git status', 'clear'
+  ];
 
   const handleTapPool = (key) => {
     setSelectedPoolKey(key);
   };
 
-  const handleTapSlot = (index) => {
+  const handleTapSlot = (bar, index) => {
     if (!selectedPoolKey) return;
-    const updated = [...dockKeys];
+    const updated = [...slots[bar]];
     updated[index] = selectedPoolKey;
-    setDockKeys(updated);
+    setSlots({ ...slots, [bar]: updated });
     setSelectedPoolKey(null);
   };
 
-  return (
-    <div className="layout-builder-container">
-      {/* Target Bar Selector */}
-      <div className="builder-top-tabs">
-        <button
-          className={`builder-tab ${targetBar === 'terminal' ? 'active' : ''}`}
-          onClick={() => setTargetBar('terminal')}
-        >
-          <span>Terminal Touch Bar</span>
-        </button>
-        <button
-          className={`builder-tab ${targetBar === 'editor' ? 'active' : ''}`}
-          onClick={() => setTargetBar('editor')}
-        >
-          <span>Editor Touch Bar</span>
-        </button>
-      </div>
+  const handleSortChange = (sortType) => {
+    setBarSorts({ ...barSorts, [activeBar]: sortType });
+  };
 
-      {/* Edge Dock & Handedness Controls */}
-      <div className="dock-config-bar">
-        <div className="dock-option-group">
-          <Smartphone size={16} color="#88C0D0" />
-          <label>Edge Dock Position:</label>
-          <div className="position-btns">
-            {['bottom', 'right', 'left', 'top'].map((pos) => (
-              <button
-                key={pos}
-                className={dockPosition === pos ? 'active' : ''}
-                onClick={() => setDockPosition(pos)}
+  const isHorizontal = activeBar === 'top' || activeBar === 'bottom';
+
+  return (
+    <div className="layout-builder-wrapper">
+      {/* UPPER VIEWPORT: 3x3 Perimeter Surround Grid (~48px slots/buttons) */}
+      <div className="perimeter-grid-frame">
+        {/* TOP ROW SLOTS */}
+        <div className={`perimeter-row top-row ${activeBar === 'top' ? 'active-bar' : ''}`}>
+          {slots.top.map((key, idx) => (
+            <div
+              key={`top-${idx}`}
+              className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+              onClick={() => handleTapSlot('top', idx)}
+            >
+              <span>{key}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* MIDDLE SECTION: LEFT COL + CENTER POOL + RIGHT COL */}
+        <div className="perimeter-middle-section">
+          {/* LEFT COL SLOTS */}
+          <div className={`perimeter-col left-col ${activeBar === 'left' ? 'active-bar' : ''}`}>
+            {slots.left.map((key, idx) => (
+              <div
+                key={`left-${idx}`}
+                className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+                onClick={() => handleTapSlot('left', idx)}
               >
-                {pos.toUpperCase()}
-              </button>
+                <span>{key}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CENTER BUTTON POOL (4x3 Grid around ⚡ MACROS) */}
+          <div className="center-pool-container">
+            <span className="pool-title">CENTER BUTTON POOL</span>
+            <div className="pool-4x3-grid">
+              {buttonPool.map((key) => {
+                const isMacros = key === '⚡ MACROS';
+                const isSelected = selectedPoolKey === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`pool-tile-btn ${isMacros ? 'macros-anchor' : ''} ${isSelected ? 'selected-glow' : ''}`}
+                    onClick={() => handleTapPool(key)}
+                  >
+                    {isMacros ? (
+                      <span className="macros-label"><Zap size={12} color="#88C0D0" /> MACROS</span>
+                    ) : (
+                      key
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* RIGHT COL SLOTS */}
+          <div className={`perimeter-col right-col ${activeBar === 'right' ? 'active-bar' : ''}`}>
+            {slots.right.map((key, idx) => (
+              <div
+                key={`right-${idx}`}
+                className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+                onClick={() => handleTapSlot('right', idx)}
+              >
+                <span>{key}</span>
+              </div>
             ))}
           </div>
         </div>
 
-        <button className="align-cycle-btn" onClick={cycleAlignment}>
-          <RefreshCw size={14} />
-          <span>Align: {alignment.toUpperCase()}</span>
-        </button>
-      </div>
-
-      {/* Target Edge Dock Slots (Tap-Tap Target) */}
-      <div className="dock-slots-preview">
-        <h4>Target Edge Dock Slots (Tap slot to place selected button)</h4>
-        <div className={`dock-slots-row align-${alignment}`}>
-          {dockKeys.map((key, idx) => (
+        {/* BOTTOM ROW SLOTS */}
+        <div className={`perimeter-row bottom-row ${activeBar === 'bottom' ? 'active-bar' : ''}`}>
+          {slots.bottom.map((key, idx) => (
             <div
-              key={idx}
-              className={`dock-slot ${selectedPoolKey ? 'target-ready' : ''}`}
-              onClick={() => handleTapSlot(idx)}
+              key={`bottom-${idx}`}
+              className={`slot-box ${selectedPoolKey ? 'target-pulse' : ''}`}
+              onClick={() => handleTapSlot('bottom', idx)}
             >
               <span>{key}</span>
             </div>
@@ -87,19 +134,126 @@ export default function LayoutBuilder() {
         </div>
       </div>
 
-      {/* Central Button Pool (Tap-Tap Source) */}
-      <div className="button-pool-section">
-        <h4>Central Button Pool (Tap button to select)</h4>
-        <div className="pool-grid">
-          {buttonPool.map((key) => (
-            <button
-              key={key}
-              className={`pool-btn ${selectedPoolKey === key ? 'selected' : ''}`}
-              onClick={() => handleTapPool(key)}
-            >
-              {key}
-            </button>
-          ))}
+      {/* LOWER THUMB CONTROL CONSOLE */}
+      <div className="lower-thumb-console">
+        {/* ROW 1: BAR SELECTOR BUTTONS */}
+        <div className="bar-selector-row">
+          <button
+            type="button"
+            className={`bar-select-btn ${activeBar === 'top' ? 'active' : ''}`}
+            onClick={() => setActiveBar('top')}
+          >
+            <ArrowUp size={13} />
+            <span>Top Bar</span>
+          </button>
+
+          <button
+            type="button"
+            className={`bar-select-btn ${activeBar === 'bottom' ? 'active' : ''}`}
+            onClick={() => setActiveBar('bottom')}
+          >
+            <ArrowDown size={13} />
+            <span>Bottom Bar</span>
+          </button>
+
+          <button
+            type="button"
+            className={`bar-select-btn ${activeBar === 'left' ? 'active' : ''}`}
+            onClick={() => setActiveBar('left')}
+          >
+            <ArrowLeft size={13} />
+            <span>Left Bar</span>
+          </button>
+
+          <button
+            type="button"
+            className={`bar-select-btn ${activeBar === 'right' ? 'active' : ''}`}
+            onClick={() => setActiveBar('right')}
+          >
+            <ArrowRight size={13} />
+            <span>Right Bar</span>
+          </button>
+        </div>
+
+        {/* ROW 2: DYNAMIC CONTEXT-SENSITIVE SORTING BUTTONS */}
+        <div className="dynamic-sorting-row">
+          {isHorizontal ? (
+            <>
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'start' ? 'active' : ''}`}
+                onClick={() => handleSortChange('start')}
+              >
+                <AlignLeft size={13} />
+                <span>Collect Left</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'center' ? 'active' : ''}`}
+                onClick={() => handleSortChange('center')}
+              >
+                <AlignCenter size={13} />
+                <span>Center</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'end' ? 'active' : ''}`}
+                onClick={() => handleSortChange('end')}
+              >
+                <AlignRight size={13} />
+                <span>Collect Right</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'disperse' ? 'active' : ''}`}
+                onClick={() => handleSortChange('disperse')}
+              >
+                <Maximize2 size={13} />
+                <span>Disperse</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'start' ? 'active' : ''}`}
+                onClick={() => handleSortChange('start')}
+              >
+                <ArrowUp size={13} />
+                <span>Collect Top</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'center' ? 'active' : ''}`}
+                onClick={() => handleSortChange('center')}
+              >
+                <AlignCenter size={13} />
+                <span>Center</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'end' ? 'active' : ''}`}
+                onClick={() => handleSortChange('end')}
+              >
+                <ArrowDown size={13} />
+                <span>Collect Bottom</span>
+              </button>
+
+              <button
+                type="button"
+                className={`sort-action-btn ${barSorts[activeBar] === 'disperse' ? 'active' : ''}`}
+                onClick={() => handleSortChange('disperse')}
+              >
+                <MoveVertical size={13} />
+                <span>Disperse</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
