@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type } from 'lucide-react';
+import { Palette, Check, Settings, X, RefreshCw, Type, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function ThemeSettings() {
@@ -10,6 +10,27 @@ export default function ThemeSettings() {
   const [editorFontSize, setEditorFontSize] = useState(14);
   const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
 
+  const handleCreateCustom = () => {
+    const customKey = `Custom_${Date.now()}`;
+    const newCustom = {
+      name: 'Custom Theme',
+      bgEarth: '#141E26',
+      bgCanopy: '#1F2D3A',
+      bgPanel: 'rgba(31, 45, 58, 0.8)',
+      borderForest: '#3B4D61',
+      borderSage: '#88C0D0',
+      textParchment: '#E6EDF0',
+      textMuted: '#A3B1B8',
+      accentMana: '#88C0D0',
+      accentHighlight: '#5E81AC',
+      statusActive: '#4C7864',
+      fontMono: "'IBM Plex Mono', monospace",
+      fontSans: "'IBM Plex Sans', sans-serif"
+    };
+    setTheme(newCustom);
+    setEditingTheme(newCustom);
+  };
+
   return (
     <div className="theme-settings-container">
       {/* 1. Main Viewport: Compact 3-Column Native Theme Buttons Grid */}
@@ -17,6 +38,10 @@ export default function ThemeSettings() {
         <div className="section-header-compact">
           <Palette size={14} color="#88C0D0" />
           <span>12 Open-Source MIT Theme Presets</span>
+          <button type="button" className="create-custom-theme-btn" onClick={handleCreateCustom}>
+            <Plus size={12} />
+            <span>Custom Theme</span>
+          </button>
         </div>
 
         <div className="native-theme-grid">
@@ -46,7 +71,7 @@ export default function ThemeSettings() {
                     e.stopPropagation();
                     setEditingTheme(t);
                   }}
-                  title="Customize Theme & Fonts"
+                  title="Customize Theme & Colors"
                 >
                   <Settings size={12} color={t.accentHighlight || '#88C0D0'} />
                 </button>
@@ -56,7 +81,65 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* 2. Theme Customizer Pop-up Modal */}
+      {/* 2. Main Page Typography & Font Controls (Always Visible) */}
+      <div className="theme-section">
+        <div className="section-header-compact">
+          <Type size={14} color="#4C7864" />
+          <span>Typography & Font Sizing</span>
+          <button type="button" className="reset-theme-btn" onClick={resetToDefault}>
+            <RefreshCw size={11} />
+            <span>Reset Default</span>
+          </button>
+        </div>
+
+        <div className="font-controls-grid">
+          <div className="font-control-card">
+            <div className="font-control-label">
+              <span>Terminal Font Size</span>
+              <strong>{terminalFontSize}px</strong>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="22"
+              value={terminalFontSize}
+              onChange={(e) => setTerminalFontSize(Number(e.target.value))}
+              className="font-slider"
+            />
+          </div>
+
+          <div className="font-control-card">
+            <div className="font-control-label">
+              <span>Editor Font Size</span>
+              <strong>{editorFontSize}px</strong>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="22"
+              value={editorFontSize}
+              onChange={(e) => setEditorFontSize(Number(e.target.value))}
+              className="font-slider"
+            />
+          </div>
+
+          <div className="font-control-card full-width">
+            <span>Font Family</span>
+            <select
+              value={fontFamily}
+              onChange={(e) => setFontFamily(e.target.value)}
+              className="font-select-dropdown"
+            >
+              <option value="IBM Plex Mono">IBM Plex Mono (Nordic Standard)</option>
+              <option value="Fira Code">Fira Code (Ligatures)</option>
+              <option value="JetBrains Mono">JetBrains Mono</option>
+              <option value="Inconsolata">Inconsolata</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Theme Customizer Pop-up Modal */}
       {editingTheme && (
         <div className="explorer-modal-overlay" onClick={() => setEditingTheme(null)}>
           <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -132,54 +215,6 @@ export default function ThemeSettings() {
                     onChange={(e) => updateCustomColor('accentHighlight', e.target.value)}
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Typography Controls */}
-            <div className="modal-section-title" style={{ marginTop: '0.75rem' }}>Typography & Fonts</div>
-            <div className="font-controls-grid">
-              <div className="font-control-card">
-                <div className="font-control-label">
-                  <span>Terminal Font</span>
-                  <strong>{terminalFontSize}px</strong>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="22"
-                  value={terminalFontSize}
-                  onChange={(e) => setTerminalFontSize(Number(e.target.value))}
-                  className="font-slider"
-                />
-              </div>
-
-              <div className="font-control-card">
-                <div className="font-control-label">
-                  <span>Editor Font</span>
-                  <strong>{editorFontSize}px</strong>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="22"
-                  value={editorFontSize}
-                  onChange={(e) => setEditorFontSize(Number(e.target.value))}
-                  className="font-slider"
-                />
-              </div>
-
-              <div className="font-control-card full-width">
-                <span>Font Family</span>
-                <select
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                  className="font-select-dropdown"
-                >
-                  <option value="IBM Plex Mono">IBM Plex Mono (Nordic Standard)</option>
-                  <option value="Fira Code">Fira Code (Ligatures)</option>
-                  <option value="JetBrains Mono">JetBrains Mono</option>
-                  <option value="Inconsolata">Inconsolata</option>
-                </select>
               </div>
             </div>
 

@@ -2136,3 +2136,20 @@ html, body, #root {
   color: var(--accent-highlight);
   margin-bottom: 0.4rem;
 }
+
+/* Create Custom Theme Action Button */
+.create-custom-theme-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 12px;
+  color: #0d170b;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
