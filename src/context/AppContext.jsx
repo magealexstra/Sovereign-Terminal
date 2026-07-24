@@ -5,9 +5,9 @@ const AppContext = createContext(null);
 export const THEME_PRESETS = {
   VitniNordic: {
     name: 'Vitni Nordic Forest (Default)',
-    bgEarth: '#0A1118',
-    bgCanopy: '#141E26',
-    bgPanel: 'rgba(20, 30, 38, 0.85)',
+    bgEarth: '#141E26',
+    bgCanopy: '#1F2D3A',
+    bgPanel: 'rgba(31, 45, 58, 0.85)',
     borderForest: '#2A3B4C',
     borderSage: '#5E81AC',
     textParchment: '#E6EDF0',
@@ -209,7 +209,7 @@ export function AppProvider({ children }) {
     const root = document.documentElement;
     root.style.setProperty('--bg-earth', theme.bgEarth);
     root.style.setProperty('--bg-canopy', theme.bgCanopy);
-    root.style.setProperty('--bg-panel', theme.bgPanel || 'rgba(20, 30, 38, 0.85)');
+    root.style.setProperty('--bg-panel', theme.bgPanel || 'rgba(31, 45, 58, 0.85)');
     root.style.setProperty('--border-forest', theme.borderForest);
     root.style.setProperty('--border-sage', theme.borderSage || theme.accentMana);
     root.style.setProperty('--text-parchment', theme.textParchment);
