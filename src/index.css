@@ -2489,3 +2489,48 @@ html, body, #root {
   height: 100% !important;
   background-color: var(--bg-earth) !important;
 }
+
+/* Touch Bar Gliding & 100% Canvas Height Enforcer */
+.touch-bar-gliding-wrapper {
+  position: relative;
+  z-index: 100;
+  width: 100%;
+  background: var(--bg-canopy);
+  border-top: 1px solid var(--border-forest);
+  padding: 0.3rem 0.4rem;
+}
+
+.touch-bar-scroll-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.touch-bar-pill-btn {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.touch-bar-pill-btn:active {
+  background: var(--accent-highlight);
+  color: #0A1118;
+}
+
+.terminal-container .xterm-screen {
+  height: 100% !important;
+}
+
+.terminal-container canvas {
+  height: 100% !important;
+}

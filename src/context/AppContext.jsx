@@ -224,7 +224,8 @@ export function AppProvider({ children }) {
   const [fontSizeTerminal, setFontSizeTerminalState] = useState(() => {
     try {
       const saved = localStorage.getItem('sovereign_font_terminal');
-      return saved ? Number(saved) : 14;
+      const parsed = parseInt(saved, 10);
+      return !isNaN(parsed) && parsed >= 6 && parsed <= 20 ? parsed : 14;
     } catch {
       return 14;
     }
@@ -233,7 +234,8 @@ export function AppProvider({ children }) {
   const [fontSizeEditor, setFontSizeEditorState] = useState(() => {
     try {
       const saved = localStorage.getItem('sovereign_font_editor');
-      return saved ? Number(saved) : 14;
+      const parsed = parseInt(saved, 10);
+      return !isNaN(parsed) && parsed >= 6 && parsed <= 20 ? parsed : 14;
     } catch {
       return 14;
     }
