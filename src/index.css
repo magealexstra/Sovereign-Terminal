@@ -1037,3 +1037,37 @@ html, body, #root {
   font-weight: 700;
   box-shadow: 0 0 12px rgba(136, 192, 208, 0.4);
 }
+
+/* OmniState Transparent Logo Styling */
+.omni-logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(136, 192, 208, 0.4));
+}
+
+@media (max-width: 768px) {
+  .brand-title {
+    flex-shrink: 0;
+    margin-right: 0.25rem;
+  }
+
+  .nav-tabs-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem;
+  }
+
+  .nav-pill-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.4rem 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  .nav-pill-btn span {
+    font-size: 0.75rem;
+  }
+}

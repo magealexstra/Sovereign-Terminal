@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Terminal as TerminalIcon, FolderTree, Sliders, Shield } from 'lucide-react';
+import { Terminal as TerminalIcon, FolderTree, Sliders } from 'lucide-react';
 import { useApp } from './context/AppContext';
 
 import Terminal from './components/terminal/Terminal';
@@ -148,11 +148,11 @@ export default function App() {
 
   return (
     <div className="sovereign-layout">
-      {/* Mobile Touch Header with SOVEREIGN TERMINAL Brand & Pill Buttons */}
+      {/* Mobile-Optimized Top Master Header with Transparent OmniState Logo */}
       <header className="main-nav-bar">
-        <div className="brand-title">
-          <Shield size={18} color="#88C0D0" />
-          <span>SOVEREIGN TERMINAL</span>
+        <div className="brand-title" title="Sovereign Terminal">
+          <img src="/omnistate-logo.png" alt="OmniState Logo" className="omni-logo-img" />
+          <span className="brand-text-desktop">SOVEREIGN TERMINAL</span>
         </div>
 
         <div className="nav-tabs-group">
