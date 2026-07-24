@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal as TermIcon, Sliders, ChevronDown, Cpu, Shield, Wifi } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function TouchBar({ onSendKey }) {
+export default function TouchBar({ onKeyPress, onVoiceInput, onSendKey }) {
   const { theme } = useApp();
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
-  // Dynamic visualViewport tracker for mobile on-screen keyboard gliding
   useEffect(() => {
     const handleViewportResize = () => {
       if (window.visualViewport) {
@@ -45,12 +43,16 @@ export default function TouchBar({ onSendKey }) {
     { label: 'docker', value: 'docker ps\n' }
   ];
 
+  const handleKeyClick = (val) => {
+    if (onKeyPress) onKeyPress(val);
+    else if (onSendKey) onSendKey(val);
+  };
+
   return (
     <div
       className="touch-bar-gliding-wrapper"
       style={{
-        transform: `translateY(-${keyboardOffset}px)`,
-        transition: 'transform 0.1s ease-out'
+        marginBottom: `${keyboardOffset}px`
       }}
     >
       <div className="touch-bar-scroll-strip">
@@ -59,7 +61,7 @@ export default function TouchBar({ onSendKey }) {
             key={idx}
             type="button"
             className="touch-bar-pill-btn"
-            onClick={() => onSendKey && onSendKey(k.value)}
+            onClick={() => handleKeyClick(k.value)}
           >
             {k.label}
           </button>
