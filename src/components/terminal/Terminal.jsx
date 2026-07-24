@@ -19,14 +19,14 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
 
   // Dynamic font size updates across xterm instance
   useEffect(() => {
-    if (xtermInstance.current) {
+    if (xtermInstance.current && fitAddonInstance.current) {
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
-      if (fitAddonInstance.current) {
+      requestAnimationFrame(() => {
         try {
           fitAddonInstance.current.fit();
           xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
         } catch (e) {}
-      }
+      });
     }
   }, [fontSizeTerminal]);
 
@@ -88,13 +88,18 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
 
-    // Delayed initial fit and refresh to ensure terminal text is 100% visible immediately upon load
-    setTimeout(() => {
-      try {
-        fitAddon.fit();
-        term.refresh(0, term.rows - 1);
-      } catch (e) {}
-    }, 100);
+    // Layout-Aware Fit Trigger: Wait for DOM container height to compute 100%
+    const performFit = () => {
+      requestAnimationFrame(() => {
+        try {
+          fitAddon.fit();
+          term.refresh(0, term.rows - 1);
+        } catch (e) {}
+      });
+    };
+
+    setTimeout(performFit, 50);
+    setTimeout(performFit, 200);
 
     term.onSelectionChange(() => {
       const selection = term.getSelection();
@@ -119,10 +124,12 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     socketRef.current = socket;
 
     socket.onopen = () => {
-      const { cols, rows } = fitAddon;
-      socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
-      // Send a light carriage return to trigger immediate prompt render on load
-      socket.send('\r');
+      performFit();
+      if (socket.readyState === WebSocket.OPEN) {
+        const { cols, rows } = fitAddon;
+        socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
+        socket.send('\r');
+      }
     };
 
     socket.onmessage = (event) => {
@@ -143,23 +150,29 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       }
     });
 
-    const resizeObserver = new ResizeObserver(() => {
-      try {
-        fitAddon.fit();
-        term.refresh(0, term.rows - 1);
-        if (socket.readyState === WebSocket.OPEN) {
-          const { cols, rows } = fitAddon;
-          socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
-        }
-      } catch (e) {}
-    });
+    // ResizeObserver + visualViewport listener for full height pinning & mobile keyboard push
+    const handleResize = () => {
+      performFit();
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        const { cols, rows } = fitAddon;
+        socket.send(JSON.stringify({ type: 'resize', cols: cols || 80, rows: rows || 24 }));
+      }
+    };
 
+    const resizeObserver = new ResizeObserver(handleResize);
     if (terminalRef.current) {
       resizeObserver.observe(terminalRef.current);
     }
 
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+
     return () => {
       resizeObserver.disconnect();
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
       if (socket) socket.close();
       term.dispose();
     };
