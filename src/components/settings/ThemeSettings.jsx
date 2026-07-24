@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save } from 'lucide-react';
+import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, Terminal as TermIcon, FileCode } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function ThemeSettings() {
@@ -10,6 +10,15 @@ export default function ThemeSettings() {
   const [terminalFontSize, setTerminalFontSize] = useState(14);
   const [editorFontSize, setEditorFontSize] = useState(14);
   const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
+
+  // Predefined editable preview text
+  const [terminalSampleText, setTerminalSampleText] = useState(
+    'mage@sovereign:~$ docker ps\nCONTAINER ID   IMAGE                STATUS\n896468d35eb4   sovereign-terminal   Up 30m (healthy)\nmage@sovereign:~$ echo "Theme Preview Active"'
+  );
+
+  const [editorSampleText, setEditorSampleText] = useState(
+    'def initialize_sovereign_node(hostname="192.168.2.100"):\n    """Sovereign Workstation Node Gateway."""\n    print(f"Connected to {hostname}:2068")\n    return True'
+  );
 
   // Extract 16 base colors of active theme
   const activeThemeSwatches = [
@@ -26,7 +35,6 @@ export default function ThemeSettings() {
     '#282a36', '#bd93f9', '#ff79c6', '#50fa7b', '#f1fa8c', '#89b4fa'
   ];
 
-  // Clone active theme colors when creating a new custom theme
   const handleCreateCustom = () => {
     const clonedActiveTheme = {
       ...theme,
@@ -103,11 +111,11 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* 2. Main Page Typography & Font Controls */}
+      {/* 2. Typography Controls & Live Theme-Styled Interactive Preview Boxes */}
       <div className="theme-section">
         <div className="section-header-compact">
           <Type size={14} color="#4C7864" />
-          <span>Typography & Font Sizing</span>
+          <span>Typography & Live Previews</span>
           <button type="button" className="reset-theme-btn" onClick={resetToDefault}>
             <RefreshCw size={11} />
             <span>Reset Default</span>
@@ -159,9 +167,52 @@ export default function ThemeSettings() {
             </select>
           </div>
         </div>
+
+        {/* DUAL LIVE THEME-STYLED INTERACTIVE PREVIEW WINDOWS */}
+        <div className="live-font-preview-grid">
+          {/* BOX 1: TERMINAL FONT PREVIEW */}
+          <div className="preview-window-card">
+            <div className="preview-card-header">
+              <TermIcon size={12} color={theme.accentHighlight || '#88C0D0'} />
+              <span>Terminal Font Preview ({terminalFontSize}px)</span>
+            </div>
+            <textarea
+              className="live-preview-textarea"
+              style={{
+                backgroundColor: theme.bgEarth || '#141E26',
+                color: theme.textParchment || '#E6EDF0',
+                borderColor: theme.accentMana || '#5E81AC',
+                fontSize: `${terminalFontSize}px`,
+                fontFamily: fontFamily
+              }}
+              value={terminalSampleText}
+              onChange={(e) => setTerminalSampleText(e.target.value)}
+            />
+          </div>
+
+          {/* BOX 2: CODE EDITOR FONT PREVIEW */}
+          <div className="preview-window-card">
+            <div className="preview-card-header">
+              <FileCode size={12} color={theme.accentMana || '#5E81AC'} />
+              <span>Editor Font Preview ({editorFontSize}px)</span>
+            </div>
+            <textarea
+              className="live-preview-textarea"
+              style={{
+                backgroundColor: theme.bgCanopy || '#1F2D3A',
+                color: theme.textParchment || '#E6EDF0',
+                borderColor: theme.accentHighlight || '#88C0D0',
+                fontSize: `${editorFontSize}px`,
+                fontFamily: fontFamily
+              }}
+              value={editorSampleText}
+              onChange={(e) => setEditorSampleText(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* 3. Theme Customizer Pop-up Modal (Inherits 16 Active Theme Swatches) */}
+      {/* 3. Theme Customizer Pop-up Modal */}
       {editingTheme && (
         <div className="explorer-modal-overlay" onClick={() => setEditingTheme(null)}>
           <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>

@@ -2362,3 +2362,43 @@ html, body, #root {
   border: 1px solid var(--border-forest);
   border-radius: 6px;
 }
+
+/* Live Theme-Styled Interactive Font Preview Windows */
+.live-font-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.preview-window-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.45rem;
+}
+
+.preview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+}
+
+.live-preview-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  resize: vertical;
+  line-height: 1.35;
+  outline: none;
+  scrollbar-width: none;
+}
