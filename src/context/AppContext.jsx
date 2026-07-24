@@ -183,15 +183,15 @@ export const THEME_PRESETS = {
     name: 'Cyberpunk 2077',
     bgEarth: '#120428',
     bgCanopy: '#1e0938',
-    bgPanel: 'rgba(30, 9, 56, 0.85)',
-    borderForest: '#47146b',
-    borderSage: '#fcee0a',
+    bgPanel: 'rgba(30, 9, 56, 0.8)',
+    borderForest: '#fcee0a',
+    borderSage: '#05d9e8',
     textParchment: '#fdfdfd',
-    textMuted: '#8b6ba7',
-    textDim: '#47146b',
+    textMuted: '#05d9e8',
+    textDim: '#1e0938',
     accentMana: '#fcee0a',
     accentHighlight: '#05d9e8',
-    statusActive: '#05d9e8',
+    statusActive: '#fcee0a',
     fontMono: "'Fira Code', monospace",
     fontSans: "'Inter', sans-serif"
   }
@@ -204,6 +204,7 @@ export function AppProvider({ children }) {
   const [fontSizeTerminal, setFontSizeTerminal] = useState(14);
   const [fontSizeEditor, setFontSizeEditor] = useState(14);
 
+  // Apply CSS custom properties dynamically
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--bg-earth', theme.bgEarth);
@@ -230,6 +231,15 @@ export function AppProvider({ children }) {
     }
   };
 
+  const updateCustomColor = (key, value) => {
+    setTheme((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const resetToDefault = () => {
+    setCurrentThemeKey('VitniNordic');
+    setTheme(THEME_PRESETS.VitniNordic);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -237,8 +247,11 @@ export function AppProvider({ children }) {
         setActiveMainTab,
         currentThemeKey,
         theme,
+        themes: THEME_PRESETS,
         selectThemePreset,
         setTheme,
+        updateCustomColor,
+        resetToDefault,
         fontSizeTerminal,
         setFontSizeTerminal,
         fontSizeEditor,
