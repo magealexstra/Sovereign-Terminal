@@ -148,11 +148,11 @@ export default function App() {
 
   return (
     <div className="sovereign-layout">
-      {/* Mobile-Optimized Top Master Header with Transparent OmniState Logo */}
+      {/* Compact Header with Visible Title & Micro Touch Action Buttons */}
       <header className="main-nav-bar">
         <div className="brand-title" title="Sovereign Terminal">
           <img src="/omnistate-logo.png" alt="OmniState Logo" className="omni-logo-img" />
-          <span className="brand-text-desktop">SOVEREIGN TERMINAL</span>
+          <span className="brand-title-text">SOVEREIGN</span>
         </div>
 
         <div className="nav-tabs-group">
@@ -161,7 +161,7 @@ export default function App() {
             className={`nav-pill-btn ${activeMainTab === 'terminal' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('terminal')}
           >
-            <TerminalIcon size={15} />
+            <TerminalIcon size={13} />
             <span>Terminal</span>
           </button>
 
@@ -170,7 +170,7 @@ export default function App() {
             className={`nav-pill-btn ${activeMainTab === 'explorer' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('explorer')}
           >
-            <FolderTree size={15} />
+            <FolderTree size={13} />
             <span>Files</span>
           </button>
 
@@ -179,7 +179,7 @@ export default function App() {
             className={`nav-pill-btn ${activeMainTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('settings')}
           >
-            <Sliders size={15} />
+            <Sliders size={13} />
             <span>Settings</span>
           </button>
         </div>
@@ -218,7 +218,7 @@ export default function App() {
               className={`subtab-btn ${explorerSubTab === 'tree' ? 'active' : ''}`}
               onClick={() => setExplorerSubTab('tree')}
             >
-              <FolderTree size={14} />
+              <FolderTree size={13} />
               <span>Files</span>
             </button>
 
@@ -227,7 +227,7 @@ export default function App() {
               className={`subtab-btn ${explorerSubTab === 'editor' ? 'active' : ''}`}
               onClick={() => setExplorerSubTab('editor')}
             >
-              <TerminalIcon size={14} />
+              <TerminalIcon size={13} />
               <span>Editor ({openDocuments.length})</span>
             </button>
           </div>

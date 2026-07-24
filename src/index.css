@@ -1182,3 +1182,64 @@ html, body, #root {
   font-weight: 700;
   box-shadow: 0 0 12px rgba(136, 192, 208, 0.4);
 }
+
+/* Micro Touch Action Button Responsive Rules */
+.brand-title-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-parchment);
+}
+
+@media (max-width: 768px) {
+  .main-nav-bar {
+    padding: 0.3rem 0.4rem;
+    gap: 0.3rem;
+  }
+
+  .brand-title {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .omni-logo-img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .brand-title-text {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-tabs-group {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .nav-pill-btn {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.7rem;
+    gap: 0.25rem;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .subtab-btn, .session-pill-btn, .doc-pill-btn {
+    padding: 0.28rem 0.45rem;
+    font-size: 0.7rem;
+    gap: 0.25rem;
+    border-radius: 14px;
+  }
+
+  .settings-subtabs-bar {
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
+  }
+}
