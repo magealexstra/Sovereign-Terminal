@@ -1,46 +1,50 @@
 import React, { useState } from 'react';
-import { Palette, Edit3, Layout } from 'lucide-react';
+import { Palette, Edit3, Grid } from 'lucide-react';
+
 import ThemeSettings from './ThemeSettings';
 import ButtonStudio from './ButtonStudio';
 import LayoutBuilder from './LayoutBuilder';
 
 export default function SettingsManager() {
-  const [subTab, setSubTab] = useState('themes'); // 'themes' | 'studio' | 'layout'
+  const [activeSubTab, setActiveSubTab] = useState('themes');
 
   return (
-    <div className="settings-manager-workspace">
-      {/* Sub-Tab Navigation Bar */}
+    <div className="settings-master-container">
+      {/* Equal-Distribution Dynamic Sub-Tab Bar */}
       <div className="settings-subtabs-bar">
         <button
-          className={`subtab-btn ${subTab === 'themes' ? 'active' : ''}`}
-          onClick={() => setSubTab('themes')}
+          type="button"
+          className={`subtab-btn ${activeSubTab === 'themes' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('themes')}
         >
-          <Palette size={15} />
-          <span>1. Themes & Styling</span>
+          <Palette size={13} />
+          <span className="tab-auto-text">1. Themes</span>
         </button>
 
         <button
-          className={`subtab-btn ${subTab === 'studio' ? 'active' : ''}`}
-          onClick={() => setSubTab('studio')}
+          type="button"
+          className={`subtab-btn ${activeSubTab === 'studio' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('studio')}
         >
-          <Edit3 size={15} />
-          <span>2. Touch Button Studio</span>
+          <Edit3 size={13} />
+          <span className="tab-auto-text">2. Studio</span>
         </button>
 
         <button
-          className={`subtab-btn ${subTab === 'layout' ? 'active' : ''}`}
-          onClick={() => setSubTab('layout')}
+          type="button"
+          className={`subtab-btn ${activeSubTab === 'layout' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('layout')}
         >
-          <Layout size={15} />
-          <span>3. Grid & Dock Layout</span>
+          <Grid size={13} />
+          <span className="tab-auto-text">3. Layout</span>
         </button>
       </div>
 
-      {/* Sub-Tab Content Viewport */}
+      {/* Active Sub-Tab Viewport */}
       <div className="settings-content-viewport">
-        {subTab === 'themes' && <ThemeSettings />}
-        {subTab === 'studio' && <ButtonStudio />}
-        {subTab === 'layout' && <LayoutBuilder />}
+        {activeSubTab === 'themes' && <ThemeSettings />}
+        {activeSubTab === 'studio' && <ButtonStudio />}
+        {activeSubTab === 'layout' && <LayoutBuilder />}
       </div>
     </div>
   );

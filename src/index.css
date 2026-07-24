@@ -1765,3 +1765,26 @@ html, body, #root {
 .square-slot-box.text-md, .square-pool-tile.text-md { font-size: 0.70rem; font-weight: 600; }
 .square-slot-box.text-sm, .square-pool-tile.text-sm { font-size: 0.62rem; font-weight: 600; }
 .square-slot-box.text-xs, .square-pool-tile.text-xs { font-size: 0.54rem; font-weight: 600; }
+
+/* Dynamic Equal-Distribution Tab Auto-Fitting Rules */
+.nav-tabs-group, .settings-subtabs-bar, .session-tabs-bar, .editor-tabs-bar {
+  display: flex !important;
+  width: 100% !important;
+  gap: 0.25rem !important;
+  overflow: hidden !important;
+}
+
+.nav-pill-btn, .subtab-btn, .session-pill-btn, .doc-pill-btn {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0.35rem 0.2rem !important;
+}
+
+.tab-auto-text, .nav-pill-btn span, .subtab-btn span, .session-pill-btn span, .doc-pill-btn span {
+  font-size: clamp(0.55rem, 2.2vw, 0.76rem) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}

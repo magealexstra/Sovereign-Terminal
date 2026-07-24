@@ -11,8 +11,8 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
           className={`session-pill-btn ${activeSession === session.id ? 'active' : ''}`}
           onClick={() => onSelectSession(session.id)}
         >
-          <Terminal size={13} />
-          <span>{session.name}</span>
+          <Terminal size={12} />
+          <span className="tab-auto-text">{session.name}</span>
           {sessions.length > 1 && (
             <span
               className="close-session-icon"
@@ -21,13 +21,13 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
                 onCloseSession(session.id);
               }}
             >
-              <X size={12} />
+              <X size={11} />
             </span>
           )}
         </button>
       ))}
       <button type="button" className="add-session-pill-btn" onClick={onAddSession} title="New tmux Window">
-        <Plus size={15} />
+        <Plus size={14} />
       </button>
     </div>
   );
