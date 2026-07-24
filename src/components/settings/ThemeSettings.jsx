@@ -1,42 +1,49 @@
 import React, { useState } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type, Plus } from 'lucide-react';
+import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function ThemeSettings() {
-  const { theme, setTheme, themes, updateCustomColor, resetToDefault } = useApp();
+  const { theme, setTheme, themes, updateCustomColor, saveCustomTheme, resetToDefault } = useApp();
   const [editingTheme, setEditingTheme] = useState(null);
+  const [customName, setCustomName] = useState('My Sovereign Custom');
 
   const [terminalFontSize, setTerminalFontSize] = useState(14);
   const [editorFontSize, setEditorFontSize] = useState(14);
   const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
 
+  // Clone active theme colors when creating a new custom theme
   const handleCreateCustom = () => {
-    const newCustom = {
-      name: 'Custom Theme',
-      bgEarth: '#0A1118',
-      bgCanopy: '#141E26',
-      bgPanel: 'rgba(20, 30, 38, 0.85)',
-      borderForest: '#2A3B4C',
-      borderSage: '#5E81AC',
-      textParchment: '#E6EDF0',
-      textMuted: '#A3B1B8',
-      accentMana: '#5E81AC',
-      accentHighlight: '#88C0D0',
-      statusActive: '#4C7864',
-      fontMono: "'IBM Plex Mono', monospace",
-      fontSans: "'IBM Plex Sans', sans-serif"
+    const clonedActiveTheme = {
+      ...theme,
+      name: 'My Custom Theme'
     };
-    setTheme(newCustom);
-    setEditingTheme(newCustom);
+    setCustomName('My Custom Theme');
+    setEditingTheme(clonedActiveTheme);
+  };
+
+  const handleSaveModal = () => {
+    if (!editingTheme) return;
+    const finalTheme = {
+      ...editingTheme,
+      name: customName || 'My Custom Theme',
+      bgEarth: theme.bgEarth,
+      bgCanopy: theme.bgCanopy,
+      borderForest: theme.borderForest,
+      textParchment: theme.textParchment,
+      accentMana: theme.accentMana,
+      accentHighlight: theme.accentHighlight
+    };
+    saveCustomTheme(finalTheme);
+    setEditingTheme(null);
   };
 
   return (
     <div className="theme-settings-container">
-      {/* 1. Main Viewport: Compact 3-Column Native Theme Buttons Grid */}
+      {/* 1. Main Viewport: Compact Native Theme Buttons Grid */}
       <div className="theme-section">
         <div className="section-header-compact">
           <Palette size={14} color="#88C0D0" />
-          <span>12 Open-Source MIT Theme Presets</span>
+          <span>Theme Presets ({Object.keys(themes || {}).length})</span>
           <button type="button" className="create-custom-theme-btn" onClick={handleCreateCustom}>
             <Plus size={12} />
             <span>Custom Theme</span>
@@ -68,6 +75,7 @@ export default function ThemeSettings() {
                   className="native-gear-btn"
                   onClick={(e) => {
                     e.stopPropagation();
+                    setCustomName(t.name);
                     setEditingTheme(t);
                   }}
                   title="Customize Theme & Colors"
@@ -80,7 +88,7 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* 2. Main Page Typography & Font Controls (Always Visible) */}
+      {/* 2. Main Page Typography & Font Controls */}
       <div className="theme-section">
         <div className="section-header-compact">
           <Type size={14} color="#4C7864" />
@@ -138,31 +146,43 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* 3. Theme Customizer Pop-up Modal (All 6 Signature Color Pickers) */}
+      {/* 3. Theme Customizer Pop-up Modal (Custom Naming + Preset Saving) */}
       {editingTheme && (
         <div className="explorer-modal-overlay" onClick={() => setEditingTheme(null)}>
           <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-row">
-              <h3>🎨 Customize: {editingTheme.name}</h3>
+              <h3>🎨 Customize Theme</h3>
               <button type="button" className="modal-close-x" onClick={() => setEditingTheme(null)}>
                 <X size={16} />
               </button>
             </div>
 
+            {/* Theme Name Input */}
+            <div className="theme-name-input-group">
+              <label>Theme Name:</label>
+              <input
+                type="text"
+                className="theme-name-field"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="e.g. Mage Sovereign Dark"
+              />
+            </div>
+
             {/* All 6 Signature Hex Color Pickers */}
-            <div className="modal-section-title">Color Palette (6 Colors)</div>
+            <div className="modal-section-title" style={{ marginTop: '0.6rem' }}>Color Palette (6 Colors)</div>
             <div className="custom-hex-grid">
               <div className="hex-picker-card">
                 <span>Void Base</span>
                 <div className="color-input-group">
                   <input
                     type="color"
-                    value={theme?.bgEarth || '#0A1118'}
+                    value={theme?.bgEarth || '#141E26'}
                     onChange={(e) => updateCustomColor('bgEarth', e.target.value)}
                   />
                   <input
                     type="text"
-                    value={theme?.bgEarth || '#0A1118'}
+                    value={theme?.bgEarth || '#141E26'}
                     onChange={(e) => updateCustomColor('bgEarth', e.target.value)}
                   />
                 </div>
@@ -173,12 +193,12 @@ export default function ThemeSettings() {
                 <div className="color-input-group">
                   <input
                     type="color"
-                    value={theme?.bgCanopy || '#141E26'}
+                    value={theme?.bgCanopy || '#1F2D3A'}
                     onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
                   />
                   <input
                     type="text"
-                    value={theme?.bgCanopy || '#141E26'}
+                    value={theme?.bgCanopy || '#1F2D3A'}
                     onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
                   />
                 </div>
@@ -250,8 +270,9 @@ export default function ThemeSettings() {
             </div>
 
             <div className="modal-btn-row" style={{ marginTop: '1rem' }}>
-              <button className="submit" onClick={() => setEditingTheme(null)}>
-                Apply & Save
+              <button className="submit" onClick={handleSaveModal}>
+                <Save size={13} />
+                <span>Save & Add to Presets</span>
               </button>
               <button onClick={resetToDefault}>
                 Reset Default

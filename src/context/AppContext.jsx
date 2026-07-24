@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext(null);
 
-export const THEME_PRESETS = {
+export const DEFAULT_THEME_PRESETS = {
   VitniNordic: {
     name: 'Vitni Nordic Forest (Default)',
     bgEarth: '#141E26',
@@ -199,12 +199,20 @@ export const THEME_PRESETS = {
 
 export function AppProvider({ children }) {
   const [activeMainTab, setActiveMainTab] = useState('terminal');
-  const [currentThemeKey, setCurrentThemeKey] = useState('VitniNordic');
-  const [theme, setTheme] = useState(THEME_PRESETS.VitniNordic);
+  const [themes, setThemes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_custom_themes');
+      return saved ? { ...DEFAULT_THEME_PRESETS, ...JSON.parse(saved) } : DEFAULT_THEME_PRESETS;
+    } catch {
+      return DEFAULT_THEME_PRESETS;
+    }
+  });
+
+  const [theme, setTheme] = useState(DEFAULT_THEME_PRESETS.VitniNordic);
   const [fontSizeTerminal, setFontSizeTerminal] = useState(14);
   const [fontSizeEditor, setFontSizeEditor] = useState(14);
 
-  // Apply CSS custom properties dynamically across document body & root
+  // Dynamically apply CSS custom properties to document root & body
   useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--bg-earth', theme.bgEarth);
@@ -227,20 +235,32 @@ export function AppProvider({ children }) {
     document.body.style.color = theme.textParchment;
   }, [theme, fontSizeTerminal, fontSizeEditor]);
 
-  const selectThemePreset = (key) => {
-    if (THEME_PRESETS[key]) {
-      setCurrentThemeKey(key);
-      setTheme(THEME_PRESETS[key]);
-    }
-  };
-
   const updateCustomColor = (key, value) => {
     setTheme((prev) => ({ ...prev, [key]: value }));
   };
 
+  const saveCustomTheme = (customThemeObject) => {
+    const themeKey = `Custom_${Date.now()}`;
+    const updatedThemes = {
+      ...themes,
+      [themeKey]: customThemeObject
+    };
+    setThemes(updatedThemes);
+    setTheme(customThemeObject);
+
+    try {
+      // Save user custom themes to localStorage
+      const userCustomOnly = Object.fromEntries(
+        Object.entries(updatedThemes).filter(([k]) => k.startsWith('Custom_'))
+      );
+      localStorage.setItem('sovereign_custom_themes', JSON.stringify(userCustomOnly));
+    } catch (e) {
+      console.error('Failed to save theme to localStorage:', e);
+    }
+  };
+
   const resetToDefault = () => {
-    setCurrentThemeKey('VitniNordic');
-    setTheme(THEME_PRESETS.VitniNordic);
+    setTheme(DEFAULT_THEME_PRESETS.VitniNordic);
   };
 
   return (
@@ -248,12 +268,11 @@ export function AppProvider({ children }) {
       value={{
         activeMainTab,
         setActiveMainTab,
-        currentThemeKey,
         theme,
-        themes: THEME_PRESETS,
-        selectThemePreset,
+        themes,
         setTheme,
         updateCustomColor,
+        saveCustomTheme,
         resetToDefault,
         fontSizeTerminal,
         setFontSizeTerminal,
