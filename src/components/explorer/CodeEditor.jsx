@@ -69,7 +69,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
         {openDocuments.map((doc) => (
           <div
             key={doc.path}
-            className={`doc-tab ${activeFilePath === doc.path ? 'active' : ''}`}
+            className={`doc-pill-btn ${activeFilePath === doc.path ? 'active' : ''}`}
             onClick={() => onSelectTab(doc.path)}
           >
             <FileText size={13} />
