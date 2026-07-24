@@ -971,3 +971,69 @@ html, body, #root {
     scrollbar-width: none;
   }
 }
+
+/* Touch Pill Button Styling for Top Header Navigation */
+.nav-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 20px; /* Distinct Pill Shape */
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.nav-pill-btn:hover {
+  color: var(--text-parchment);
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.nav-pill-btn.active {
+  color: #0A1118;
+  background: var(--accent-highlight);
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(136, 192, 208, 0.4);
+}
+
+/* Sub-Tab Action Buttons (Files/Editor and Settings Sub-Tabs) */
+.subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 18px; /* Distinct Sub-Tab Pill Shape */
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.subtab-btn:hover {
+  color: var(--text-parchment);
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.subtab-btn.active {
+  color: #0A1118;
+  background: var(--accent-highlight);
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(136, 192, 208, 0.4);
+}

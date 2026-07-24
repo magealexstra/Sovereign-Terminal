@@ -31,7 +31,7 @@ export default function App() {
       name: 'README.md',
       path: '/workspace/README.md',
       isModified: false,
-      content: '# 👑 THE SOVEREIGN TERMINAL\n\nWelcome to your mobile-first Linux control workstation.'
+      content: '# 👑 SOVEREIGN TERMINAL\n\nWelcome to your mobile-first Linux control workstation.'
     }
   ]);
   const [activeFilePath, setActiveFilePath] = useState('/workspace/README.md');
@@ -148,40 +148,39 @@ export default function App() {
 
   return (
     <div className="sovereign-layout">
-      {/* Mobile-Optimized Top Master Header */}
+      {/* Mobile Touch Header with SOVEREIGN TERMINAL Brand & Pill Buttons */}
       <header className="main-nav-bar">
         <div className="brand-title">
           <Shield size={18} color="#88C0D0" />
-          <span className="brand-text-desktop">SOVEREIGN TERMINAL</span>
-          <span className="brand-text-mobile">SOVEREIGN</span>
+          <span>SOVEREIGN TERMINAL</span>
         </div>
 
         <div className="nav-tabs-group">
           <button
-            className={`nav-tab-btn ${activeMainTab === 'terminal' ? 'active' : ''}`}
+            type="button"
+            className={`nav-pill-btn ${activeMainTab === 'terminal' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('terminal')}
-            title="Terminal View"
           >
-            <TerminalIcon size={16} />
-            <span className="tab-label">Terminal</span>
+            <TerminalIcon size={15} />
+            <span>Terminal</span>
           </button>
 
           <button
-            className={`nav-tab-btn ${activeMainTab === 'explorer' ? 'active' : ''}`}
+            type="button"
+            className={`nav-pill-btn ${activeMainTab === 'explorer' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('explorer')}
-            title="File Explorer & Editor"
           >
-            <FolderTree size={16} />
-            <span className="tab-label">Files</span>
+            <FolderTree size={15} />
+            <span>Files</span>
           </button>
 
           <button
-            className={`nav-tab-btn ${activeMainTab === 'settings' ? 'active' : ''}`}
+            type="button"
+            className={`nav-pill-btn ${activeMainTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('settings')}
-            title="Settings & Studio"
           >
-            <Sliders size={16} />
-            <span className="tab-label">Settings</span>
+            <Sliders size={15} />
+            <span>Settings</span>
           </button>
         </div>
       </header>
@@ -215,19 +214,21 @@ export default function App() {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
           <div className="settings-subtabs-bar">
             <button
+              type="button"
               className={`subtab-btn ${explorerSubTab === 'tree' ? 'active' : ''}`}
               onClick={() => setExplorerSubTab('tree')}
             >
               <FolderTree size={14} />
-              <span>📂 Files</span>
+              <span>Files</span>
             </button>
 
             <button
+              type="button"
               className={`subtab-btn ${explorerSubTab === 'editor' ? 'active' : ''}`}
               onClick={() => setExplorerSubTab('editor')}
             >
               <TerminalIcon size={14} />
-              <span>📝 Editor ({openDocuments.length})</span>
+              <span>Editor ({openDocuments.length})</span>
             </button>
           </div>
 
