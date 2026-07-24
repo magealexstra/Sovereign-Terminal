@@ -1,404 +1,185 @@
 import React, { useState } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, Terminal as TermIcon, FileCode, CheckCircle2 } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
+import { Palette, Type, Check, RefreshCw } from 'lucide-react';
+import { useApp, THEME_PRESETS } from '../../context/AppContext';
 
 export default function ThemeSettings() {
-  const {
-    theme,
-    setTheme,
-    themes,
-    updateCustomColor,
-    saveCustomTheme,
-    resetToDefault,
-    fontSizeTerminal,
-    setFontSizeTerminal,
-    fontSizeEditor,
-    setFontSizeEditor
-  } = useApp();
+  const { currentThemeKey, selectThemePreset, theme, setTheme, fontSizeTerminal, setFontSizeTerminal, fontSizeEditor, setFontSizeEditor } = useApp();
+  const [customMode, setCustomMode] = useState(currentThemeKey === 'Custom');
 
-  const [editingTheme, setEditingTheme] = useState(null);
-  const [customName, setCustomName] = useState('My Sovereign Custom');
+  const [customColors, setCustomColors] = useState({
+    bgEarth: theme.bgEarth || '#0A1118',
+    bgCanopy: theme.bgCanopy || '#141E26',
+    textParchment: theme.textParchment || '#E6EDF0',
+    accentMana: theme.accentMana || '#5E81AC',
+    accentHighlight: theme.accentHighlight || '#88C0D0',
+    statusActive: theme.statusActive || '#4C7864',
+  });
 
-  // Local draft font sizes for sliders
-  const [localTerminalFont, setLocalTerminalFont] = useState(fontSizeTerminal || 14);
-  const [localEditorFont, setLocalEditorFont] = useState(fontSizeEditor || 14);
-  const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
-  const [appliedToast, setAppliedToast] = useState(false);
-
-  // Predefined editable preview text
-  const [terminalSampleText, setTerminalSampleText] = useState(
-    'mage@sovereign:~$ docker ps\nCONTAINER ID   IMAGE                STATUS\n896468d35eb4   sovereign-terminal   Up 30m (healthy)\nmage@sovereign:~$ echo "Theme Preview Active"'
-  );
-
-  const [editorSampleText, setEditorSampleText] = useState(
-    'def initialize_sovereign_node(hostname="192.168.2.100"):\n    """Sovereign Workstation Node Gateway."""\n    print(f"Connected to {hostname}:2068")\n    return True'
-  );
-
-  // Extract 16 base colors of active theme
-  const activeThemeSwatches = [
-    theme.bgEarth || '#141E26',
-    theme.bgCanopy || '#1F2D3A',
-    theme.borderForest || '#2A3B4C',
-    theme.borderSage || '#5E81AC',
-    theme.textParchment || '#E6EDF0',
-    theme.textMuted || '#A3B1B8',
-    theme.textDim || '#4C566A',
-    theme.accentMana || '#5E81AC',
-    theme.accentHighlight || '#88C0D0',
-    theme.statusActive || '#4C7864',
-    '#282a36', '#bd93f9', '#ff79c6', '#50fa7b', '#f1fa8c', '#89b4fa'
-  ];
-
-  const handleApplyFontSettings = () => {
-    setFontSizeTerminal(localTerminalFont);
-    setFontSizeEditor(localEditorFont);
-    setAppliedToast(true);
-    setTimeout(() => setAppliedToast(false), 2500);
-  };
-
-  const handleResetFonts = () => {
-    setLocalTerminalFont(14);
-    setLocalEditorFont(14);
-    setFontSizeTerminal(14);
-    setFontSizeEditor(14);
-  };
-
-  const handleCreateCustom = () => {
-    const clonedActiveTheme = {
-      ...theme,
-      name: 'My Custom Theme'
-    };
-    setCustomName('My Custom Theme');
-    setEditingTheme(clonedActiveTheme);
-  };
-
-  const handleSaveModal = () => {
-    if (!editingTheme) return;
-    const finalTheme = {
-      ...editingTheme,
-      name: customName || 'My Custom Theme',
-      bgEarth: theme.bgEarth,
-      bgCanopy: theme.bgCanopy,
-      borderForest: theme.borderForest,
-      textParchment: theme.textParchment,
-      accentMana: theme.accentMana,
-      accentHighlight: theme.accentHighlight
-    };
-    saveCustomTheme(finalTheme);
-    setEditingTheme(null);
+  const handleCustomColorChange = (key, value) => {
+    const updated = { ...customColors, [key]: value };
+    setCustomColors(updated);
+    setTheme({
+      name: 'Custom Hex Color Scheme',
+      ...updated,
+      bgPanel: 'rgba(20, 30, 38, 0.8)',
+      borderForest: '#2A3B4C',
+      borderSage: updated.accentMana,
+      textMuted: '#A3B1B8',
+      textDim: '#4C566A',
+      fontMono: theme.fontMono,
+      fontSans: theme.fontSans
+    });
   };
 
   return (
     <div className="theme-settings-container">
-      {/* 1. Main Viewport: Compact Native Theme Buttons Grid */}
-      <div className="theme-section">
-        <div className="section-header-compact">
-          <Palette size={14} color="#88C0D0" />
-          <span>Theme Presets ({Object.keys(themes || {}).length})</span>
-          <button type="button" className="create-custom-theme-btn" onClick={handleCreateCustom}>
-            <Plus size={12} />
-            <span>Custom Theme</span>
-          </button>
+      <div className="settings-section">
+        <div className="section-title">
+          <Palette size={18} color="#88C0D0" />
+          <h3>1-Click Open-Source Theme Presets</h3>
         </div>
 
-        <div className="native-theme-grid">
-          {Object.entries(themes || {}).map(([key, t]) => {
-            const isActive = theme && theme.name === t.name;
+        <div className="preset-grid">
+          {Object.keys(THEME_PRESETS).map((key) => {
+            const p = THEME_PRESETS[key];
+            const isSelected = currentThemeKey === key && !customMode;
             return (
               <div
                 key={key}
-                className={`native-theme-button ${isActive ? 'active' : ''}`}
-                style={{
-                  backgroundColor: t.bgEarth || '#0A1118',
-                  color: t.textParchment || '#E6EDF0',
-                  borderColor: t.accentMana || '#5E81AC',
-                  boxShadow: isActive ? `0 0 12px ${t.accentHighlight || '#88C0D0'}` : 'none'
+                className={`preset-card ${isSelected ? 'selected' : ''}`}
+                onClick={() => {
+                  setCustomMode(false);
+                  selectThemePreset(key);
                 }}
-                onClick={() => setTheme(t)}
               >
-                <div className="native-theme-header">
-                  <span className="native-theme-title">{t.name}</span>
-                  {isActive && <Check size={12} color={t.accentHighlight || '#88C0D0'} />}
+                <div className="preset-header">
+                  <span className="preset-name">{p.name}</span>
+                  {isSelected && <Check size={14} color="#88C0D0" />}
                 </div>
-
-                <button
-                  type="button"
-                  className="native-gear-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCustomName(t.name);
-                    setEditingTheme(t);
-                  }}
-                  title="Customize Theme & Colors"
-                >
-                  <Settings size={12} color={t.accentHighlight || '#88C0D0'} />
-                </button>
+                <div className="preset-swatches">
+                  <span className="swatch" style={{ background: p.bgEarth }} title="Background" />
+                  <span className="swatch" style={{ background: p.bgCanopy }} title="Card" />
+                  <span className="swatch" style={{ background: p.accentMana }} title="Accent" />
+                  <span className="swatch" style={{ background: p.accentHighlight }} title="Highlight" />
+                  <span className="swatch" style={{ background: p.textParchment }} title="Text" />
+                </div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* 2. Typography Controls & Live Theme-Styled Interactive Preview Boxes */}
-      <div className="theme-section">
-        <div className="section-header-compact">
-          <Type size={14} color="#4C7864" />
-          <span>Typography & Live Previews</span>
-          {appliedToast && (
-            <span className="applied-toast-badge">
-              <CheckCircle2 size={12} /> Applied Live
-            </span>
-          )}
+      {/* Custom Color Scheme Builder Studio */}
+      <div className="settings-section">
+        <div className="section-title">
+          <RefreshCw size={18} color="#5E81AC" />
+          <h3>Custom Hex Code Color Builder Studio</h3>
         </div>
 
-        <div className="font-controls-grid">
-          <div className="font-control-card">
-            <div className="font-control-label">
-              <span>Terminal Font Size</span>
-              <strong>{localTerminalFont}pt</strong>
-            </div>
+        <div className="custom-studio-card">
+          <div className="custom-color-row">
+            <label>Background (Void):</label>
             <input
-              type="range"
-              min="6"
-              max="20"
-              value={localTerminalFont}
-              onChange={(e) => setLocalTerminalFont(Number(e.target.value))}
-              className="font-slider"
+              type="text"
+              value={customColors.bgEarth}
+              onChange={(e) => handleCustomColorChange('bgEarth', e.target.value)}
             />
-          </div>
-
-          <div className="font-control-card">
-            <div className="font-control-label">
-              <span>Editor Font Size</span>
-              <strong>{localEditorFont}pt</strong>
-            </div>
             <input
-              type="range"
-              min="6"
-              max="20"
-              value={localEditorFont}
-              onChange={(e) => setLocalEditorFont(Number(e.target.value))}
-              className="font-slider"
+              type="color"
+              value={customColors.bgEarth.startsWith('#') ? customColors.bgEarth : '#0A1118'}
+              onChange={(e) => handleCustomColorChange('bgEarth', e.target.value)}
             />
           </div>
 
-          <div className="font-control-card full-width">
-            <span>Font Family</span>
-            <select
-              value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              className="font-select-dropdown"
-            >
-              <option value="IBM Plex Mono">IBM Plex Mono (Nordic Standard)</option>
-              <option value="Fira Code">Fira Code (Ligatures)</option>
-              <option value="JetBrains Mono">JetBrains Mono</option>
-              <option value="Inconsolata">Inconsolata</option>
-            </select>
-          </div>
-        </div>
-
-        {/* DUAL LIVE THEME-STYLED INTERACTIVE PREVIEW WINDOWS */}
-        <div className="live-font-preview-grid">
-          {/* BOX 1: TERMINAL FONT PREVIEW */}
-          <div className="preview-window-card">
-            <div className="preview-card-header">
-              <TermIcon size={12} color={theme.accentHighlight || '#88C0D0'} />
-              <span>Terminal Font Preview ({localTerminalFont}pt)</span>
-            </div>
-            <textarea
-              className="live-preview-textarea"
-              style={{
-                backgroundColor: theme.bgEarth || '#141E26',
-                color: theme.textParchment || '#E6EDF0',
-                borderColor: theme.accentMana || '#5E81AC',
-                fontSize: `${localTerminalFont}pt`,
-                fontFamily: fontFamily
-              }}
-              value={terminalSampleText}
-              onChange={(e) => setTerminalSampleText(e.target.value)}
+          <div className="custom-color-row">
+            <label>Card / Panel:</label>
+            <input
+              type="text"
+              value={customColors.bgCanopy}
+              onChange={(e) => handleCustomColorChange('bgCanopy', e.target.value)}
+            />
+            <input
+              type="color"
+              value={customColors.bgCanopy.startsWith('#') ? customColors.bgCanopy : '#141E26'}
+              onChange={(e) => handleCustomColorChange('bgCanopy', e.target.value)}
             />
           </div>
 
-          {/* BOX 2: CODE EDITOR FONT PREVIEW */}
-          <div className="preview-window-card">
-            <div className="preview-card-header">
-              <FileCode size={12} color={theme.accentMana || '#5E81AC'} />
-              <span>Editor Font Preview ({localEditorFont}pt)</span>
-            </div>
-            <textarea
-              className="live-preview-textarea"
-              style={{
-                backgroundColor: theme.bgCanopy || '#1F2D3A',
-                color: theme.textParchment || '#E6EDF0',
-                borderColor: theme.accentHighlight || '#88C0D0',
-                fontSize: `${localEditorFont}pt`,
-                fontFamily: fontFamily
-              }}
-              value={editorSampleText}
-              onChange={(e) => setEditorSampleText(e.target.value)}
+          <div className="custom-color-row">
+            <label>Primary Text:</label>
+            <input
+              type="text"
+              value={customColors.textParchment}
+              onChange={(e) => handleCustomColorChange('textParchment', e.target.value)}
+            />
+            <input
+              type="color"
+              value={customColors.textParchment.startsWith('#') ? customColors.textParchment : '#E6EDF0'}
+              onChange={(e) => handleCustomColorChange('textParchment', e.target.value)}
             />
           </div>
-        </div>
 
-        {/* ACTION BUTTONS: RESET DEFAULT & IMPLEMENT SETTINGS */}
-        <div className="font-action-btn-row">
-          <button type="button" className="font-reset-btn" onClick={handleResetFonts}>
-            <RefreshCw size={12} />
-            <span>Reset Default (14pt)</span>
-          </button>
+          <div className="custom-color-row">
+            <label>Primary Accent:</label>
+            <input
+              type="text"
+              value={customColors.accentMana}
+              onChange={(e) => handleCustomColorChange('accentMana', e.target.value)}
+            />
+            <input
+              type="color"
+              value={customColors.accentMana.startsWith('#') ? customColors.accentMana : '#5E81AC'}
+              onChange={(e) => handleCustomColorChange('accentMana', e.target.value)}
+            />
+          </div>
 
-          <button type="button" className="font-apply-btn" onClick={handleApplyFontSettings}>
-            <CheckCircle2 size={12} />
-            <span>Implement Font Settings</span>
-          </button>
+          <div className="custom-color-row">
+            <label>Highlight / Link:</label>
+            <input
+              type="text"
+              value={customColors.accentHighlight}
+              onChange={(e) => handleCustomColorChange('accentHighlight', e.target.value)}
+            />
+            <input
+              type="color"
+              value={customColors.accentHighlight.startsWith('#') ? customColors.accentHighlight : '#88C0D0'}
+              onChange={(e) => handleCustomColorChange('accentHighlight', e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
-      {/* 3. Theme Customizer Pop-up Modal */}
-      {editingTheme && (
-        <div className="explorer-modal-overlay" onClick={() => setEditingTheme(null)}>
-          <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-row">
-              <h3>🎨 Customize Theme</h3>
-              <button type="button" className="modal-close-x" onClick={() => setEditingTheme(null)}>
-                <X size={16} />
-              </button>
-            </div>
+      {/* Font Size Sliders */}
+      <div className="settings-section">
+        <div className="section-title">
+          <Type size={18} color="#88C0D0" />
+          <h3>Typography & Font Scaling</h3>
+        </div>
 
-            <div className="theme-name-input-group">
-              <label>Theme Name:</label>
-              <input
-                type="text"
-                className="theme-name-field"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                placeholder="e.g. Mage Sovereign Dark"
-              />
-            </div>
+        <div className="font-control-card">
+          <div className="font-slider-row">
+            <label>Terminal Font Size ({fontSizeTerminal}px):</label>
+            <input
+              type="range"
+              min="10"
+              max="24"
+              value={fontSizeTerminal}
+              onChange={(e) => setFontSizeTerminal(Number(e.target.value))}
+            />
+          </div>
 
-            <div className="modal-section-title">Active Base-16 Color Palette</div>
-            <div className="modal-swatch-row">
-              {activeThemeSwatches.map((color, idx) => (
-                <span
-                  key={`modal-swatch-${idx}`}
-                  className="palette-dot"
-                  style={{ backgroundColor: color }}
-                  title={`Color: ${color}`}
-                />
-              ))}
-            </div>
-
-            <div className="modal-section-title" style={{ marginTop: '0.6rem' }}>Color Palette (6 Colors)</div>
-            <div className="custom-hex-grid">
-              <div className="hex-picker-card">
-                <span>Void Base</span>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={theme?.bgEarth || '#141E26'}
-                    onChange={(e) => updateCustomColor('bgEarth', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={theme?.bgEarth || '#141E26'}
-                    onChange={(e) => updateCustomColor('bgEarth', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="hex-picker-card">
-                <span>Card Panel</span>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={theme?.bgCanopy || '#1F2D3A'}
-                    onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={theme?.bgCanopy || '#1F2D3A'}
-                    onChange={(e) => updateCustomColor('bgCanopy', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="hex-picker-card">
-                <span>Border / Grid</span>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={theme?.borderForest || '#2A3B4C'}
-                    onChange={(e) => updateCustomColor('borderForest', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={theme?.borderForest || '#2A3B4C'}
-                    onChange={(e) => updateCustomColor('borderForest', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="hex-picker-card">
-                <span>Primary Text</span>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={theme?.textParchment || '#E6EDF0'}
-                    onChange={(e) => updateCustomColor('textParchment', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={theme?.textParchment || '#E6EDF0'}
-                    onChange={(e) => updateCustomColor('textParchment', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="hex-picker-card">
-                <span>Glacier Blue</span>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={theme?.accentMana || '#5E81AC'}
-                    onChange={(e) => updateCustomColor('accentMana', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={theme?.accentMana || '#5E81AC'}
-                    onChange={(e) => updateCustomColor('accentMana', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="hex-picker-card">
-                <span>Polar Ice Cyan</span>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={theme?.accentHighlight || '#88C0D0'}
-                    onChange={(e) => updateCustomColor('accentHighlight', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={theme?.accentHighlight || '#88C0D0'}
-                    onChange={(e) => updateCustomColor('accentHighlight', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-btn-row" style={{ marginTop: '1rem' }}>
-              <button className="submit" onClick={handleSaveModal}>
-                <Save size={13} />
-                <span>Save & Add to Presets</span>
-              </button>
-              <button onClick={resetToDefault}>
-                Reset Default
-              </button>
-            </div>
+          <div className="font-slider-row">
+            <label>CodeEditor Font Size ({fontSizeEditor}px):</label>
+            <input
+              type="range"
+              min="10"
+              max="24"
+              value={fontSizeEditor}
+              onChange={(e) => setFontSizeEditor(Number(e.target.value))}
+            />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
