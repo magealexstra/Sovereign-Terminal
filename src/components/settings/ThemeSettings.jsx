@@ -126,12 +126,12 @@ export default function ThemeSettings() {
           <div className="font-control-card">
             <div className="font-control-label">
               <span>Terminal Font Size</span>
-              <strong>{terminalFontSize}px</strong>
+              <strong>{terminalFontSize}pt</strong>
             </div>
             <input
               type="range"
-              min="10"
-              max="22"
+              min="6"
+              max="20"
               value={terminalFontSize}
               onChange={(e) => setTerminalFontSize(Number(e.target.value))}
               className="font-slider"
@@ -141,12 +141,12 @@ export default function ThemeSettings() {
           <div className="font-control-card">
             <div className="font-control-label">
               <span>Editor Font Size</span>
-              <strong>{editorFontSize}px</strong>
+              <strong>{editorFontSize}pt</strong>
             </div>
             <input
               type="range"
-              min="10"
-              max="22"
+              min="6"
+              max="20"
               value={editorFontSize}
               onChange={(e) => setEditorFontSize(Number(e.target.value))}
               className="font-slider"
@@ -174,7 +174,7 @@ export default function ThemeSettings() {
           <div className="preview-window-card">
             <div className="preview-card-header">
               <TermIcon size={12} color={theme.accentHighlight || '#88C0D0'} />
-              <span>Terminal Font Preview ({terminalFontSize}px)</span>
+              <span>Terminal Font Preview ({terminalFontSize}pt)</span>
             </div>
             <textarea
               className="live-preview-textarea"
@@ -182,7 +182,7 @@ export default function ThemeSettings() {
                 backgroundColor: theme.bgEarth || '#141E26',
                 color: theme.textParchment || '#E6EDF0',
                 borderColor: theme.accentMana || '#5E81AC',
-                fontSize: `${terminalFontSize}px`,
+                fontSize: `${terminalFontSize}pt`,
                 fontFamily: fontFamily
               }}
               value={terminalSampleText}
@@ -194,7 +194,7 @@ export default function ThemeSettings() {
           <div className="preview-window-card">
             <div className="preview-card-header">
               <FileCode size={12} color={theme.accentMana || '#5E81AC'} />
-              <span>Editor Font Preview ({editorFontSize}px)</span>
+              <span>Editor Font Preview ({editorFontSize}pt)</span>
             </div>
             <textarea
               className="live-preview-textarea"
@@ -202,7 +202,7 @@ export default function ThemeSettings() {
                 backgroundColor: theme.bgCanopy || '#1F2D3A',
                 color: theme.textParchment || '#E6EDF0',
                 borderColor: theme.accentHighlight || '#88C0D0',
-                fontSize: `${editorFontSize}px`,
+                fontSize: `${editorFontSize}pt`,
                 fontFamily: fontFamily
               }}
               value={editorSampleText}
