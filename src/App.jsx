@@ -148,11 +148,14 @@ export default function App() {
 
   return (
     <div className="sovereign-layout">
-      {/* Compact Header with Visible Title & Micro Touch Action Buttons */}
+      {/* Header with OmniState Logo & Vertically Stacked Title */}
       <header className="main-nav-bar">
         <div className="brand-title" title="Sovereign Terminal">
           <img src="/omnistate-logo.png" alt="OmniState Logo" className="omni-logo-img" />
-          <span className="brand-title-text">SOVEREIGN</span>
+          <div className="brand-stacked-text">
+            <span className="brand-line-1">SOVEREIGN</span>
+            <span className="brand-line-2">TERMINAL</span>
+          </div>
         </div>
 
         <div className="nav-tabs-group">

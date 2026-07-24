@@ -1243,3 +1243,33 @@ html, body, #root {
     gap: 0.25rem;
   }
 }
+
+/* Vertically Stacked Brand Title Styling (SOVEREIGN on top of TERMINAL) */
+.brand-stacked-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.85;
+  letter-spacing: 0.04em;
+  font-family: var(--font-sans);
+}
+
+.brand-line-1 {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-parchment);
+}
+
+.brand-line-2 {
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: var(--accent-highlight);
+}
+
+@media (max-width: 768px) {
+  .brand-line-1 {
+    font-size: 0.58rem;
+  }
+  .brand-line-2 {
+    font-size: 0.50rem;
+  }
+}
