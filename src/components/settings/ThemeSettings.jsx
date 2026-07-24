@@ -11,6 +11,21 @@ export default function ThemeSettings() {
   const [editorFontSize, setEditorFontSize] = useState(14);
   const [fontFamily, setFontFamily] = useState('IBM Plex Mono');
 
+  // Extract 16 base colors of active theme
+  const activeThemeSwatches = [
+    theme.bgEarth || '#141E26',
+    theme.bgCanopy || '#1F2D3A',
+    theme.borderForest || '#2A3B4C',
+    theme.borderSage || '#5E81AC',
+    theme.textParchment || '#E6EDF0',
+    theme.textMuted || '#A3B1B8',
+    theme.textDim || '#4C566A',
+    theme.accentMana || '#5E81AC',
+    theme.accentHighlight || '#88C0D0',
+    theme.statusActive || '#4C7864',
+    '#282a36', '#bd93f9', '#ff79c6', '#50fa7b', '#f1fa8c', '#89b4fa'
+  ];
+
   // Clone active theme colors when creating a new custom theme
   const handleCreateCustom = () => {
     const clonedActiveTheme = {
@@ -146,7 +161,7 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* 3. Theme Customizer Pop-up Modal (Custom Naming + Preset Saving) */}
+      {/* 3. Theme Customizer Pop-up Modal (Inherits 16 Active Theme Swatches) */}
       {editingTheme && (
         <div className="explorer-modal-overlay" onClick={() => setEditingTheme(null)}>
           <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -167,6 +182,19 @@ export default function ThemeSettings() {
                 onChange={(e) => setCustomName(e.target.value)}
                 placeholder="e.g. Mage Sovereign Dark"
               />
+            </div>
+
+            {/* Active Theme Base-16 Palette Swatches Bar */}
+            <div className="modal-section-title">Active Base-16 Color Palette</div>
+            <div className="modal-swatch-row">
+              {activeThemeSwatches.map((color, idx) => (
+                <span
+                  key={`modal-swatch-${idx}`}
+                  className="palette-dot"
+                  style={{ backgroundColor: color }}
+                  title={`Color: ${color}`}
+                />
+              ))}
             </div>
 
             {/* All 6 Signature Hex Color Pickers */}

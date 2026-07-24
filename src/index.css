@@ -2351,3 +2351,14 @@ html, body, #root {
   font-size: 0.78rem;
   font-weight: 600;
 }
+
+/* Theme Customizer Modal Active Swatches Row */
+.modal-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.35rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+}
