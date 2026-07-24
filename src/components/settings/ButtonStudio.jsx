@@ -5,7 +5,6 @@ import { useApp } from '../../context/AppContext';
 export default function ButtonStudio() {
   const { theme } = useApp();
 
-  // Active Buttons List
   const [buttons, setButtons] = useState([
     { id: 'b1', label: 'ESC', value: '\x1b', width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
     { id: 'b2', label: 'TAB', value: '\t', width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
@@ -17,27 +16,22 @@ export default function ButtonStudio() {
   const [selectedId, setSelectedId] = useState('b4');
   const activeBtn = buttons.find((b) => b.id === selectedId) || buttons[0];
 
-  // Target Color Layer Selection: 'text' | 'bg' | 'border'
   const [targetLayer, setTargetLayer] = useState('bg');
-
-  // Hex Audition State
   const [auditionHex, setAuditionHex] = useState('#88C0D0');
-
-  // User Custom Created Swatches (Persists across theme swaps)
   const [customSwatches, setCustomSwatches] = useState(['#FF003C', '#00FFCC', '#FFA500']);
 
-  // Extract Theme Base 16 Swatches dynamically from active theme
+  // Dynamic Theme Base 16 Swatches with safe optional chaining
   const themeSwatches = [
-    theme.bgEarth || '#0A1118',
-    theme.bgCanopy || '#141E26',
-    theme.borderForest || '#2A3B4C',
-    theme.borderSage || '#5E81AC',
-    theme.textParchment || '#E6EDF0',
-    theme.textMuted || '#A3B1B8',
-    theme.textDim || '#4C566A',
-    theme.accentMana || '#5E81AC',
-    theme.accentHighlight || '#88C0D0',
-    theme.statusActive || '#4C7864',
+    theme?.bgEarth || '#141E26',
+    theme?.bgCanopy || '#1F2D3A',
+    theme?.borderForest || '#2A3B4C',
+    theme?.borderSage || '#5E81AC',
+    theme?.textParchment || '#E6EDF0',
+    theme?.textMuted || '#A3B1B8',
+    theme?.textDim || '#4C566A',
+    theme?.accentMana || '#5E81AC',
+    theme?.accentHighlight || '#88C0D0',
+    theme?.statusActive || '#4C7864',
     '#282a36', '#bd93f9', '#ff79c6', '#50fa7b', '#f1fa8c', '#89b4fa'
   ];
 
@@ -56,15 +50,14 @@ export default function ButtonStudio() {
       width: 3.2,
       height: 2.0,
       shape: 'rounded',
-      bg: theme.bgCanopy || '#141E26',
-      text: theme.textParchment || '#E6EDF0',
-      border: theme.accentMana || '#5E81AC'
+      bg: theme?.bgCanopy || '#1F2D3A',
+      text: theme?.textParchment || '#E6EDF0',
+      border: theme?.accentMana || '#5E81AC'
     };
     setButtons([...buttons, newBtn]);
     setSelectedId(newId);
   };
 
-  // Apply Swatch to Selected Layer ('text', 'bg', 'border')
   const handleApplySwatch = (color) => {
     if (targetLayer === 'bg') updateActiveBtn({ bg: color });
     if (targetLayer === 'text') updateActiveBtn({ text: color });
@@ -102,9 +95,8 @@ export default function ButtonStudio() {
         </button>
       </div>
 
-      {/* Main Surround Grid (Upper Section) */}
+      {/* Main Surround Grid */}
       <div className="studio-mobile-grid">
-        {/* LEFT REGION: Command Output & Label */}
         <div className="region-box left">
           <div className="region-tag"><Code size={12} color="#88C0D0" /> Output</div>
           <div className="region-inputs">
@@ -125,7 +117,6 @@ export default function ButtonStudio() {
           </div>
         </div>
 
-        {/* CENTER REGION: Live Interactive Button Preview Console */}
         <div className="region-box center">
           <span className="center-tag">PREVIEW</span>
           <button
@@ -145,7 +136,6 @@ export default function ButtonStudio() {
           </button>
         </div>
 
-        {/* RIGHT REGION: Size & Shape Controls */}
         <div className="region-box right">
           <div className="region-tag"><Sliders size={12} color="#5E81AC" /> Size & Shape</div>
           <div className="region-steppers">
@@ -170,9 +160,8 @@ export default function ButtonStudio() {
         </div>
       </div>
 
-      {/* LOWER SECTION: Target Property Selector + Vertical Swatch Scroll + Audition Panel */}
+      {/* Target Color Layer & Audition Console */}
       <div className="studio-lower-color-console">
-        {/* TARGET LAYER SELECTOR BUTTONS */}
         <div className="target-layer-row">
           <button
             type="button"
@@ -202,9 +191,7 @@ export default function ButtonStudio() {
           </button>
         </div>
 
-        {/* DUAL PALETTE & AUDITION CONSOLE */}
         <div className="dual-color-console">
-          {/* LEFT: VERTICAL SCROLLABLE SWATCH PALETTE */}
           <div className="vertical-swatch-palette">
             <span className="swatch-group-title">Theme Swatches (16)</span>
             <div className="swatch-grid-rows">
@@ -237,9 +224,7 @@ export default function ButtonStudio() {
             )}
           </div>
 
-          {/* RIGHT: LARGE COLOR AUDITION PANEL (Large Preview Top, Input Middle, Tacked Buttons Bottom) */}
           <div className="right-audition-panel">
-            {/* TOP: LARGE LIVE COLOR PREVIEW BOX */}
             <div
               className="large-audition-box"
               style={{ backgroundColor: auditionHex }}
@@ -249,7 +234,6 @@ export default function ButtonStudio() {
               <span>{auditionHex}</span>
             </div>
 
-            {/* MIDDLE: HEX INPUT FIELD & NATIVE PICKER */}
             <div className="audition-input-row">
               <input
                 type="color"
@@ -266,7 +250,6 @@ export default function ButtonStudio() {
               />
             </div>
 
-            {/* BOTTOM: TACKED ADD & CLEAR BUTTONS */}
             <div className="audition-btn-row">
               <button type="button" className="add-swatch-btn" onClick={handleAddSwatch}>
                 <Plus size={12} />
