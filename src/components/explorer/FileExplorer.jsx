@@ -35,6 +35,13 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
     fetchDirectory(currentPath);
   }, []);
 
+  // Synchronize directory tree when terminal working directory changes
+  useEffect(() => {
+    if (activeTerminalPath && activeTerminalPath !== currentPath) {
+      fetchDirectory(activeTerminalPath);
+    }
+  }, [activeTerminalPath]);
+
   // Split path into interactive breadcrumbs
   const getBreadcrumbs = () => {
     const parts = currentPath.split('/').filter(Boolean);
@@ -69,6 +76,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
         console.error('Delete error:', e);
       }
     }
+    setSelectedItems([]);
     fetchDirectory(currentPath);
   };
 
@@ -95,7 +103,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
 
   // Single or Batch Download to Phone Storage
   const handleDownload = () => {
-    const downloadPath = selectedItems.length > 0 ? selectedItems[0] : currentPath;
+    const downloadPath = selectedItems.length > 0 ? selectedItems.join(',') : currentPath;
     window.location.href = `http://${window.location.hostname}:2068/api/fs/download?path=${encodeURIComponent(downloadPath)}`;
   };
 
@@ -184,6 +192,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
               type="checkbox"
               className="item-checkbox"
               checked={selectedItems.includes(item.path)}
+              onClick={(e) => e.stopPropagation()}
               onChange={(e) => {
                 e.stopPropagation();
                 handleSelectItem(item.path);
