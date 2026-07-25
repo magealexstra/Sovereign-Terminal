@@ -1,33 +1,38 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, KeyRound, User, AlertCircle, ArrowRight } from 'lucide-react';
 
 /**
- * LoginModal — Sleek, centered authentication modal rendered when session is unauthenticated.
+ * LoginModal — Sleek, centered authentication modal that dynamically adapts UI based on authMode ('token' vs 'pam').
  */
-export default function LoginModal({ onLoginSuccess }) {
+export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isPam = authMode === 'pam';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!password.trim()) return;
+    if (isPam && (!username.trim() || !password.trim())) return;
+    if (!isPam && !password.trim()) return;
 
     setLoading(true);
     setErrorMsg('');
 
     try {
+      const payload = isPam ? { username: username.trim(), password } : { password };
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         onLoginSuccess();
       } else {
         const data = await res.json().catch(() => ({}));
-        setErrorMsg(data.detail || 'Invalid authentication token');
+        setErrorMsg(data.detail || (isPam ? 'Invalid Linux OS username or password' : 'Invalid authentication token'));
       }
     } catch (err) {
       setErrorMsg('Failed to connect to authentication server');
@@ -44,7 +49,11 @@ export default function LoginModal({ onLoginSuccess }) {
             <Lock size={22} color="var(--accent-mana)" />
           </div>
           <h2>SOVEREIGN TERMINAL</h2>
-          <p>Enter your session token to unlock the control workstation</p>
+          <p>
+            {isPam
+              ? 'Enter your Linux OS system account credentials to unlock workstation'
+              : 'Enter your session token to unlock the control workstation'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -55,14 +64,28 @@ export default function LoginModal({ onLoginSuccess }) {
             </div>
           )}
 
+          {isPam && (
+            <div className="login-input-box">
+              <User size={16} color="var(--text-muted)" />
+              <input
+                type="text"
+                placeholder="Linux Username..."
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+          )}
+
           <div className="login-input-box">
             <KeyRound size={16} color="var(--text-muted)" />
             <input
               type="password"
-              placeholder="Session Auth Token..."
+              placeholder={isPam ? 'Password...' : 'Session Auth Token...'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
+              autoFocus={!isPam}
               required
             />
           </div>

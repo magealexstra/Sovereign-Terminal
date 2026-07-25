@@ -21,8 +21,20 @@ export default function App() {
   // Authentication State & Session Verification
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [authEnabled, setAuthEnabled] = useState(true);
+  const [authMode, setAuthMode] = useState('token');
 
   useEffect(() => {
+    const fetchAuthMode = async () => {
+      try {
+        const modeRes = await fetch('/api/auth/mode');
+        if (modeRes.ok) {
+          const modeData = await modeRes.json();
+          setAuthMode(modeData.auth_mode || 'token');
+        }
+      } catch {}
+    };
+    fetchAuthMode();
+
     const verifyAuth = async () => {
       try {
         const res = await fetch('/api/auth/verify');
@@ -30,8 +42,11 @@ export default function App() {
           const data = await res.json();
           setIsAuthenticated(true);
           setAuthEnabled(data.auth_enabled !== false);
+          if (data.auth_mode) setAuthMode(data.auth_mode);
         } else {
           setIsAuthenticated(false);
+          const headerMode = res.headers.get('X-Auth-Mode');
+          if (headerMode) setAuthMode(headerMode);
         }
       } catch {
         setIsAuthenticated(false);
@@ -220,7 +235,7 @@ export default function App() {
   return (
     <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
       {!isAuthenticated && (
-        <LoginModal onLoginSuccess={() => setIsAuthenticated(true)} />
+        <LoginModal authMode={authMode} onLoginSuccess={() => setIsAuthenticated(true)} />
       )}
       {/* Header with OmniState Logo & Vertically Stacked Title */}
       <header className="main-nav-bar">
