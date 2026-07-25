@@ -128,12 +128,9 @@ export default function App() {
     }
   };
 
-  const handleKeyPress = (keyData) => {
-    setVoiceInput(keyData);
-    setTimeout(() => setVoiceInput(''), 50);
-  };
-
-  const handleVoiceInput = (text) => {
+  // Unified input handler — used for both macro key-presses and voice dictation.
+  // Both call sites send a string to the terminal via the voiceInput state channel.
+  const handleTerminalInput = (text) => {
     setVoiceInput(text);
     setTimeout(() => setVoiceInput(''), 50);
   };
@@ -313,8 +310,8 @@ export default function App() {
         </div>
 
         <TouchBar
-          onKeyPress={handleKeyPress}
-          onVoiceInput={handleVoiceInput}
+          onKeyPress={handleTerminalInput}
+          onVoiceInput={handleTerminalInput}
         />
       </div>
 
