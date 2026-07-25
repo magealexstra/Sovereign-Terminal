@@ -11,21 +11,30 @@ import { useApp } from '../../context/AppContext';
 export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal }) {
   const { theme } = useApp();
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
+  const [editorToast, setEditorToast] = useState('');
   const pressTimer = useRef(null);
+  const isTouchDevice = useRef(false);
 
   const activeDoc = openDocuments.find((doc) => doc.path === activeFilePath) || openDocuments[0];
 
   const getLanguageExtension = (filename) => {
     if (!filename) return [markdown()];
-    if (filename.endsWith('.py')) return [python()];
-    if (filename.endsWith('.json')) return [json()];
-    if (filename.endsWith('.md')) return [markdown()];
-    return [javascript({ jsx: true })];
+    const fn = filename.toLowerCase();
+    if (fn.endsWith('.py')) return [python()];
+    if (fn.endsWith('.json')) return [json()];
+    if (fn.endsWith('.md')) return [markdown()];
+    if (fn.endsWith('.js') || fn.endsWith('.jsx') || fn.endsWith('.ts') || fn.endsWith('.tsx')) return [javascript({ jsx: true })];
+    return [];
   };
 
   const isImageFile = (filename) => {
     if (!filename) return false;
     return /\.(png|jpe?g|webp|svg|gif)$/i.test(filename);
+  };
+
+  const triggerToast = (msg) => {
+    setEditorToast(msg);
+    setTimeout(() => setEditorToast(''), 2000);
   };
 
   // Single-Tap vs Long-Press Tab Close Safeguard
@@ -46,6 +55,26 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     }
   };
 
+  // Touch Bar Clipboard Handlers (Modern Clipboard API)
+  const handleCopyContent = () => {
+    if (activeDoc && activeDoc.content) {
+      navigator.clipboard.writeText(activeDoc.content).then(() => {
+        triggerToast('Copied Document Content');
+      }).catch(() => {});
+    }
+  };
+
+  const handlePasteContent = () => {
+    if (activeDoc && navigator.clipboard?.readText) {
+      navigator.clipboard.readText().then((pastedText) => {
+        if (pastedText) {
+          onContentChange(activeDoc.path, (activeDoc.content || '') + pastedText);
+          triggerToast('Pasted from Clipboard');
+        }
+      }).catch(() => {});
+    }
+  };
+
   if (!activeDoc) {
     return (
       <div className="editor-empty-state">
@@ -62,6 +91,13 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
 
   return (
     <div className="code-editor-workspace">
+      {editorToast && (
+        <div className="copy-toast">
+          <Copy size={13} />
+          <span>{editorToast}</span>
+        </div>
+      )}
+
       {/* Browser-Style Document Tabs Bar */}
       <div className="editor-tabs-bar">
         {openDocuments.map((doc) => (
@@ -75,10 +111,19 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
             {doc.isModified && <span className="modified-dot">•</span>}
             <button
               className="doc-tab-close"
-              onMouseDown={() => handleTabClosePress(doc.path)}
-              onMouseUp={() => handleTabCloseRelease(doc.path, doc.isModified)}
-              onTouchStart={() => handleTabClosePress(doc.path)}
-              onTouchEnd={() => handleTabCloseRelease(doc.path, doc.isModified)}
+              onMouseDown={() => {
+                if (!isTouchDevice.current) handleTabClosePress(doc.path);
+              }}
+              onMouseUp={() => {
+                if (!isTouchDevice.current) handleTabCloseRelease(doc.path, doc.isModified);
+              }}
+              onTouchStart={(e) => {
+                isTouchDevice.current = true;
+                handleTabClosePress(doc.path);
+              }}
+              onTouchEnd={(e) => {
+                handleTabCloseRelease(doc.path, doc.isModified);
+              }}
             >
               <X size={12} />
             </button>
@@ -100,7 +145,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
         {isImageFile(activeDoc.path) ? (
           <div className="image-preview-container">
             <ImageIcon size={32} color="#88C0D0" />
-            <img src={`http://${window.location.hostname}:2068/api/fs/read?path=${encodeURIComponent(activeDoc.path)}`} alt={activeDoc.name} />
+            <img src={`http://${window.location.hostname}:2068/api/fs/download?path=${encodeURIComponent(activeDoc.path)}`} alt={activeDoc.name} />
           </div>
         ) : (
           <CodeMirror
@@ -126,13 +171,13 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
           <GitCommit size={14} />
           <span>SAVE & COMMIT</span>
         </button>
-        <button className="editor-touch-btn" onClick={() => document.execCommand('copy')}>
+        <button className="editor-touch-btn" onClick={handleCopyContent} title="Copy All Content">
           <Copy size={14} />
         </button>
-        <button className="editor-touch-btn" onClick={() => document.execCommand('paste')}>
+        <button className="editor-touch-btn" onClick={handlePasteContent} title="Paste Clipboard Content">
           <Clipboard size={14} />
         </button>
-        <button className="editor-touch-btn" onClick={onReturnToTerminal}>
+        <button className="editor-touch-btn" onClick={onReturnToTerminal} title="Return to Terminal">
           <TermIcon size={14} />
         </button>
       </div>
