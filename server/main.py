@@ -60,7 +60,7 @@ def ensure_ssl_certs():
         "openssl", "req", "-x509", "-newkey", "rsa:2048",
         "-keyout", str(key_file), "-out", str(cert_file),
         "-days", "3650", "-nodes",
-        "-subj", "/CN=SovereignTerminal/O=OmniState"
+        "-subj", "/CN=SovereignTerminal/O=Sovereign"
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True)

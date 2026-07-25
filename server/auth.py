@@ -5,7 +5,7 @@ from fastapi import APIRouter, Response, Request, HTTPException, status
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # Read server auth token from environment
-SERVER_AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "sovereign_kattegat_token")
+SERVER_AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "sovereign_terminal_token")
 SESSION_COOKIE_NAME = "sovereign_session"
 
 # Active valid session tokens in memory

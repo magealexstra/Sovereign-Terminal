@@ -13,7 +13,7 @@ WORKSPACE_ROOT = os.getenv("WORKSPACE_ROOT", "/workspace")
 TRASH_DIR = os.getenv("TRASH_DIR", os.path.join(WORKSPACE_ROOT, "_temp_trash"))
 
 # Trash Safety vs Permanent Deletion Configuration
-# Default is True (Verdant Golden Rule of Deletion - moves to _temp_trash)
+# Default is True (moves deleted items to _temp_trash)
 # Set SAFE_TRASH_MODE=false or ENABLE_PERMANENT_DELETE=true in config.env to enable permanent removal
 SAFE_TRASH_MODE = os.getenv("SAFE_TRASH_MODE", "true").lower() in ("true", "1", "yes")
 ENABLE_PERMANENT_DELETE = os.getenv("ENABLE_PERMANENT_DELETE", "false").lower() in ("true", "1", "yes")

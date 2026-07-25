@@ -91,7 +91,7 @@ ENABLE_PERMANENT_DELETE=true
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/magealexstra/Sovereign_Terminal.git
+git clone https://github.com/Sovereign-Terminal/Sovereign_Terminal.git
 cd Sovereign_Terminal
 
 # 2. Configure environment
@@ -107,12 +107,12 @@ docker compose up -d
 
 For detailed architectural specifications, consult the documents in the `docs/` directory:
 
-* [Overall Architecture Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/OVERALL_SOVEREIGN_TERMINAL_DESIGN.md)
-* [Backend Gateway Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/SOVEREIGN_BACKEND_GATEWAY.md)
-* [Tab 1 Multi-Tab Terminal Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_1_MULTI_TAB_TERMINAL.md)
-* [Tab 2 File Explorer & Editor Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_2_FILE_EXPLORER_AND_EDITOR.md)
-* [Tab 3 Settings & Studio Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_3_SETTINGS_AND_STUDIO.md)
-* [Development Plan & Roadmap](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/DEVELOPMENT_PLAN.md)
+* [Overall Architecture Specification](docs/OVERALL_SOVEREIGN_TERMINAL_DESIGN.md)
+* [Backend Gateway Specification](docs/SOVEREIGN_BACKEND_GATEWAY.md)
+* [Tab 1 Multi-Tab Terminal Specification](docs/TAB_1_MULTI_TAB_TERMINAL.md)
+* [Tab 2 File Explorer & Editor Specification](docs/TAB_2_FILE_EXPLORER_AND_EDITOR.md)
+* [Tab 3 Settings & Studio Specification](docs/TAB_3_SETTINGS_AND_STUDIO.md)
+* [Development Plan & Roadmap](docs/DEVELOPMENT_PLAN.md)
 
 ---
 
