@@ -6,6 +6,8 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ArrowDown, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
+import { getTermTheme } from './terminal/termTheme';
+import { writeToClipboard } from './terminal/writeToClipboard';
 import '@xterm/xterm/css/xterm.css';
 
 export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile }) {
@@ -19,31 +21,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const selectionTimer = useRef(null);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
-
-  // Helper to generate xterm theme object from AppContext palette
-  const getTermTheme = (currentTheme) => ({
-    background: currentTheme?.bgEarth || '#141E26',
-    foreground: currentTheme?.textParchment || '#E6EDF0',
-    cursor: currentTheme?.accentHighlight || '#88C0D0',
-    cursorAccent: currentTheme?.bgEarth || '#141E26',
-    selectionBackground: (currentTheme?.accentHighlight || '#88C0D0') + '66',
-    black:         currentTheme?.black         || '#3B4252',
-    red:           currentTheme?.red           || '#BF616A',
-    green:         currentTheme?.green         || '#A3BE8C',
-    yellow:        currentTheme?.yellow        || '#EBCB8B',
-    blue:          currentTheme?.blue          || '#81A1C1',
-    magenta:       currentTheme?.magenta       || '#B48EAD',
-    cyan:          currentTheme?.cyan          || '#88C0D0',
-    white:         currentTheme?.white         || '#E5E9F0',
-    brightBlack:   currentTheme?.brightBlack   || '#4C566A',
-    brightRed:     currentTheme?.brightRed     || '#D08770',
-    brightGreen:   currentTheme?.brightGreen   || '#A3BE8C',
-    brightYellow:  currentTheme?.brightYellow  || '#EBCB8B',
-    brightBlue:    currentTheme?.brightBlue    || '#5E81AC',
-    brightMagenta: currentTheme?.brightMagenta || '#B48EAD',
-    brightCyan:    currentTheme?.brightCyan    || '#8FBCBB',
-    brightWhite:   currentTheme?.brightWhite   || '#ECEFF4',
-  });
 
   // Live font size updates: clear WebGL atlas first so new cell metrics are calculated,
   // then let fitAddon.fit() own the resize completely
@@ -172,26 +149,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     // Initial fit pulses — lets the DOM fully paint the flex layout before measuring
     setTimeout(performFit, 50);
     setTimeout(performFit, 200);
-
-    // Clipboard write helper — tries modern Clipboard API first (requires HTTPS
-    // or localhost), then falls back to legacy textarea trick (for plain-HTTP deployments).
-    const writeToClipboard = (text) => {
-      if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text);
-      }
-      // Fallback for non-secure HTTP contexts
-      return new Promise((resolve, reject) => {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        const ok = document.execCommand('copy');
-        document.body.removeChild(ta);
-        ok ? resolve() : reject(new Error('execCommand copy failed'));
-      });
-    };
 
     // Debounced Copy-on-Select Clipboard Handler
     term.onSelectionChange(() => {

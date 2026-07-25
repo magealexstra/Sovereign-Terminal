@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Sliders, Code, Trash2, Type, Square, Layers, Save, Search } from 'lucide-react';
+import { Sliders, Code, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_BUTTONS, PREBUILT_CATEGORIES } from './button-studio/buttonData';
+import ButtonHeader from './button-studio/ButtonHeader';
+import ButtonPreview from './button-studio/ButtonPreview';
+import AuditionConsole from './button-studio/AuditionConsole';
 
 export default function ButtonStudio() {
   const { theme } = useApp();
@@ -81,10 +84,10 @@ export default function ButtonStudio() {
     if (targetLayer === 'bg')     updateActiveBtn({ bg: color });
     if (targetLayer === 'text')   updateActiveBtn({ text: color });
     if (targetLayer === 'border') updateActiveBtn({ border: color });
-    setAuditionHex(color); // sync audition box so user can inspect then Add
+    setAuditionHex(color);
   };
 
-  // Add auditionHex to custom swatches — normalized to lowercase to avoid case-mismatch duplicates
+  // Add auditionHex to custom swatches
   const handleAddSwatch = () => {
     const hex = auditionHex?.trim().toLowerCase();
     if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return;
@@ -109,14 +112,12 @@ export default function ButtonStudio() {
   };
 
   const handleSelectPresetOrCustom = (selectedKey) => {
-    // Check if it's a custom button ID
     const custom = buttons.find((b) => b.id === selectedKey);
     if (custom) {
       setSelectedId(selectedKey);
       return;
     }
 
-    // Check if it's a prebuilt item value
     for (const cat of Object.values(PREBUILT_CATEGORIES)) {
       const match = cat.items.find(item => item.label === selectedKey || item.value === selectedKey);
       if (match) {
@@ -124,7 +125,6 @@ export default function ButtonStudio() {
         if (existing) {
           setSelectedId(existing.id);
         } else {
-          // Instantiate a editable preset button
           const newId = `preset-${Date.now()}`;
           const newBtn = {
             id: newId,
@@ -171,60 +171,19 @@ export default function ButtonStudio() {
   return (
     <div className="touch-studio-mobile-window">
       {/* Top Search & Dropdown Navigation Stack */}
-      <div className="studio-top-row">
-        <div className="search-input-box" style={{ width: '100%' }}>
-          <Search size={14} color="var(--accent-mana)" />
-          <input
-            type="text"
-            placeholder="Search studio buttons & macros..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="studio-top-select-group">
-          <select
-            className="studio-dropdown"
-            style={{ flex: 1 }}
-            value={activeBtn?.id || ''}
-            onChange={(e) => handleSelectPresetOrCustom(e.target.value)}
-          >
-            {/* SECTION 1: CUSTOM CREATIONS */}
-            {filteredCustomButtons.length > 0 && (
-              <optgroup label="CUSTOM CREATIONS">
-                {filteredCustomButtons.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    [CUSTOM] {b.label} ({b.value.trim()})
-                  </option>
-                ))}
-              </optgroup>
-            )}
-
-            {/* SECTION 2: ALL LAYOUT TAB PRE-BUILT TOOLKITS */}
-            <optgroup label="PRE-BUILT LAYOUT BUTTONS">
-              {Object.entries(displayCategories)
-                .sort((a, b) => a[1].name.localeCompare(b[1].name))
-                .map(([key, cat]) => (
-                  <React.Fragment key={key}>
-                    {cat.items.map((item, idx) => (
-                      <option key={`opt-${key}-${idx}`} value={item.label}>
-                        [{key}] {item.label} ({item.value.trim()})
-                      </option>
-                    ))}
-                  </React.Fragment>
-                ))}
-            </optgroup>
-          </select>
-          <button type="button" className="studio-new-btn" onClick={handleCreateNew}>
-            <Plus size={13} />
-            <span>New</span>
-          </button>
-        </div>
-      </div>
+      <ButtonHeader
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        activeBtnId={activeBtn?.id}
+        filteredCustomButtons={filteredCustomButtons}
+        displayCategories={displayCategories}
+        onSelectPresetOrCustom={handleSelectPresetOrCustom}
+        onCreateNew={handleCreateNew}
+      />
 
       {/* Main Surround Grid with Dynamic Flex Growth */}
       <div className="studio-mobile-grid">
-        {/* LEFT REGION: Command Output & Function (Dynamic Growth) */}
+        {/* LEFT REGION: Command Output & Function */}
         <div className="region-box left flex-column-grow">
           <div className="region-tag"><Code size={12} color="var(--accent-mana)" /> Output</div>
 
@@ -252,26 +211,9 @@ export default function ButtonStudio() {
         </div>
 
         {/* CENTER REGION: Live Interactive Button Preview Console */}
-        <div className="region-box center">
-          <span className="center-tag">PREVIEW</span>
-          <button
-            type="button"
-            className={`live-studio-btn ${activeBtn.shape}`}
-            style={{
-              width: `${activeBtn.width}rem`,
-              height: `${activeBtn.height}rem`,
-              backgroundColor: activeBtn.bg,
-              color: activeBtn.text,
-              borderColor: activeBtn.border,
-              borderWidth: '2px',
-              borderStyle: 'solid'
-            }}
-          >
-            {activeBtn.label}
-          </button>
-        </div>
+        <ButtonPreview activeBtn={activeBtn} />
 
-        {/* RIGHT REGION: Size, Shape & Pinned Save (Dynamic Growth) */}
+        {/* RIGHT REGION: Size, Shape & Pinned Save */}
         <div className="region-box right flex-column-grow">
           <div className="region-tag"><Sliders size={12} color="var(--accent-mana)" /> Size & Shape</div>
 
@@ -330,108 +272,17 @@ export default function ButtonStudio() {
       </div>
 
       {/* Target Color Layer & Audition Console */}
-      <div className="studio-lower-color-console">
-        <div className="target-layer-row">
-          <button
-            type="button"
-            className={`target-layer-btn ${targetLayer === 'text' ? 'active' : ''}`}
-            onClick={() => setTargetLayer('text')}
-          >
-            <Type size={12} />
-            <span>Text Color</span>
-          </button>
-
-          <button
-            type="button"
-            className={`target-layer-btn ${targetLayer === 'bg' ? 'active' : ''}`}
-            onClick={() => setTargetLayer('bg')}
-          >
-            <Square size={12} />
-            <span>Background</span>
-          </button>
-
-          <button
-            type="button"
-            className={`target-layer-btn ${targetLayer === 'border' ? 'active' : ''}`}
-            onClick={() => setTargetLayer('border')}
-          >
-            <Layers size={12} />
-            <span>Border / Icon</span>
-          </button>
-        </div>
-
-        <div className="dual-color-console">
-          <div className="vertical-swatch-palette">
-            <span className="swatch-group-title">Theme Swatches (16)</span>
-            <div className="swatch-grid-rows">
-              {themeSwatches.map((color, idx) => (
-                <span
-                  key={`theme-${idx}-${color}`}
-                  className="palette-dot"
-                  style={{ backgroundColor: color }}
-                  onClick={() => handleApplySwatch(color)}
-                  title={`Apply ${color} to ${targetLayer}`}
-                />
-              ))}
-            </div>
-
-            {customSwatches.length > 0 && (
-              <>
-                <span className="swatch-group-title" style={{ marginTop: '0.4rem' }}>User Custom Swatches</span>
-                <div className="swatch-grid-rows">
-                  {customSwatches.map((color, idx) => (
-                    <span
-                      key={`custom-${idx}-${color}`}
-                      className="palette-dot custom-dot"
-                      style={{ backgroundColor: color }}
-                      onClick={() => handleApplySwatch(color)}
-                      title={`Apply ${color} to ${targetLayer}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="right-audition-panel">
-            <div
-              className="large-audition-box"
-              style={{ backgroundColor: auditionHex }}
-              onClick={() => handleApplySwatch(auditionHex)}
-              title="Tap to apply color directly to selected layer"
-            >
-              <span>{auditionHex}</span>
-            </div>
-
-            <div className="audition-input-row">
-              <input
-                type="color"
-                className="audition-native-picker"
-                value={auditionHex}
-                onChange={(e) => setAuditionHex(e.target.value)}
-              />
-              <input
-                type="text"
-                className="audition-hex-input"
-                value={auditionHex}
-                onChange={(e) => setAuditionHex(e.target.value)}
-                placeholder="#HEX"
-              />
-            </div>
-
-            <div className="audition-btn-row">
-              <button type="button" className="add-swatch-btn" onClick={handleAddSwatch}>
-                <Plus size={12} />
-                <span>Add</span>
-              </button>
-              <button type="button" className="clear-swatch-btn" onClick={handleClearAudition}>
-                <Trash2 size={12} />
-                <span>Clear</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AuditionConsole
+        targetLayer={targetLayer}
+        setTargetLayer={setTargetLayer}
+        themeSwatches={themeSwatches}
+        customSwatches={customSwatches}
+        auditionHex={auditionHex}
+        setAuditionHex={setAuditionHex}
+        onApplySwatch={handleApplySwatch}
+        onAddSwatch={handleAddSwatch}
+        onClearAudition={handleClearAudition}
+      />
     </div>
   );
 }
