@@ -151,7 +151,24 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
           <CodeMirror
             value={activeDoc.content || ''}
             height="100%"
-            theme={oneDark}
+            theme={EditorView.theme({
+              '&': {
+                backgroundColor: theme?.bgEarth || '#0A1118',
+                color: theme?.textParchment || '#E6EDF0',
+                fontFamily: "'IBM Plex Mono', monospace"
+              },
+              '.cm-content': {
+                caretColor: theme?.accentHighlight || '#88C0D0'
+              },
+              '&.cm-focused .cm-cursor': {
+                borderLeftColor: theme?.accentHighlight || '#88C0D0'
+              },
+              '.cm-gutters': {
+                backgroundColor: theme?.bgCanopy || '#141E26',
+                color: theme?.textMuted || '#A3B1B8',
+                borderRight: '1px solid ' + (theme?.borderForest || '#2A3B4C')
+              }
+            }, { dark: true })}
             extensions={[
               ...getLanguageExtension(activeDoc.path),
               EditorView.lineWrapping // Word Wrap Enabled by Default

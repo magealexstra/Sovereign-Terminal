@@ -1330,9 +1330,17 @@ html, body, #root {
   overflow: hidden;
 }
 
+.doc-tab-title {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .region-box {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
   border-radius: 8px;

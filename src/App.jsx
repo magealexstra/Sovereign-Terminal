@@ -151,7 +151,15 @@ export default function App() {
       {/* Header with OmniState Logo & Vertically Stacked Title */}
       <header className="main-nav-bar">
         <div className="brand-title" title="Sovereign Terminal">
-          <img src="/omnistate-logo.png" alt="OmniState Logo" className="omni-logo-img" />
+          <img
+            src="/omnistate-logo.png"
+            alt="OmniState Logo"
+            className="omni-logo-img"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/favicon.svg';
+            }}
+          />
           <div className="brand-stacked-text">
             <span className="brand-line-1">SOVEREIGN</span>
             <span className="brand-line-2">TERMINAL</span>
