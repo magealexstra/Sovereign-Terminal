@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, ArrowLeft, ArrowRight, Zap, Star } from 'lucide-react';
+import { Search, Plus, Trash2, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
+import { PREBUILT_CATEGORIES } from './button-studio/buttonData';
+import { useToast } from '../../hooks/useToast';
 
 export default function LayoutBuilder() {
   // Search query & category dropdown filter
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('CUSTOM');
+
+  // Toast feedback
+  const { toast, showToast } = useToast(2000);
 
   // Custom user buttons from ButtonStudio (localStorage)
   const [customButtons, setCustomButtons] = useState([]);
@@ -32,49 +37,40 @@ export default function LayoutBuilder() {
     }
   });
 
-  // Selection state:
-  // selectedPoolItem: { type: 'pool', key: '...' }
-  // selectedBarIndex: index in touchBarSlots
+  // Selection state
   const [selectedPoolItem, setSelectedPoolItem] = useState(null);
   const [selectedBarIndex, setSelectedBarIndex] = useState(null);
 
-  // Load custom buttons from localStorage on mount
-  useEffect(() => {
+  // Synchronize custom buttons from localStorage (supports both sovereign_buttons and sovereign_custom_buttons)
+  const loadCustomButtons = () => {
     try {
-      const saved = localStorage.getItem('sovereign_custom_buttons');
-      if (saved) setCustomButtons(JSON.parse(saved));
+      const saved1 = localStorage.getItem('sovereign_buttons');
+      const saved2 = localStorage.getItem('sovereign_custom_buttons');
+      let list = [];
+      if (saved1) list = list.concat(JSON.parse(saved1));
+      if (saved2) list = list.concat(JSON.parse(saved2));
+      const names = list.map(b => b.label || b.name || b.id).filter(Boolean);
+      setCustomButtons(Array.from(new Set(names)));
     } catch {}
-  }, []);
-
-  // Built-in Categorized Preset Bundles
-  const prebuiltCategories = {
-    AGY: { name: 'Anti-Gravity CLI - AGY', items: ['AGY', '/model', '/clear', '/plan', '/schedule', '/goal', '/grill-me', '/teamwork', '/learn', 'Ctrl+O'] },
-    APT: { name: 'APT Package Manager - APT', items: ['APT', 'upgrade -y', 'apt update', 'apt search', 'apt install', 'apt purge', 'autoremove', 'apt clean', 'dpkg -l'] },
-    CLD: { name: 'Claude CLI - CLD', items: ['CLD', '/compact', '/cost', '/doctor', '/clear', '/help', '/init', '/bug', '/review', 'Ctrl+C'] },
-    DOC: { name: 'Docker Suite - DOC', items: ['DOC', 'docker ps', 'docker ps -a', 'compose up', 'compose down', 'compose logs', 'docker exec', 'prune -f', 'docker images'] },
-    FILE: { name: 'Files & Permissions - FILE', items: ['FILE', 'chmod +x', 'chmod 755', 'chmod 644', 'chown -R', 'chgrp -R', 'mkdir -p', 'find . -name', 'rsync -avz', 'tar -czvf', 'tar -xvf', 'unzip'] },
-    GIT: { name: 'Git Version Control - GIT', items: ['GIT', 'git status', 'git log -10', 'git add .', 'git commit', 'git push', 'git pull', 'git checkout', 'git diff'] },
-    HMS: { name: 'Hermes Agent - HMS', items: ['HMS', '/status', '/reset', '/tools', '/logs', '/cancel', '/config', '/memory', '/mcp'] },
-    KEY: { name: 'Keyboard Shortcuts - KEY', items: ['MACROS', '|', '~', '>', '>>', '<', '&&', '||', ';', '`', '\\', '/', '$', '#', 'ESC', 'TAB', 'DEL', '^C', '^Z', '^D', '^A', '^E', '^K', '^U', '^W', '^Y', '^R', '^L'] },
-    NET: { name: 'Networking Tools - NET', items: ['NET', 'ip a', 'ping', 'netstat', 'ss -tulpn', 'ufw status', 'curl -I', 'dig', 'traceroute'] },
-    PAC: { name: 'Arch Pacman - PAC', items: ['PAC', 'upgrade -y', 'pacman install', 'pacman search', 'pacman remove', 'pacman clean', 'pacman list'] },
-    PY:  { name: 'Python & Venv - PY', items: ['PY', 'python3', 'pip install', 'venv create', 'venv activate', 'pip list', 'pip freeze'] },
-    SYS: { name: 'System Admin - SYS', items: ['SYS', 'systemctl', 'restart srv', 'journalctl', 'lsblk', 'blkid', 'df -h', 'du -sh *', 'fdisk -l', 'dmesg -T', 'htop', 'free -h', 'top', 'uptime'] },
-    TMX: { name: 'Tmux Manager - TMX', items: ['TMX', 'tmux ls', 'tmux new', 'tmux attach', 'tmux kill', 'split h', 'split v'] },
-    YUM: { name: 'Fedora/RHEL DNF - YUM', items: ['YUM', 'upgrade -y', 'dnf update', 'dnf install', 'dnf search', 'dnf remove', 'autoremove', 'dnf clean'] }
   };
+
+  useEffect(() => {
+    loadCustomButtons();
+    window.addEventListener('storage', loadCustomButtons);
+    return () => window.removeEventListener('storage', loadCustomButtons);
+  }, []);
 
   // Compute available pool items based on category & search query
   const getPoolItems = () => {
     let items = [];
     if (selectedCategory === 'CUSTOM') {
-      items = customButtons.map(b => b.name || b.label || 'Custom');
+      items = customButtons;
       if (items.length === 0) items = ['(No Custom Buttons Created Yet)'];
-    } else if (prebuiltCategories[selectedCategory]) {
-      items = prebuiltCategories[selectedCategory].items;
+    } else if (PREBUILT_CATEGORIES[selectedCategory]) {
+      items = [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map(i => i.label)];
     } else {
       // All items combined
-      items = Object.values(prebuiltCategories).flatMap(c => c.items);
+      items = Object.entries(PREBUILT_CATEGORIES).flatMap(([key, cat]) => [key, ...cat.items.map(i => i.label)]);
     }
 
     // Apply Search Filter
@@ -93,6 +89,13 @@ export default function LayoutBuilder() {
   const handleSelectPoolItem = (e, itemKey) => {
     e.stopPropagation();
     if (itemKey === '(No Custom Buttons Created Yet)') return;
+    
+    // If user clicks the already-selected chip, immediately add it to bar for tap-friendly UX!
+    if (selectedPoolItem === itemKey) {
+      handleAddDirect(itemKey);
+      return;
+    }
+
     setSelectedPoolItem(itemKey);
     setSelectedBarIndex(null);
   };
@@ -103,20 +106,28 @@ export default function LayoutBuilder() {
     setSelectedPoolItem(null);
   };
 
-  // Save TouchBar layout to localStorage
+  // Save TouchBar layout to localStorage and dispatch storage event for real-time sync with TouchBar
   const saveLayout = (newSlots) => {
     setTouchBarSlots(newSlots);
     try {
       localStorage.setItem('sovereign_layout_slots', JSON.stringify(newSlots));
+      window.dispatchEvent(new Event('storage'));
     } catch {}
+  };
+
+  // Add item directly to TouchBar with toast feedback
+  const handleAddDirect = (itemKey) => {
+    if (!itemKey || itemKey === '(No Custom Buttons Created Yet)') return;
+    const updated = [...touchBarSlots, itemKey];
+    saveLayout(updated);
+    showToast(`Added '${itemKey}' to TouchBar`);
   };
 
   // Add selected pool item to TouchBar
   const handleAddSelectedToBar = (e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     if (!selectedPoolItem) return;
-    const updated = [...touchBarSlots, selectedPoolItem];
-    saveLayout(updated);
+    handleAddDirect(selectedPoolItem);
     setSelectedPoolItem(null);
   };
 
@@ -139,9 +150,11 @@ export default function LayoutBuilder() {
     e.stopPropagation();
     if (selectedBarIndex !== null) {
       // Delete button from active TouchBar
+      const itemRemoved = touchBarSlots[selectedBarIndex];
       const updated = touchBarSlots.filter((_, idx) => idx !== selectedBarIndex);
       saveLayout(updated);
       setSelectedBarIndex(null);
+      if (itemRemoved) showToast(`Removed '${itemRemoved}' from TouchBar`);
     } else if (selectedPoolItem !== null) {
       // Hide button chip from Available Pool View
       const updatedHidden = [...hiddenPoolChips, selectedPoolItem];
@@ -149,6 +162,7 @@ export default function LayoutBuilder() {
       try {
         localStorage.setItem('sovereign_hidden_pool_chips', JSON.stringify(updatedHidden));
       } catch {}
+      showToast(`Hidden '${selectedPoolItem}' from Pool`);
       setSelectedPoolItem(null);
     }
   };
@@ -164,6 +178,12 @@ export default function LayoutBuilder() {
 
   return (
     <div className="layout-builder-container" onClick={handleContainerClick}>
+      {toast && (
+        <div className="copy-toast" style={{ top: '1rem', bottom: 'auto' }}>
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* 1. TOP CARD SECTION: SEARCH + CATEGORIZED DROPDOWN */}
       <div className="layout-editor-card" onClick={handleContainerClick}>
         <div className="search-filter-header" onClick={handleContainerClick}>
@@ -192,7 +212,7 @@ export default function LayoutBuilder() {
 
               {/* SECTION 2: ALPHABETICAL PRE-BUILT TOOLKITS */}
               <optgroup label="PRE-BUILT TOOLKITS">
-                {Object.entries(prebuiltCategories)
+                {Object.entries(PREBUILT_CATEGORIES)
                   .sort((a, b) => a[1].name.localeCompare(b[1].name))
                   .map(([key, cat]) => (
                     <option key={key} value={key}>
@@ -207,7 +227,7 @@ export default function LayoutBuilder() {
         {/* 2. MIDDLE UPPER SECTION: AVAILABLE BUTTONS POOL */}
         <div className="available-pool-section" onClick={handleContainerClick}>
           <div className="pool-section-label" onClick={handleContainerClick}>
-            <span>AVAILABLE BUTTONS POOL ({poolItems.length})</span>
+            <span>AVAILABLE BUTTONS POOL ({poolItems.length}) — Tap chip to select, tap again to add directly</span>
             {hiddenPoolChips.length > 0 && (
               <button
                 type="button"
@@ -216,6 +236,7 @@ export default function LayoutBuilder() {
                   e.stopPropagation();
                   setHiddenPoolChips([]);
                   try { localStorage.removeItem('sovereign_hidden_pool_chips'); } catch {}
+                  showToast('Reset hidden chips');
                 }}
               >
                 Reset Hidden Chips
@@ -234,6 +255,7 @@ export default function LayoutBuilder() {
                   type="button"
                   className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''}`}
                   onClick={(e) => handleSelectPoolItem(e, item)}
+                  title="Tap once to select, tap again or press Add to append to TouchBar"
                 >
                   {isLauncher && <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />}
                   <span>{item}</span>
@@ -246,7 +268,7 @@ export default function LayoutBuilder() {
         {/* 3. MIDDLE LOWER SECTION: LIVE TOUCHBAR PREVIEW ROW */}
         <div className="live-bar-preview-section" onClick={handleContainerClick}>
           <div className="bar-preview-label" onClick={handleContainerClick}>
-            <span>LIVE TOUCHBAR PREVIEW (SCROLLABLE BOTTOM ROW)</span>
+            <span>LIVE TOUCHBAR PREVIEW ({touchBarSlots.length} SLOTS)</span>
           </div>
 
           <div className="live-bar-strip-wrapper" onClick={handleContainerClick}>
