@@ -1,6 +1,7 @@
 # The Sovereign Terminal
 
-> **A Touch-Controlled, Mobile/Tablet-First Linux Server Workstation and Control Portal**
+> ⚠️ **NOTICE: THIS APPLICATION IS CURRENTLY UNDER ACTIVE DEVELOPMENT**
+> *The Sovereign Terminal is actively being built and refined. Features, design specs, and APIs are evolving rapidly.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux%20%7C%20POSIX-orange.svg)]()
@@ -10,24 +11,24 @@
 
 ## Overview
 
-**The Sovereign Terminal** is an open-source, high-performance, system-agnostic web application designed to transform mobile devices, tablets, and desktop browsers into a complete Linux server management workstation.
+**The Sovereign Terminal** is an open-source, high-performance, system-agnostic web application designed to transform mobile devices, tablets, and desktop browsers into a complete, sovereign Linux server management workstation.
 
-Designed to replace traditional web terminals, it pairs a hardware-accelerated 60fps WebGL terminal canvas with a GUI File Explorer, CodeMirror 6 text editor, customizable touch bars, single-handed mobile docking, and a dedicated Python PTY backend gateway.
+Designed to replace traditional, rigid web terminals, it pairs a hardware-accelerated 60fps WebGL terminal canvas with a GUI File Explorer, CodeMirror 6 text editor, highly customizable touch bars, single-handed mobile docking, dynamic theme engine, and a dedicated Python PTY backend gateway.
 
 ---
 
-## Key Features
+## Key Features & Current Development State
 
-### Tab 1: Multi-Tab WebGL Terminal
+### 1. Multi-Tab WebGL Terminal & PTY Gateway
 * **60fps WebGL Canvas:** Powered by `@xterm/xterm` and `@xterm/addon-webgl` for GPU-accelerated rendering.
-* **tmux Session Management:** Multi-session tab bar supporting concurrent sessions (e.g., `mobile-voice`, `dev`, `server-logs`).
-* **Gboard Voice Engine:** Integrated Voice Activity Detection (VAD) dictation without triggering native OS keyboard layout jumps.
+* **tmux Session Persistence:** Multi-session tab bar supporting concurrent persistent sessions (`mobile-voice`, `dev`, `server-logs`) with controlling terminal ioctl allocation.
+* **Gboard Voice Engine:** Continuous Voice Activity Detection (VAD) dictation with real-time transcript diffing.
 * **Quick Sudo Entry Macro:** Single-tap encrypted sudo password entry satisfying `[sudo]` prompts without exposing plain text on screen.
-* **12-Macro Popup Grid:** Symmetrical 3x4 touch macro drawer for frequent shell operations.
-* **Dual Link Router:** Automatically routes workspace file paths (`/workspace/...`) to the CodeMirror 6 Editor and web URLs (`https://...`) to new browser tabs.
+* **Master Red `MACROS` Launcher:** Pinned bright red catalog launcher granting instant access to the full command toolkit library.
 * **Touch Scrollback & Copy-on-Select:** Swiping up/down scrolls history smoothly; text selection automatically copies content to system clipboard.
+* **Port Decoupling & Host Auto-Resolution:** Fully decoupled REST and WebSocket architecture (`PORT=2068` in dev, `PORT=2069` in release template) with relative `/api/fs/...` paths.
 
-### Tab 2: GUI File Explorer & CodeMirror 6 Multi-Document Editor
+### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
 * **Interactive Breadcrumbs:** Tap-based directory navigation (e.g., `/workspace` > `Verdand` > `The_Weaver_Shack`).
 * **Universal Language Highlighting:** CodeMirror 6 syntax highlighting supporting Python, JavaScript, C, C++, Rust, Go, Markdown, HTML, CSS, JSON, Shell, Dockerfile, and configuration formats.
@@ -35,13 +36,40 @@ Designed to replace traditional web terminals, it pairs a hardware-accelerated 6
 * **Unsaved File Safeguards:** Modal dialog on tab close with explicit options (`[ Save & Close ]`, `[ Discard ]`, `[ Cancel ]`).
 * **Automated Git Commit Macro:** Auto-detects Git repository root and executes staging and commit sequences.
 * **Universal Binary Transfer:** Direct bidirectional phone-to-server transfer supporting images, archives, audio, 3D models, and PDFs, with on-the-fly zip archive streaming for multi-file downloads.
-* **Configurable Trash Protection:** Default safe trash mode moves deleted files to `./_temp_trash/`. Permanent removal can be enabled via `ENABLE_PERMANENT_DELETE=true` in `config.env`.
+* **Configurable Trash Protection:** Safe trash mode moves deleted files to `./_temp_trash/` by default. Permanent removal can be enabled via `ENABLE_PERMANENT_DELETE=true` in `config.env`.
 
-### Tab 3: Themes & Button Studio
-* **Default Theme:** Vitni Nordic Forest palette utilizing `IBM Plex Mono` / `IBM Plex Sans` typography, `#0A1118` Void background, `#141E26` Card container, and `#88C0D0` Polar Ice Cyan highlights.
-* **12 Open-Source Presets:** Dracula, One Dark, Tokyo Night, Solarized, Monokai, Nord, Catppuccin, Gruvbox, Kanagawa, Rose Pine, and Cyberpunk.
-* **Custom Hex Code Builder:** Real-time color palette customizer modifying terminal and interface variables dynamically.
-* **Touch Button Studio:** Live preview console with customizable button payloads, dimensions, colors, and edge docking (`Bottom`, `Right`, `Left`, `Top`).
+### 3. Single-Bar Visual TouchBar Editor (Settings Tab 1)
+* **Tap-Selection Workflow:** 2-tap add, move left/right, and delete interaction model for full TouchBar customization.
+* **Live TouchBar Strip:** 1:1 visual preview of the scrollable bottom TouchBar with real-time `localStorage` sync (`sovereign_layout_slots`).
+* **Searchable Category Selector:** Combined real-time search bar and two-tier category dropdown menu (Custom Buttons top priority, followed by alphabetical pre-built toolkits).
+* **Dual-Purpose Delete Handler:** Removes buttons from the TouchBar or hides unwanted chips from the Available Pool view while preserving system defaults.
+* **Tap-to-Deselect:** Tapping any blank background area of the card or container deselects the active button item.
+
+### 4. Categorized Command Toolkits & AI Agent Suites
+* **`AGY` (Google Antigravity CLI Suite):** `/model`, `/clear`, `/plan`, `/schedule`, `/goal`, `/grill-me`, `/teamwork-preview`, `/learn`, `Ctrl+O`.
+* **`CLD` (Claude CLI Suite):** `/compact`, `/cost`, `/doctor`, `/clear`, `/help`, `/init`, `/bug`, `/review`, `Ctrl+C`.
+* **`HMS` (Hermes Agent Suite):** `/status`, `/reset`, `/tools`, `/logs`, `/cancel`, `/config`, `/memory`, `/mcp`.
+* **`APT` (Debian/Ubuntu Package Manager):** `upgrade -y` (`sudo apt update && sudo apt upgrade -y`), `sudo apt update`, `sudo apt search`, `sudo apt install`, `sudo apt purge`, `sudo apt autoremove -y`, `sudo apt clean`.
+* **`PAC` (Arch Linux Pacman Suite):** `upgrade -y` (`sudo pacman -Syu`), `sudo pacman -S`, `pacman -Ss`, `sudo pacman -Rns`, `sudo pacman -Sc`.
+* **`YUM` (Fedora/RHEL DNF Suite):** `upgrade -y` (`sudo dnf upgrade --refresh -y`), `sudo dnf update`, `sudo dnf install`, `dnf search`, `sudo dnf remove`.
+* **`DOC` (Docker Suite):** `docker ps`, `docker ps -a`, `docker compose up -d`, `docker compose down`, `docker compose logs -f`, `docker exec -it`, `docker system prune -f`.
+* **`GIT` (Git Version Control):** `git status`, `git log -10`, `git add .`, `git commit -m`, `git push`, `git pull`, `git checkout -b`, `git diff`.
+* **`SYS` (System & Disks):** `sudo systemctl status`, `sudo systemctl restart`, `sudo journalctl -xeu`, `lsblk`, `sudo blkid`, `df -h`, `du -sh *`, `sudo fdisk -l`, `sudo dmesg -T`, `htop`.
+* **`FILE` (Permissions & Archives):** `chmod +x`, `chmod 755`, `chmod 644`, `sudo chown -R`, `sudo chgrp -R`, `mkdir -p`, `find . -name`, `rsync -avz`, `tar -czvf`, `tar -xvf`, `unzip`.
+* **`NET` (Networking Tools):** `ip a`, `ping -c 4`, `sudo netstat -tuln`, `sudo ss -tulpn`, `sudo ufw status`, `curl -I`, `dig`, `traceroute`.
+* **`PY` (Python & Venv):** `python3`, `pip install`, `python3 -m venv venv`, `source venv/bin/activate`, `pip list`, `pip freeze`.
+* **`TMX` (Tmux Manager):** `tmux ls`, `tmux new-session -s`, `tmux attach -t`, `tmux kill-session -t`, `split h`, `split v`.
+* **`KEY` (Stacked Mobile Keys):** 3-button sub-navigation:
+  * `SYM` (Shell Operators): `|`, `~`, `>`, `>>`, `<`, `&&`, `||`, `;`, `` ` ``, `\`, `/`, `$`, `#`
+  * `MODE` (Signals/Escapes): `ESC`, `TAB`, `DEL` (`\x1b[3~`), `^C`, `^Z`, `^D`
+  * `LINE` (Cursor Controls): `^A` (Home), `^E` (End), `^K` (Cut end), `^U` (Cut start), `^W` (Delete word), `^Y` (Paste), `^R` (History search), `^L` (Clear)
+
+### 5. Touch Button Studio & 100% Dynamic Theme Engine (Settings Tabs 2 & 3)
+* **Fluid Flexbox Button Studio:** Dynamic proportional flex scaling across 4K displays, laptops, 12" tablets, fold phones, and smartphones.
+* **Output & Function Card:** Button Name input + 3-line Function `<textarea rows={3} />`.
+* **Size, Shape & Save Card:** Width/Height steppers, vertically stacked tap shape buttons (`Square`, `Round`, `Pill`), and pinned Save button.
+* **Live Preset & Custom Dropdown:** Search bar input stacked above dropdown containing all pre-built layout commands and custom buttons.
+* **100% Dynamic Theme Engine:** Zero hardcoded colors or emojis; all icons, buttons, borders, and modals dynamically recolor with 12 curated base-16 open-source themes (Dracula, Nord, Tokyo Night, Catppuccin, Solarized, Monokai, etc.).
 
 ---
 
@@ -69,7 +97,7 @@ cd Sovereign_Terminal
 # 2. Configure environment
 cp config.env.example config.env
 
-# 3. Launch Docker Stack (Port 2068 / 2069)
+# 3. Launch Docker Stack (Port 2068 in Dev / 2069 in Release)
 docker compose up -d
 ```
 
@@ -81,7 +109,7 @@ For detailed architectural specifications, consult the documents in the `docs/` 
 
 * [Overall Architecture Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/OVERALL_SOVEREIGN_TERMINAL_DESIGN.md)
 * [Backend Gateway Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/SOVEREIGN_BACKEND_GATEWAY.md)
-* [Tab 1 Terminal Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_1_MULTI_TAB_TERMINAL.md)
+* [Tab 1 Multi-Tab Terminal Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_1_MULTI_TAB_TERMINAL.md)
 * [Tab 2 File Explorer & Editor Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_2_FILE_EXPLORER_AND_EDITOR.md)
 * [Tab 3 Settings & Studio Specification](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/TAB_3_SETTINGS_AND_STUDIO.md)
 * [Development Plan & Roadmap](file:///Heimr/Verdand/The_Weaver_Shack/Sovereign_Terminal/docs/DEVELOPMENT_PLAN.md)
