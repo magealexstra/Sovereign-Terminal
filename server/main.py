@@ -56,11 +56,12 @@ def ensure_ssl_certs():
         return str(cert_file), str(key_file)
 
     import subprocess
+    org_name = os.getenv("SSL_ORGANIZATION", "OmniState")
     cmd = [
         "openssl", "req", "-x509", "-newkey", "rsa:2048",
         "-keyout", str(key_file), "-out", str(cert_file),
         "-days", "3650", "-nodes",
-        "-subj", "/CN=SovereignTerminal/O=OmniState"
+        "-subj", f"/CN=SovereignTerminal/O={org_name}"
     ]
     try:
         subprocess.run(cmd, check=True, capture_output=True)
