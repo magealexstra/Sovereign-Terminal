@@ -91,7 +91,7 @@ ENABLE_PERMANENT_DELETE=true
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/Sovereign-Terminal/Sovereign_Terminal.git
+git clone https://github.com/magealexstra/Sovereign_Terminal.git
 cd Sovereign_Terminal
 
 # 2. Configure environment
