@@ -4,16 +4,14 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { Save, GitCommit, Search, Copy, Clipboard, Undo, Redo, X, Terminal as TermIcon, FileText, Image as ImageIcon } from 'lucide-react';
+import { Save, GitCommit, Copy, Clipboard, X, Terminal as TermIcon, FileText, Image as ImageIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal }) {
-  const { theme } = useApp();
+  const { theme, editorFontSizePx } = useApp();
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
   const [editorToast, setEditorToast] = useState('');
   const pressTimer = useRef(null);
-  const isTouchDevice = useRef(false);
 
   const activeDoc = openDocuments.find((doc) => doc.path === activeFilePath) || openDocuments[0];
 
@@ -48,31 +46,50 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
-    if (isModified) {
-      setCloseConfirmModal(docPath);
-    } else {
-      onCloseTab(docPath, false);
+  };
+
+  // Fallback copy helper for non-secure HTTP contexts where navigator.clipboard is disabled.
+  const writeToClipboard = (text) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
     }
+    return new Promise((resolve, reject) => {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('execCommand copy failed'));
+    });
   };
 
   // Touch Bar Clipboard Handlers (Modern Clipboard API)
   const handleCopyContent = () => {
     if (activeDoc && activeDoc.content) {
-      navigator.clipboard.writeText(activeDoc.content).then(() => {
-        triggerToast('Copied Document Content');
-      }).catch(() => {});
+      writeToClipboard(activeDoc.content).then(() => {
+        triggerToast('Document Copied');
+      }).catch(() => {
+        triggerToast('Copy Failed');
+      });
     }
   };
 
   const handlePasteContent = () => {
-    if (activeDoc && navigator.clipboard?.readText) {
-      navigator.clipboard.readText().then((pastedText) => {
-        if (pastedText) {
-          onContentChange(activeDoc.path, (activeDoc.content || '') + pastedText);
-          triggerToast('Pasted from Clipboard');
-        }
-      }).catch(() => {});
+    if (!navigator.clipboard || !window.isSecureContext) {
+      triggerToast('Paste requires HTTPS');
+      return;
     }
+    navigator.clipboard.readText().then((clipText) => {
+      if (clipText && activeDoc) {
+        onContentChange(activeDoc.path, (activeDoc.content || '') + clipText);
+        triggerToast('Clipboard Pasted');
+      }
+    }).catch(() => {
+      triggerToast('Clipboard Permission Denied');
+    });
   };
 
   if (!activeDoc) {
@@ -91,61 +108,55 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
 
   return (
     <div className="code-editor-workspace">
-      {editorToast && (
-        <div className="copy-toast">
-          <Copy size={13} />
-          <span>{editorToast}</span>
-        </div>
-      )}
-
-      {/* Browser-Style Document Tabs Bar */}
+      {/* Dynamic Multi-Document Tab Bar */}
       <div className="editor-tabs-bar">
         {openDocuments.map((doc) => (
-          <div
+          <button
             key={doc.path}
-            className={`doc-pill-btn ${activeFilePath === doc.path ? 'active' : ''}`}
+            type="button"
+            className={`editor-tab-pill ${activeFilePath === doc.path ? 'active' : ''}`}
             onClick={() => onSelectTab(doc.path)}
+            onTouchStart={() => handleTabClosePress(doc.path)}
+            onTouchEnd={() => handleTabCloseRelease(doc.path, doc.isModified)}
+            onMouseDown={() => {
+              isTouchDevice.current = false;
+            }}
           >
-            <FileText size={13} />
-            <span className="doc-tab-title">{doc.name}</span>
-            {doc.isModified && <span className="modified-dot">•</span>}
-            <button
-              className="doc-tab-close"
-              onMouseDown={() => {
-                if (!isTouchDevice.current) handleTabClosePress(doc.path);
+            <FileText size={12} />
+            <span className="tab-filename">{doc.name}</span>
+            {doc.isModified && <span className="modified-dot" title="Unsaved Changes" />}
+            <span
+              className="close-tab-icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (doc.isModified) {
+                  setCloseConfirmModal(doc.path);
+                } else {
+                  onCloseTab(doc.path, false);
+                }
               }}
-              onMouseUp={() => {
-                if (!isTouchDevice.current) handleTabCloseRelease(doc.path, doc.isModified);
-              }}
-              onTouchStart={(e) => {
-                isTouchDevice.current = true;
-                handleTabClosePress(doc.path);
-              }}
-              onTouchEnd={(e) => {
-                handleTabCloseRelease(doc.path, doc.isModified);
-              }}
+              title="Close File (Long-press forces close)"
             >
-              <X size={12} />
-            </button>
-          </div>
+              <X size={11} />
+            </span>
+          </button>
         ))}
       </div>
 
-      {/* Editor Sub-Header Bar */}
-      <div className="editor-subheader">
-        <span className="active-doc-path">{activeDoc.path}</span>
-        <button className="term-return-btn" onClick={onReturnToTerminal}>
-          <TermIcon size={13} />
-          <span>Return to Terminal</span>
-        </button>
-      </div>
-
-      {/* Main Workspace (CodeMirror 6 with Word Wrap Enabled by Default / Image Preview) */}
+      {/* Editor Viewport or Image Preview Card */}
       <div className="editor-viewport">
-        {isImageFile(activeDoc.path) ? (
-          <div className="image-preview-container">
-            <ImageIcon size={32} color="#88C0D0" />
-            <img src={`http://${window.location.hostname}:2068/api/fs/download?path=${encodeURIComponent(activeDoc.path)}`} alt={activeDoc.name} />
+        {editorToast && (
+          <div className="editor-toast-banner">
+            <span>{editorToast}</span>
+          </div>
+        )}
+
+        {isImageFile(activeDoc.name) ? (
+          <div className="image-preview-card">
+            <ImageIcon size={48} color={theme?.accentHighlight || '#88C0D0'} />
+            <h3>Image Artifact File</h3>
+            <p>{activeDoc.path}</p>
+            <span className="image-note">Binary asset preview generated by Sovereign system</span>
           </div>
         ) : (
           <CodeMirror
@@ -155,10 +166,12 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
               '&': {
                 backgroundColor: theme?.bgEarth || '#0A1118',
                 color: theme?.textParchment || '#E6EDF0',
-                fontFamily: "'IBM Plex Mono', monospace"
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: `${editorFontSizePx || 14}px`
               },
               '.cm-content': {
-                caretColor: theme?.accentHighlight || '#88C0D0'
+                caretColor: theme?.accentHighlight || '#88C0D0',
+                fontSize: `${editorFontSizePx || 14}px`
               },
               '&.cm-focused .cm-cursor': {
                 borderLeftColor: theme?.accentHighlight || '#88C0D0'

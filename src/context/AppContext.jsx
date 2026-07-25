@@ -17,7 +17,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#88C0D0',
     statusActive: '#4C7864',
     fontMono: "'IBM Plex Mono', monospace",
-    fontSans: "'IBM Plex Sans', sans-serif"
+    fontSans: "'IBM Plex Sans', sans-serif",
+    black: '#3B4252', red: '#BF616A', green: '#A3BE8C', yellow: '#EBCB8B',
+    blue: '#81A1C1', magenta: '#B48EAD', cyan: '#88C0D0', white: '#E5E9F0',
+    brightBlack: '#4C566A', brightRed: '#D08770', brightGreen: '#A3BE8C', brightYellow: '#EBCB8B',
+    brightBlue: '#5E81AC', brightMagenta: '#B48EAD', brightCyan: '#8FBCBB', brightWhite: '#ECEFF4',
   },
   Dracula: {
     name: 'Dracula',
@@ -33,13 +37,17 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#ff79c6',
     statusActive: '#50fa7b',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#21222C', red: '#FF5555', green: '#50FA7B', yellow: '#F1FA8C',
+    blue: '#BD93F9', magenta: '#FF79C6', cyan: '#8BE9FD', white: '#F8F8F2',
+    brightBlack: '#6272A4', brightRed: '#FF6E6E', brightGreen: '#69FF94', brightYellow: '#FFFFA5',
+    brightBlue: '#D6ACFF', brightMagenta: '#FF92DF', brightCyan: '#A4FFFF', brightWhite: '#FFFFFF',
   },
   OneDark: {
     name: 'One Dark Pro',
-    bgEarth: '#21252b',
-    bgCanopy: '#282c34',
-    bgPanel: 'rgba(40, 44, 52, 0.85)',
+    bgEarth: '#282c34',
+    bgCanopy: '#21252b',
+    bgPanel: 'rgba(33, 37, 43, 0.85)',
     borderForest: '#3e4451',
     borderSage: '#61afef',
     textParchment: '#abb2bf',
@@ -49,7 +57,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#98c379',
     statusActive: '#98c379',
     fontMono: "'JetBrains Mono', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#282C34', red: '#E06C75', green: '#98C379', yellow: '#E5C07B',
+    blue: '#61AFEF', magenta: '#C678DD', cyan: '#56B6C2', white: '#ABB2BF',
+    brightBlack: '#3E4451', brightRed: '#E06C75', brightGreen: '#98C379', brightYellow: '#E5C07B',
+    brightBlue: '#61AFEF', brightMagenta: '#C678DD', brightCyan: '#56B6C2', brightWhite: '#FFFFFF',
   },
   TokyoNight: {
     name: 'Tokyo Night',
@@ -65,7 +77,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#bb9af7',
     statusActive: '#9ece6a',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#15161E', red: '#F7768E', green: '#9ECE6A', yellow: '#E0AF68',
+    blue: '#7AA2F7', magenta: '#BB9AF7', cyan: '#7DCFFF', white: '#A9B1D6',
+    brightBlack: '#414868', brightRed: '#F7768E', brightGreen: '#9ECE6A', brightYellow: '#E0AF68',
+    brightBlue: '#7AA2F7', brightMagenta: '#BB9AF7', brightCyan: '#7DCFFF', brightWhite: '#C0CAF5',
   },
   SolarizedDark: {
     name: 'Solarized Dark',
@@ -81,7 +97,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#2aa198',
     statusActive: '#859900',
     fontMono: "'Inconsolata', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#073642', red: '#DC322F', green: '#859900', yellow: '#B58900',
+    blue: '#268BD2', magenta: '#D33682', cyan: '#2AA198', white: '#EEE8D5',
+    brightBlack: '#002B36', brightRed: '#CB4B16', brightGreen: '#586E75', brightYellow: '#657B83',
+    brightBlue: '#839496', brightMagenta: '#6C71C4', brightCyan: '#93A1A1', brightWhite: '#FDF6E3',
   },
   MonokaiPro: {
     name: 'Monokai Pro',
@@ -97,7 +117,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#ff6188',
     statusActive: '#a9dc76',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#2D2A2E', red: '#FF6188', green: '#A9DC76', yellow: '#FFD866',
+    blue: '#78DCE8', magenta: '#AB9DF2', cyan: '#78DCE8', white: '#FCFCFA',
+    brightBlack: '#5B585C', brightRed: '#FF6188', brightGreen: '#A9DC76', brightYellow: '#FFD866',
+    brightBlue: '#78DCE8', brightMagenta: '#AB9DF2', brightCyan: '#78DCE8', brightWhite: '#FFFFFF',
   },
   Nord: {
     name: 'Nord',
@@ -107,13 +131,17 @@ export const DEFAULT_THEME_PRESETS = {
     borderForest: '#4c566a',
     borderSage: '#88c0d0',
     textParchment: '#d8dee9',
-    textMuted: '#e5e9f0',
+    textMuted: '#4c566a',
     textDim: '#4c566a',
     accentMana: '#88c0d0',
     accentHighlight: '#81a1c1',
     statusActive: '#a3be8c',
     fontMono: "'IBM Plex Mono', monospace",
-    fontSans: "'IBM Plex Sans', sans-serif"
+    fontSans: "'IBM Plex Sans', sans-serif",
+    black: '#3B4252', red: '#BF616A', green: '#A3BE8C', yellow: '#EBCB8B',
+    blue: '#81A1C1', magenta: '#B48EAD', cyan: '#88C0D0', white: '#E5E9F0',
+    brightBlack: '#4C566A', brightRed: '#BF616A', brightGreen: '#A3BE8C', brightYellow: '#EBCB8B',
+    brightBlue: '#81A1C1', brightMagenta: '#B48EAD', brightCyan: '#8FBCBB', brightWhite: '#ECEFF4',
   },
   CatppuccinMocha: {
     name: 'Catppuccin Mocha',
@@ -129,7 +157,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#f5e0dc',
     statusActive: '#a6e3a1',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#1E1E2E', red: '#F38BA8', green: '#A6E3A1', yellow: '#F9E2AF',
+    blue: '#89B4FA', magenta: '#CBA6F7', cyan: '#94E2D5', white: '#CDD6F4',
+    brightBlack: '#585B70', brightRed: '#F38BA8', brightGreen: '#A6E3A1', brightYellow: '#F9E2AF',
+    brightBlue: '#89B4FA', brightMagenta: '#CBA6F7', brightCyan: '#94E2D5', brightWhite: '#A6ADC8',
   },
   GruvboxDark: {
     name: 'Gruvbox Dark',
@@ -145,7 +177,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#fabd2f',
     statusActive: '#b8bb26',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#282828', red: '#CC241D', green: '#98971A', yellow: '#D79921',
+    blue: '#458588', magenta: '#B16286', cyan: '#689D6A', white: '#A89984',
+    brightBlack: '#928374', brightRed: '#FB4934', brightGreen: '#B8BB26', brightYellow: '#FABD2F',
+    brightBlue: '#83A598', brightMagenta: '#D3869B', brightCyan: '#8EC07C', brightWhite: '#EBDBB2',
   },
   Kanagawa: {
     name: 'Kanagawa',
@@ -161,7 +197,11 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#98bb6c',
     statusActive: '#98bb6c',
     fontMono: "'IBM Plex Mono', monospace",
-    fontSans: "'IBM Plex Sans', sans-serif"
+    fontSans: "'IBM Plex Sans', sans-serif",
+    black: '#16161D', red: '#C34043', green: '#76946A', yellow: '#C0A36E',
+    blue: '#7E9CD8', magenta: '#957FB8', cyan: '#6A9589', white: '#C8C093',
+    brightBlack: '#727169', brightRed: '#E82424', brightGreen: '#98BB6C', brightYellow: '#E6C384',
+    brightBlue: '#7FB4CA', brightMagenta: '#938AA9', brightCyan: '#7AA89F', brightWhite: '#DCD7BA',
   },
   RosePine: {
     name: 'Rose Pine',
@@ -177,24 +217,32 @@ export const DEFAULT_THEME_PRESETS = {
     accentHighlight: '#9ccfd8',
     statusActive: '#31748f',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
+    fontSans: "'Inter', sans-serif",
+    black: '#191724', red: '#EB6F92', green: '#31748F', yellow: '#F6C177',
+    blue: '#9CCFD8', magenta: '#C4A7E7', cyan: '#EBBCBA', white: '#E0DEF4',
+    brightBlack: '#6E6A86', brightRed: '#EB6F92', brightGreen: '#31748F', brightYellow: '#F6C177',
+    brightBlue: '#9CCFD8', brightMagenta: '#C4A7E7', brightCyan: '#EBBCBA', brightWhite: '#F5F5F5',
   },
   Cyberpunk2077: {
     name: 'Cyberpunk 2077',
     bgEarth: '#120428',
     bgCanopy: '#1e0938',
     bgPanel: 'rgba(30, 9, 56, 0.85)',
-    borderForest: '#fcee0a',
+    borderForest: '#3a295a',
     borderSage: '#05d9e8',
     textParchment: '#fdfdfd',
-    textMuted: '#05d9e8',
+    textMuted: '#504175',
     textDim: '#1e0938',
     accentMana: '#fcee0a',
     accentHighlight: '#05d9e8',
-    statusActive: '#fcee0a',
+    statusActive: '#00ff9f',
     fontMono: "'Fira Code', monospace",
-    fontSans: "'Inter', sans-serif"
-  }
+    fontSans: "'Inter', sans-serif",
+    black: '#120428', red: '#FF003C', green: '#05D9E8', yellow: '#FCEE0A',
+    blue: '#FF2A6D', magenta: '#D300C5', cyan: '#05D9E8', white: '#FDFDFD',
+    brightBlack: '#1E0938', brightRed: '#FF003C', brightGreen: '#00FFCC', brightYellow: '#FCEE0A',
+    brightBlue: '#FF2A6D', brightMagenta: '#D300C5', brightCyan: '#05D9E8', brightWhite: '#FFFFFF',
+  },
 };
 
 export function AppProvider({ children }) {
@@ -209,8 +257,34 @@ export function AppProvider({ children }) {
   });
 
   const [theme, setTheme] = useState(DEFAULT_THEME_PRESETS.VitniNordic);
-  const [fontSizeTerminal, setFontSizeTerminal] = useState(14);
-  const [fontSizeEditor, setFontSizeEditor] = useState(14);
+  const [terminalScaleMultiplier, setTerminalScaleMultiplier] = useState(1.0);
+  const [editorScaleMultiplier, setEditorScaleMultiplier] = useState(1.0);
+
+  // Dynamic Device Baseline Detection (Phone: 12px, Tablet: 15px, Desktop: 16px)
+  const getDeviceBaseline = () => {
+    if (typeof window === 'undefined') return 14;
+    const width = window.innerWidth;
+    if (width < 600) return 12;
+    if (width <= 1024) return 15;
+    return 16;
+  };
+
+  const [deviceBaselinePx, setDeviceBaselinePx] = useState(getDeviceBaseline);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setDeviceBaselinePx(getDeviceBaseline());
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Compute Deterministic Integer Pixels (Math.round for sharp XTerm WebGL rendering)
+  const terminalFontSizePx = Math.round(deviceBaselinePx * terminalScaleMultiplier);
+  const editorFontSizePx = Math.round(deviceBaselinePx * editorScaleMultiplier);
+  const iconSizeSm = Math.max(12, Math.round(deviceBaselinePx * 0.95));
+  const iconSizeMd = Math.max(14, Math.round(deviceBaselinePx * 1.1));
+  const iconSizeLg = Math.max(18, Math.round(deviceBaselinePx * 1.3));
 
   // Dynamically apply CSS custom properties to document root & body
   useEffect(() => {
@@ -228,16 +302,14 @@ export function AppProvider({ children }) {
     root.style.setProperty('--status-active', theme.statusActive || '#4C7864');
     root.style.setProperty('--font-mono', theme.fontMono);
     root.style.setProperty('--font-sans', theme.fontSans);
-    root.style.setProperty('--font-size-terminal', `${fontSizeTerminal}px`);
-    root.style.setProperty('--font-size-editor', `${fontSizeEditor}px`);
+    root.style.setProperty('--device-baseline-px', `${deviceBaselinePx}px`);
+    root.style.setProperty('--font-size-terminal', `${terminalFontSizePx}px`);
+    root.style.setProperty('--font-size-editor', `${editorFontSizePx}px`);
 
     document.body.style.backgroundColor = theme.bgEarth;
     document.body.style.color = theme.textParchment;
-  }, [theme, fontSizeTerminal, fontSizeEditor]);
+  }, [theme, deviceBaselinePx, terminalFontSizePx, editorFontSizePx]);
 
-  const updateCustomColor = (key, value) => {
-    setTheme((prev) => ({ ...prev, [key]: value }));
-  };
 
   const saveCustomTheme = (customThemeObject) => {
     const themeKey = `Custom_${Date.now()}`;
@@ -260,8 +332,8 @@ export function AppProvider({ children }) {
 
   const resetToDefault = () => {
     setTheme(DEFAULT_THEME_PRESETS.VitniNordic);
-    setFontSizeTerminal(14);
-    setFontSizeEditor(14);
+    setTerminalScaleMultiplier(1.0);
+    setEditorScaleMultiplier(1.0);
   };
 
   return (
@@ -272,13 +344,30 @@ export function AppProvider({ children }) {
         theme,
         themes,
         setTheme,
-        updateCustomColor,
         saveCustomTheme,
         resetToDefault,
-        fontSizeTerminal,
-        setFontSizeTerminal,
-        fontSizeEditor,
-        setFontSizeEditor
+        deviceBaselinePx,
+        terminalScaleMultiplier,
+        setTerminalScaleMultiplier,
+        editorScaleMultiplier,
+        setEditorScaleMultiplier,
+        terminalFontSizePx,
+        editorFontSizePx,
+        iconSizeSm,
+        iconSizeMd,
+        iconSizeLg,
+        fontSizeTerminal: terminalFontSizePx,
+        setFontSizeTerminal: (val) => {
+          if (typeof val === 'number' && val > 2) {
+            setTerminalScaleMultiplier(val / deviceBaselinePx);
+          }
+        },
+        fontSizeEditor: editorFontSizePx,
+        setFontSizeEditor: (val) => {
+          if (typeof val === 'number' && val > 2) {
+            setEditorScaleMultiplier(val / deviceBaselinePx);
+          }
+        }
       }}
     >
       {children}

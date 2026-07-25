@@ -9,6 +9,13 @@ from auth import router as auth_router
 from pty_manager import router as pty_router
 from fs_api import router as fs_router
 
+from dotenv import load_dotenv
+
+# Load config.env from project root if present
+config_env_path = Path(__file__).parent.parent / "config.env"
+if config_env_path.exists():
+    load_dotenv(config_env_path)
+
 app = FastAPI(
     title="The Sovereign Terminal",
     description="Touch-Controlled Mobile/Tablet-First Linux Server Workstation Gateway",
@@ -42,6 +49,46 @@ DIST_DIR = Path(__file__).parent.parent / "dist"
 if DIST_DIR.exists():
     app.mount("/", StaticFiles(directory=str(DIST_DIR), html=True), name="static")
 
+def ensure_ssl_certs():
+    cert_file = Path(__file__).parent / "cert.pem"
+    key_file = Path(__file__).parent / "key.pem"
+    if cert_file.exists() and key_file.exists():
+        return str(cert_file), str(key_file)
+
+    import subprocess
+    cmd = [
+        "openssl", "req", "-x509", "-newkey", "rsa:2048",
+        "-keyout", str(key_file), "-out", str(cert_file),
+        "-days", "3650", "-nodes",
+        "-subj", "/CN=SovereignTerminal/O=OmniState"
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+        print(f"Generated self-signed SSL certificate: {cert_file}")
+        return str(cert_file), str(key_file)
+    except Exception as e:
+        print(f"Failed to auto-generate SSL certificate: {e}")
+        return None, None
+
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "2068"))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    default_port = "2068" if os.getenv("ENV", "development") == "development" else "2069"
+    port = int(os.getenv("PORT", default_port))
+    enable_https = os.getenv("ENABLE_HTTPS", "false").lower() in ("true", "1", "yes")
+
+    ssl_cert, ssl_key = (None, None)
+    if enable_https:
+        ssl_cert, ssl_key = ensure_ssl_certs()
+
+    print(f"Starting Sovereign Terminal Gateway on port {port} (HTTPS: {enable_https})...")
+
+    if enable_https and ssl_cert and ssl_key:
+        uvicorn.run(
+            "main:app",
+            host="0.0.0.0",
+            port=port,
+            ssl_certfile=ssl_cert,
+            ssl_keyfile=ssl_key,
+            reload=True
+        )
+    else:
+        uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

@@ -16,5 +16,7 @@ services:
       - WORKSPACE_ROOT=${WORKSPACE_ROOT:-/workspace}
       - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
       - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
+      - TZ=${TZ:-America/Chicago}
     volumes:
       - ${HOST_WORKSPACE_PATH:-./}:/workspace
+      - /etc/localtime:/etc/localtime:ro

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Terminal as TerminalIcon, FolderTree, Sliders } from 'lucide-react';
 import { useApp } from './context/AppContext';
 
@@ -13,14 +13,73 @@ import SettingsManager from './components/settings/SettingsManager';
 
 export default function App() {
   const { activeMainTab, setActiveMainTab } = useApp();
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  // Dynamic Visual Viewport & Android VirtualKeyboard API Listener
+  useEffect(() => {
+    // Enable native Android Chrome VirtualKeyboard overlay geometry if supported
+    if ('virtualKeyboard' in navigator) {
+      try {
+        navigator.virtualKeyboard.overlaysContent = true;
+      } catch (e) {}
+    }
+
+    const handleViewportResize = (event) => {
+      const fullHeight = window.innerHeight;
+      let targetHeight = fullHeight;
+      let keyboardActive = false;
+
+      if (window.visualViewport) {
+        const vvHeight = window.visualViewport.height;
+        // Soft keyboard active threshold: visualViewport height is >100px smaller than full window height
+        keyboardActive = (fullHeight - vvHeight) > 100;
+        targetHeight = keyboardActive ? vvHeight : fullHeight;
+      } else if (event && event.target && event.target.boundingRect) {
+        const kbHeight = event.target.boundingRect.height;
+        keyboardActive = kbHeight > 100;
+        targetHeight = keyboardActive ? (fullHeight - kbHeight) : fullHeight;
+      }
+
+      setIsKeyboardOpen(keyboardActive);
+
+      document.documentElement.style.setProperty(
+        '--visual-viewport-height',
+        `${targetHeight}px`
+      );
+    };
+
+    handleViewportResize();
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      window.visualViewport.addEventListener('scroll', handleViewportResize);
+    }
+
+    if ('virtualKeyboard' in navigator) {
+      navigator.virtualKeyboard.addEventListener('geometrychange', handleViewportResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportResize);
+        window.visualViewport.removeEventListener('scroll', handleViewportResize);
+      }
+      if ('virtualKeyboard' in navigator) {
+        navigator.virtualKeyboard.removeEventListener('geometrychange', handleViewportResize);
+      }
+    };
+  }, []);
 
   // Tab 1 Terminal Sessions
-  const [sessions, setSessions] = useState([
-    { id: 'mobile-voice', name: 'mobile-voice' },
-    { id: 'dev', name: 'dev' },
-    { id: 'server-logs', name: 'server-logs' },
+  // Counter only ever increments — prevents duplicate names after close+add cycles
+  const sessionCounterRef = React.useRef(1);
+  // Give the first session a unique ID (same pattern as handleAddSession) so
+  // it never collides with a stale tmux session of the same name across page reloads.
+  const initialSessionId = React.useRef(`session-${Date.now().toString(36).substring(4)}`);
+  const [sessions, setSessions] = useState(() => [
+    { id: initialSessionId.current, name: 'term-1' }
   ]);
-  const [activeSession, setActiveSession] = useState('mobile-voice');
+  const [activeSession, setActiveSession] = useState(initialSessionId.current);
   const [voiceInput, setVoiceInput] = useState('');
 
   // Tab 2 File Explorer & Multi-Document CodeEditor State
@@ -37,18 +96,35 @@ export default function App() {
   const [activeFilePath, setActiveFilePath] = useState('/workspace/README.md');
 
   // Terminal Handlers
-  const handleAddSession = () => {
-    const newId = `session-${sessions.length + 1}`;
-    setSessions([...sessions, { id: newId, name: newId }]);
+  const handleAddSession = (inheritCwd = false) => {
+    if (sessions.length >= 5) {
+      alert('Maximum 5 parallel terminal sessions reached to preserve performance.');
+      return;
+    }
+    const newId = `session-${Date.now().toString(36).substring(4)}`;
+    sessionCounterRef.current += 1;
+    const sessionName = `term-${sessionCounterRef.current}`;
+    const targetCwd = inheritCwd ? (activeTerminalPath || '/workspace') : '/workspace';
+    setSessions([...sessions, { id: newId, name: sessionName, initialCwd: targetCwd }]);
     setActiveSession(newId);
   };
 
   const handleCloseSession = (id) => {
-    if (sessions.length === 1) return;
     const filtered = sessions.filter((s) => s.id !== id);
+
+    if (filtered.length === 0) {
+      // Last tab closed — auto-create a fresh replacement so there's always a terminal
+      sessionCounterRef.current += 1;
+      const freshId = `session-${Date.now().toString(36).substring(4)}`;
+      const fresh = { id: freshId, name: `term-${sessionCounterRef.current}`, initialCwd: '/workspace' };
+      setSessions([fresh]);
+      setActiveSession(freshId);
+      return;
+    }
+
     setSessions(filtered);
     if (activeSession === id) {
-      setActiveSession(filtered[0].id);
+      setActiveSession(filtered[filtered.length - 1].id);
     }
   };
 
@@ -74,7 +150,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:2068/api/fs/read?path=${encodeURIComponent(filepath)}`);
+      const res = await fetch(`/api/fs/read?path=${encodeURIComponent(filepath)}`);
       if (res.ok) {
         const data = await res.json();
         const newDoc = {
@@ -103,7 +179,7 @@ export default function App() {
     if (!doc) return;
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:2068/api/fs/save`, {
+      const res = await fetch(`/api/fs/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: filepath, content: doc.content })
@@ -121,7 +197,7 @@ export default function App() {
   const handleGitCommit = async (filepath) => {
     await handleSaveFile(filepath);
     try {
-      const res = await fetch(`http://${window.location.hostname}:2068/api/fs/git-commit`, {
+      const res = await fetch(`/api/fs/git-commit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: filepath })
@@ -147,7 +223,7 @@ export default function App() {
   };
 
   return (
-    <div className="sovereign-layout">
+    <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
       {/* Header with OmniState Logo & Vertically Stacked Title */}
       <header className="main-nav-bar">
         <div className="brand-title" title="Sovereign Terminal">
@@ -169,7 +245,7 @@ export default function App() {
         <div className="nav-tabs-group">
           <button
             type="button"
-            className={`nav-pill-btn ${activeMainTab === 'terminal' ? 'active' : ''}`}
+            className={`nav-tab-btn ${activeMainTab === 'terminal' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('terminal')}
           >
             <TerminalIcon size={13} />
@@ -178,7 +254,7 @@ export default function App() {
 
           <button
             type="button"
-            className={`nav-pill-btn ${activeMainTab === 'explorer' ? 'active' : ''}`}
+            className={`nav-tab-btn ${activeMainTab === 'explorer' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('explorer')}
           >
             <FolderTree size={13} />
@@ -187,7 +263,7 @@ export default function App() {
 
           <button
             type="button"
-            className={`nav-pill-btn ${activeMainTab === 'settings' ? 'active' : ''}`}
+            className={`nav-tab-btn ${activeMainTab === 'settings' ? 'active' : ''}`}
             onClick={() => setActiveMainTab('settings')}
           >
             <Sliders size={13} />
@@ -197,78 +273,93 @@ export default function App() {
       </header>
 
       {/* Tab 1: Multi-Tab WebGL Terminal */}
-      {activeMainTab === 'terminal' && (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
-          <SessionTabs
-            sessions={sessions}
-            activeSession={activeSession}
-            onSelectSession={setActiveSession}
-            onAddSession={handleAddSession}
-            onCloseSession={handleCloseSession}
-          />
+      <div className="tab-content-panel" style={{ display: activeMainTab === 'terminal' ? 'flex' : 'none' }}>
+        <SessionTabs
+          sessions={sessions}
+          activeSession={activeSession}
+          onSelectSession={setActiveSession}
+          onAddSession={handleAddSession}
+          onCloseSession={handleCloseSession}
+        />
 
-          <Terminal
-            activeSession={activeSession}
-            voiceInput={voiceInput}
-            onOpenFile={(filepath) => {
-              handleOpenFile(filepath);
-              setActiveMainTab('explorer');
-            }}
-          />
-
-          <TouchBar
-            onKeyPress={handleKeyPress}
-            onVoiceInput={handleVoiceInput}
-          />
+        <div style={{ flex: '1 1 100%', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+          {sessions.map((sess) => (
+            <div
+              key={sess.id}
+              style={{
+                display: activeSession === sess.id ? 'flex' : 'none',
+                flex: '1 1 100%',
+                alignSelf: 'stretch',
+                width: '100%',
+                height: '100%',
+                minHeight: 0,
+                position: 'relative',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+            >
+              <Terminal
+                session={sess}
+                isActive={activeMainTab === 'terminal' && activeSession === sess.id}
+                isKeyboardOpen={isKeyboardOpen}
+                voiceInput={voiceInput}
+                onOpenFile={(filepath) => {
+                  handleOpenFile(filepath);
+                  setActiveMainTab('explorer');
+                }}
+              />
+            </div>
+          ))}
         </div>
-      )}
+
+        <TouchBar
+          onKeyPress={handleKeyPress}
+          onVoiceInput={handleVoiceInput}
+        />
+      </div>
 
       {/* Tab 2: GUI File Explorer & Multi-Document CodeEditor */}
-      {activeMainTab === 'explorer' && (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
-          <div className="settings-subtabs-bar">
-            <button
-              type="button"
-              className={`subtab-btn ${explorerSubTab === 'tree' ? 'active' : ''}`}
-              onClick={() => setExplorerSubTab('tree')}
-            >
-              <FolderTree size={13} />
-              <span>Files</span>
-            </button>
+      <div className="tab-content-panel" style={{ display: activeMainTab === 'explorer' ? 'flex' : 'none' }}>
+        <div className="settings-subtabs-bar">
+          <button
+            type="button"
+            className={`subtab-btn ${explorerSubTab === 'tree' ? 'active' : ''}`}
+            onClick={() => setExplorerSubTab('tree')}
+          >
+            <FolderTree size={13} />
+            <span>Files</span>
+          </button>
 
-            <button
-              type="button"
-              className={`subtab-btn ${explorerSubTab === 'editor' ? 'active' : ''}`}
-              onClick={() => setExplorerSubTab('editor')}
-            >
-              <TerminalIcon size={13} />
-              <span>Editor ({openDocuments.length})</span>
-            </button>
-          </div>
-
-          {explorerSubTab === 'tree' ? (
-            <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} />
-          ) : (
-            <CodeEditor
-              openDocuments={openDocuments}
-              activeFilePath={activeFilePath}
-              onSelectTab={setActiveFilePath}
-              onCloseTab={handleCloseTab}
-              onContentChange={handleContentChange}
-              onSaveFile={handleSaveFile}
-              onGitCommit={handleGitCommit}
-              onReturnToTerminal={() => setActiveMainTab('terminal')}
-            />
-          )}
+          <button
+            type="button"
+            className={`subtab-btn ${explorerSubTab === 'editor' ? 'active' : ''}`}
+            onClick={() => setExplorerSubTab('editor')}
+          >
+            <TerminalIcon size={13} />
+            <span>Editor ({openDocuments.length})</span>
+          </button>
         </div>
-      )}
+
+        {explorerSubTab === 'tree' ? (
+          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} />
+        ) : (
+          <CodeEditor
+            openDocuments={openDocuments}
+            activeFilePath={activeFilePath}
+            onSelectTab={setActiveFilePath}
+            onCloseTab={handleCloseTab}
+            onContentChange={handleContentChange}
+            onSaveFile={handleSaveFile}
+            onGitCommit={handleGitCommit}
+            onReturnToTerminal={() => setActiveMainTab('terminal')}
+          />
+        )}
+      </div>
 
       {/* Tab 3: Settings, Themes & Button Studio */}
-      {activeMainTab === 'settings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', overflow: 'hidden' }}>
-          <SettingsManager />
-        </div>
-      )}
+      <div className="tab-content-panel" style={{ display: activeMainTab === 'settings' ? 'flex' : 'none' }}>
+        <SettingsManager />
+      </div>
     </div>
   );
 }

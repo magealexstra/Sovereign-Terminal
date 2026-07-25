@@ -1,33 +1,191 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, KeyRound, Trash2, Zap, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, X } from 'lucide-react';
 
 export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [isRecording, setIsRecording] = useState(false);
-  const [lastSpeech, setLastSpeech] = useState('');
   const [showMacroModal, setShowMacroModal] = useState(false);
+  const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
+  const lastSpeechRef = useRef('');
 
-  // 12-Macro Preset Grid Definition (3 Rows x 4 Columns)
-  const macroGrid = [
-    { id: 'm1', label: 'htop', value: 'htop\n' },
-    { id: 'm2', label: 'docker ps', value: 'docker ps\n' },
-    { id: 'm3', label: 'git status', value: 'git status\n' },
-    { id: 'm4', label: 'ls -la', value: 'ls -la\n' },
-    { id: 'm5', label: 'aegis status', value: 'aegis status\n' },
-    { id: 'm6', label: 'systemctl', value: 'systemctl status\n' },
-    { id: 'm7', label: 'df -h', value: 'df -h\n' },
-    { id: 'm8', label: 'top', value: 'top\n' },
-    { id: 'm9', label: 'clear', value: 'clear\n' },
-    { id: 'm10', label: 'exit', value: 'exit\n' },
-    { id: 'm11', label: 'tmux ls', value: 'tmux ls\n' },
-    { id: 'm12', label: 'ip a', value: 'ip a\n' },
-  ];
+  const [selectedSuite, setSelectedSuite] = useState('AGY');
 
-  // Gboard Voice Dictation Handler with Auto-Stop on Silence VAD
+  // Load active TouchBar layout from localStorage (or fallback defaults)
+  const [activeSlots, setActiveSlots] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_layout_slots');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed.bottom && Array.isArray(parsed.bottom)) return parsed.bottom;
+      }
+    } catch {}
+    return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
+  });
+
+  // Listen for layout changes across tabs / settings
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem('sovereign_layout_slots');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setActiveSlots(parsed);
+          else if (parsed.bottom && Array.isArray(parsed.bottom)) setActiveSlots(parsed.bottom);
+        }
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Categorized Command Toolkits (Abbreviated 3-Char Badges & AI/CLI Suites)
+  const commandSuites = {
+    AGY: [
+      { id: 'agy1', label: '/model', value: '/model ' },
+      { id: 'agy2', label: '/clear', value: '/clear\n' },
+      { id: 'agy3', label: '/plan', value: '/plan ' },
+      { id: 'agy4', label: '/schedule', value: '/schedule ' },
+      { id: 'agy5', label: '/goal', value: '/goal ' },
+      { id: 'agy6', label: '/grill-me', value: '/grill-me ' },
+      { id: 'agy7', label: '/teamwork', value: '/teamwork-preview ' },
+      { id: 'agy8', label: '/learn', value: '/learn ' },
+      { id: 'agy9', label: 'Ctrl+O', value: '\x0f' },
+    ],
+    CLD: [
+      { id: 'cld1', label: '/compact', value: '/compact\n' },
+      { id: 'cld2', label: '/cost', value: '/cost\n' },
+      { id: 'cld3', label: '/doctor', value: '/doctor\n' },
+      { id: 'cld4', label: '/clear', value: '/clear\n' },
+      { id: 'cld5', label: '/help', value: '/help\n' },
+      { id: 'cld6', label: '/init', value: '/init\n' },
+      { id: 'cld7', label: '/bug', value: '/bug ' },
+      { id: 'cld8', label: '/review', value: '/review ' },
+      { id: 'cld9', label: 'Ctrl+C', value: '\x03' },
+    ],
+    HMS: [
+      { id: 'hms1', label: '/status', value: '/status\n' },
+      { id: 'hms2', label: '/reset', value: '/reset\n' },
+      { id: 'hms3', label: '/tools', value: '/tools\n' },
+      { id: 'hms4', label: '/logs', value: '/logs\n' },
+      { id: 'hms5', label: '/cancel', value: '/cancel\n' },
+      { id: 'hms6', label: '/config', value: '/config ' },
+      { id: 'hms7', label: '/memory', value: '/memory ' },
+      { id: 'hms8', label: '/mcp', value: '/mcp ' },
+    ],
+    APT: [
+      { id: 'apt1', label: 'upgrade -y', value: 'sudo apt update && sudo apt upgrade -y\n' },
+      { id: 'apt2', label: 'apt update', value: 'sudo apt update\n' },
+      { id: 'apt3', label: 'apt search', value: 'sudo apt search ' },
+      { id: 'apt4', label: 'apt install', value: 'sudo apt install ' },
+      { id: 'apt5', label: 'apt purge', value: 'sudo apt purge ' },
+      { id: 'apt6', label: 'autoremove', value: 'sudo apt autoremove -y\n' },
+      { id: 'apt7', label: 'apt clean', value: 'sudo apt clean\n' },
+      { id: 'apt8', label: 'dpkg -l', value: 'dpkg -l\n' },
+    ],
+    PAC: [
+      { id: 'pac1', label: 'upgrade -y', value: 'sudo pacman -Syu\n' },
+      { id: 'pac2', label: 'pacman install', value: 'sudo pacman -S ' },
+      { id: 'pac3', label: 'pacman search', value: 'pacman -Ss ' },
+      { id: 'pac4', label: 'pacman remove', value: 'sudo pacman -Rns ' },
+      { id: 'pac5', label: 'pacman clean', value: 'sudo pacman -Sc\n' },
+      { id: 'pac6', label: 'pacman list', value: 'pacman -Qe\n' },
+    ],
+    YUM: [
+      { id: 'yum1', label: 'upgrade -y', value: 'sudo dnf upgrade --refresh -y\n' },
+      { id: 'yum2', label: 'dnf update', value: 'sudo dnf update\n' },
+      { id: 'yum3', label: 'dnf install', value: 'sudo dnf install ' },
+      { id: 'yum4', label: 'dnf search', value: 'dnf search ' },
+      { id: 'yum5', label: 'dnf remove', value: 'sudo dnf remove ' },
+      { id: 'yum6', label: 'autoremove', value: 'sudo dnf autoremove\n' },
+      { id: 'yum7', label: 'dnf clean', value: 'sudo dnf clean all\n' },
+    ],
+    DOC: [
+      { id: 'doc1', label: 'docker ps', value: 'docker ps\n' },
+      { id: 'doc2', label: 'docker ps -a', value: 'docker ps -a\n' },
+      { id: 'doc3', label: 'compose up', value: 'docker compose up -d\n' },
+      { id: 'doc4', label: 'compose down', value: 'docker compose down\n' },
+      { id: 'doc5', label: 'compose logs', value: 'docker compose logs -f\n' },
+      { id: 'doc6', label: 'docker exec', value: 'docker exec -it ' },
+      { id: 'doc7', label: 'prune -f', value: 'docker system prune -f\n' },
+      { id: 'doc8', label: 'docker images', value: 'docker images\n' },
+    ],
+    GIT: [
+      { id: 'git1', label: 'git status', value: 'git status\n' },
+      { id: 'git2', label: 'git log -10', value: 'git log --oneline -n 10\n' },
+      { id: 'git3', label: 'git add .', value: 'git add .\n' },
+      { id: 'git4', label: 'git commit', value: 'git commit -m "' },
+      { id: 'git5', label: 'git push', value: 'git push\n' },
+      { id: 'git6', label: 'git pull', value: 'git pull\n' },
+      { id: 'git7', label: 'git checkout', value: 'git checkout -b ' },
+      { id: 'git8', label: 'git diff', value: 'git diff\n' },
+    ],
+    SYS: [
+      { id: 'sys1', label: 'systemctl', value: 'sudo systemctl status ' },
+      { id: 'sys2', label: 'restart srv', value: 'sudo systemctl restart ' },
+      { id: 'sys3', label: 'journalctl', value: 'sudo journalctl -xeu ' },
+      { id: 'sys4', label: 'htop', value: 'htop\n' },
+      { id: 'sys5', label: 'df -h', value: 'df -h\n' },
+      { id: 'sys6', label: 'free -h', value: 'free -h\n' },
+      { id: 'sys7', label: 'top', value: 'top\n' },
+      { id: 'sys8', label: 'uptime', value: 'uptime\n' },
+    ],
+    NET: [
+      { id: 'net1', label: 'ip a', value: 'ip a\n' },
+      { id: 'net2', label: 'ping', value: 'ping -c 4 ' },
+      { id: 'net3', label: 'netstat', value: 'sudo netstat -tuln\n' },
+      { id: 'net4', label: 'ss -tulpn', value: 'sudo ss -tulpn\n' },
+      { id: 'net5', label: 'ufw status', value: 'sudo ufw status\n' },
+      { id: 'net6', label: 'curl -I', value: 'curl -I ' },
+      { id: 'net7', label: 'dig', value: 'dig ' },
+      { id: 'net8', label: 'traceroute', value: 'traceroute ' },
+    ],
+    KEY_SYM: [
+      { id: 'sym1', label: '|', value: '|' },
+      { id: 'sym2', label: '~', value: '~' },
+      { id: 'sym3', label: '>', value: '>' },
+      { id: 'sym4', label: '>>', value: '>>' },
+      { id: 'sym5', label: '<', value: '<' },
+      { id: 'sym6', label: '&&', value: '&& ' },
+      { id: 'sym7', label: '||', value: '|| ' },
+      { id: 'sym8', label: ';', value: '; ' },
+      { id: 'sym9', label: '`', value: '`' },
+      { id: 'sym10', label: '\\', value: '\\' },
+      { id: 'sym11', label: '/', value: '/' },
+      { id: 'sym12', label: '$', value: '$' },
+      { id: 'sym13', label: '#', value: '#' },
+    ],
+    KEY_MODE: [
+      { id: 'mode1', label: 'ESC', value: '\x1b' },
+      { id: 'mode2', label: 'TAB', value: '\t' },
+      { id: 'mode3', label: 'DEL', value: '\x1b[3~' },
+      { id: 'mode4', label: '^C (cancel)', value: '\x03' },
+      { id: 'mode5', label: '^Z (suspend)', value: '\x1a' },
+      { id: 'mode6', label: '^D (exit)', value: '\x04' },
+    ],
+    KEY_LINE: [
+      { id: 'line1', label: '^A (Home)', value: '\x01' },
+      { id: 'line2', label: '^E (End)', value: '\x05' },
+      { id: 'line3', label: '^K (Cut end)', value: '\x0b' },
+      { id: 'line4', label: '^U (Cut start)', value: '\x15' },
+      { id: 'line5', label: '^W (Del word)', value: '\x17' },
+      { id: 'line6', label: '^Y (Paste)', value: '\x19' },
+      { id: 'line7', label: '^R (History)', value: '\x12' },
+      { id: 'line8', label: '^L (Clear)', value: '\x0c' },
+    ]
+  };
+
+  // Gboard / Android-Style Continuous Voice Dictation Handler
   const toggleVoice = () => {
-    if (isRecording) {
-      if (recognitionRef.current) recognitionRef.current.stop();
+    if (isRecordingRef.current) {
+      // User explicitly tapped mic button to turn OFF
+      isRecordingRef.current = false;
       setIsRecording(false);
+      lastSpeechRef.current = '';
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+      }
       return;
     }
 
@@ -37,41 +195,74 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event) => {
-      let currentTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        currentTranscript += event.results[i][0].transcript;
-      }
-
-      // Smart-diff tracker to stream text to terminal without duplicates
-      if (currentTranscript && currentTranscript !== lastSpeech) {
-        const newText = currentTranscript.slice(lastSpeech.length);
-        if (newText && onVoiceInput) {
-          onVoiceInput(newText);
-        }
-        setLastSpeech(currentTranscript);
-      }
-    };
-
-    recognition.onerror = (e) => {
-      console.error('Speech recognition error:', e);
-      setIsRecording(false);
-    };
-
-    // Auto-Stop on Silence VAD
-    recognition.onend = () => {
-      setIsRecording(false);
-      setLastSpeech('');
-    };
-
-    recognition.start();
-    recognitionRef.current = recognition;
+    isRecordingRef.current = true;
     setIsRecording(true);
+    lastSpeechRef.current = '';
+
+    const startListeningSession = () => {
+      if (!isRecordingRef.current) return;
+
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false; // continuous=false is significantly more stable on mobile & Chrome
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+          let currentTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            currentTranscript += event.results[i][0].transcript;
+          }
+
+          // Synchronous ref-diffing: stream only NEW text characters to terminal
+          if (currentTranscript.length > lastSpeechRef.current.length) {
+            const newText = currentTranscript.slice(lastSpeechRef.current.length);
+            if (newText && onVoiceInput) {
+              onVoiceInput(newText);
+            }
+            lastSpeechRef.current = currentTranscript;
+          }
+        };
+
+        recognition.onerror = (e) => {
+          console.warn('Speech recognition status:', e.error);
+          // Do NOT stop recording on 'no-speech' or 'aborted' — ignore silence timeouts so mic stays ON
+          if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+            isRecordingRef.current = false;
+            setIsRecording(false);
+            alert('Microphone access denied. Please grant microphone permissions in your browser. Note: Browsers require HTTPS or localhost for voice dictation.');
+          } else if (e.error === 'network') {
+            isRecordingRef.current = false;
+            setIsRecording(false);
+            alert('Speech recognition requires an active network connection.');
+          }
+        };
+
+        recognition.onend = () => {
+          // Gboard mode: If user hasn't explicitly tapped mic OFF, automatically loop-restart!
+          if (isRecordingRef.current) {
+            lastSpeechRef.current = ''; // reset buffer for next spoken phrase
+            setTimeout(() => {
+              if (isRecordingRef.current) {
+                startListeningSession();
+              }
+            }, 100);
+          } else {
+            setIsRecording(false);
+            lastSpeechRef.current = '';
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (err) {
+        console.error('Failed to start speech recognition session:', err);
+        isRecordingRef.current = false;
+        setIsRecording(false);
+      }
+    };
+
+    startListeningSession();
   };
 
   const handleSudoMacro = () => {
@@ -96,41 +287,151 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           <span>(***)</span>
         </button>
 
-        <button className="touch-btn macro-launcher-btn" onClick={() => setShowMacroModal(true)} title="12-Macro Popup Grid">
-          <Zap size={14} color="#88C0D0" />
+        {/* Dynamic User-Customized TouchBar Items from LayoutBuilder */}
+        {activeSlots.map((item, idx) => {
+          const isCategoryLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
+
+          if (isCategoryLauncher) {
+            return (
+              <button
+                key={`slot-${item}-${idx}`}
+                className="touch-btn suite-chip-btn"
+                onClick={() => {
+                  setSelectedSuite(item);
+                  setShowMacroModal(true);
+                }}
+                title={`${item} Suite`}
+              >
+                {item}
+              </button>
+            );
+          }
+
+          // Special Key Mapping Handlers
+          const keyMappings = {
+            '⚡ MACROS': 'MACROS_ACTION',
+            'MACROS': 'MACROS_ACTION',
+            'ESC': '\x1b',
+            'TAB': '\t',
+            'DEL': '\x1b[3~',
+            '^C': '\x03',
+            '^Z': '\x1a',
+            '|': '|',
+            '~': '~',
+            '/': '/',
+            'clear': 'clear\n',
+            'sudo': 'sudo ',
+            'exit': 'exit\n',
+            'ArrowUp': '\x1b[A',
+            'ArrowDown': '\x1b[B',
+            'ArrowLeft': '\x1b[D',
+            'ArrowRight': '\x1b[C',
+          };
+
+          if (item === '⚡ MACROS' || item === 'MACROS') {
+            return (
+              <button
+                key={`slot-${item}-${idx}`}
+                className="touch-btn macro-launcher-btn"
+                onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
+                title="Macro Master Catalog"
+              >
+                <Zap size={14} color="var(--status-danger)" />
+                <span>MACROS</span>
+              </button>
+            );
+          }
+
+          return (
+            <button
+              key={`slot-${item}-${idx}`}
+              className="touch-btn"
+              onClick={() => onKeyPress(keyMappings[item] || (item.endsWith('\n') ? item : `${item}\n`))}
+            >
+              {item}
+            </button>
+          );
+        })}
+
+        {/* Master MACROS Catalog Launcher Pinned to Far Right (Bright Red) */}
+        <button
+          className="touch-btn macro-launcher-btn"
+          onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
+          title="Master Macro Catalog"
+        >
+          <Zap size={14} color="var(--status-danger)" />
           <span>MACROS</span>
         </button>
-
-        <button className="touch-btn" onClick={() => onKeyPress('\x1b')}>ESC</button>
-        <button className="touch-btn" onClick={() => onKeyPress('\t')}>TAB</button>
-        <button className="touch-btn" onClick={() => onKeyPress('\x03')}>^C</button>
-        <button className="touch-btn" onClick={() => onKeyPress('\x1a')}>^Z</button>
-        <button className="touch-btn" onClick={() => onKeyPress('|')}>|</button>
-        <button className="touch-btn" onClick={() => onKeyPress('~')}>~</button>
-
-        <button className="touch-btn" onClick={() => onKeyPress('\x1b[A')}><ArrowUp size={14} /></button>
-        <button className="touch-btn" onClick={() => onKeyPress('\x1b[B')}><ArrowDown size={14} /></button>
-        <button className="touch-btn" onClick={() => onKeyPress('\x1b[D')}><ArrowLeft size={14} /></button>
-        <button className="touch-btn" onClick={() => onKeyPress('\x1b[C')}><ArrowRight size={14} /></button>
 
         <button className="touch-btn clear-btn" onClick={() => onKeyPress('clear\n')} title="Clear Terminal Screen">
           <Trash2 size={14} />
         </button>
       </div>
 
-      {/* 12-Macro Symmetrical Popup Grid Modal (3 Rows x 4 Columns) */}
+      {/* Command Suite Modal with Categorized Sub-Tabs */}
       {showMacroModal && (
         <div className="macro-modal-overlay" onClick={() => setShowMacroModal(false)}>
           <div className="macro-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="macro-modal-header">
-              <Zap size={16} color="#88C0D0" />
-              <h3>QUICK MACRO GRID</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Zap size={16} color="var(--status-danger)" />
+                <h3>{selectedSuite.replace('KEY_', '')} TOOLKIT</h3>
+              </div>
               <button className="close-modal-btn" onClick={() => setShowMacroModal(false)}>
                 <X size={16} />
               </button>
             </div>
-            <div className="macro-grid-3x4">
-              {macroGrid.map((macro) => (
+
+            {/* Categorized Tool Suite Selector Bar */}
+            <div className="suite-selector-scroll">
+              {['AGY', 'CLD', 'HMS', 'APT', 'PAC', 'YUM', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'KEY'].map((key) => {
+                const isActive = selectedSuite === key || selectedSuite.startsWith(`${key}_`);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`suite-tab-pill ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      if (key === 'KEY') setSelectedSuite('KEY_SYM');
+                      else setSelectedSuite(key);
+                    }}
+                  >
+                    {key}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Stacked Sub-Suite Bar for KEY Category (SYM, MODE, LINE) */}
+            {(selectedSuite.startsWith('KEY_') || selectedSuite === 'KEY') && (
+              <div className="sub-suite-bar">
+                <button
+                  type="button"
+                  className={`sub-suite-pill ${selectedSuite === 'KEY_SYM' ? 'active' : ''}`}
+                  onClick={() => setSelectedSuite('KEY_SYM')}
+                >
+                  SYM (Operators)
+                </button>
+                <button
+                  type="button"
+                  className={`sub-suite-pill ${selectedSuite === 'KEY_MODE' ? 'active' : ''}`}
+                  onClick={() => setSelectedSuite('KEY_MODE')}
+                >
+                  MODE (Escapes)
+                </button>
+                <button
+                  type="button"
+                  className={`sub-suite-pill ${selectedSuite === 'KEY_LINE' ? 'active' : ''}`}
+                  onClick={() => setSelectedSuite('KEY_LINE')}
+                >
+                  LINE (Cursor)
+                </button>
+              </div>
+            )}
+
+            {/* Selected Suite Macro Grid */}
+            <div className="macro-grid-3x4" style={{ marginTop: '0.75rem' }}>
+              {(commandSuites[selectedSuite] || []).map((macro) => (
                 <button
                   key={macro.id}
                   className="macro-grid-btn"

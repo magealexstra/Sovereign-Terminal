@@ -192,7 +192,7 @@ def download_file(path: str):
 
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for root, dirs, files in os.walk(p):
+        for root, _, files in os.walk(p):
             for file in files:
                 abs_file = Path(root) / file
                 rel_path = abs_file.relative_to(p.parent)

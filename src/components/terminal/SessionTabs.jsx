@@ -1,5 +1,5 @@
 import React from 'react';
-import { Terminal, Plus, X } from 'lucide-react';
+import { Terminal, Plus, FolderDown, X } from 'lucide-react';
 
 export default function SessionTabs({ sessions, activeSession, onSelectSession, onAddSession, onCloseSession }) {
   return (
@@ -13,21 +13,42 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
         >
           <Terminal size={12} />
           <span className="tab-auto-text">{session.name}</span>
-          {sessions.length > 1 && (
-            <span
-              className="close-session-icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCloseSession(session.id);
-              }}
-            >
-              <X size={11} />
-            </span>
-          )}
+          <span
+            className="close-session-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCloseSession(session.id);
+            }}
+            title="Close session"
+          >
+            <X size={11} />
+          </span>
         </button>
       ))}
-      <button type="button" className="add-session-pill-btn" onClick={onAddSession} title="New tmux Window">
+
+      {/* Button 1: New Session at Root (/workspace) */}
+      <button
+        type="button"
+        className="add-session-pill-btn"
+        onClick={() => onAddSession(false)}
+        disabled={sessions.length >= 5}
+        title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : 'New Session at Workspace Root (/workspace)'}
+        style={{ opacity: sessions.length >= 5 ? 0.4 : 1, cursor: sessions.length >= 5 ? 'not-allowed' : 'pointer' }}
+      >
         <Plus size={14} />
+      </button>
+
+      {/* Button 2: New Session in Current Working Directory */}
+      <button
+        type="button"
+        className="add-session-pill-btn inherit-cwd"
+        onClick={() => onAddSession(true)}
+        disabled={sessions.length >= 5}
+        title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : 'New Session in Current Working Directory'}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', opacity: sessions.length >= 5 ? 0.4 : 1, cursor: sessions.length >= 5 ? 'not-allowed' : 'pointer' }}
+      >
+        <Plus size={12} />
+        <FolderDown size={12} color={sessions.length >= 5 ? 'var(--text-muted)' : 'var(--accent-mana)'} />
       </button>
     </div>
   );

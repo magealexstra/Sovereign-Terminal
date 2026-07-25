@@ -22,22 +22,26 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '1.5rem', textAlign: 'center', color: '#E6EDF0' }}>
-          <AlertTriangle size={32} color="#FF003C" style={{ marginBottom: '0.5rem' }} />
+        <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-parchment)' }}>
+          <AlertTriangle size={32} color="var(--status-danger)" style={{ marginBottom: '0.5rem' }} />
           <h3 style={{ margin: '0 0 0.5rem 0' }}>Sub-Tab Display Recovered</h3>
-          <p style={{ fontSize: '0.8rem', color: '#A3B1B8' }}>A minor rendering variance occurred.</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>A minor rendering variance occurred.</p>
           <button
+            type="button"
             style={{
               marginTop: '1rem',
               padding: '0.4rem 0.8rem',
-              background: '#88C0D0',
-              color: '#0A1118',
+              background: 'var(--accent-mana)',
+              color: 'var(--bg-earth)',
               border: 'none',
               borderRadius: '14px',
               fontWeight: '700',
               cursor: 'pointer'
             }}
-            onClick={() => this.setState({ hasError: false })}
+            onClick={() => {
+              this.setState({ hasError: false });
+              if (this.props.onReset) this.props.onReset();
+            }}
           >
             Reload Settings View
           </button>
@@ -50,6 +54,7 @@ class ErrorBoundary extends Component {
 
 export default function SettingsManager() {
   const [activeSubTab, setActiveSubTab] = useState('themes');
+  const [resetCount, setResetCount] = useState(0);
 
   return (
     <div className="settings-master-container">
@@ -85,7 +90,7 @@ export default function SettingsManager() {
 
       {/* Active Sub-Tab Viewport protected by ErrorBoundary */}
       <div className="settings-content-viewport">
-        <ErrorBoundary>
+        <ErrorBoundary key={`${activeSubTab}-${resetCount}`} onReset={() => setResetCount((c) => c + 1)}>
           {activeSubTab === 'themes' && <ThemeSettings />}
           {activeSubTab === 'studio' && <ButtonStudio />}
           {activeSubTab === 'layout' && <LayoutBuilder />}

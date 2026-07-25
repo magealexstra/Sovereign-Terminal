@@ -17,7 +17,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
   const fetchDirectory = async (targetPath) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://${window.location.hostname}:2068/api/fs/tree?path=${encodeURIComponent(targetPath)}`);
+      const res = await fetch(`/api/fs/tree?path=${encodeURIComponent(targetPath)}`);
       if (res.ok) {
         const data = await res.json();
         setCurrentPath(data.currentPath);
@@ -67,7 +67,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
 
     for (const itemPath of selectedItems) {
       try {
-        await fetch(`http://${window.location.hostname}:2068/api/fs/delete`, {
+        await fetch(`/api/fs/delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: itemPath }),
@@ -86,7 +86,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
     if (!newItemName) return;
     const targetPath = `${currentPath}/${newItemName}`;
     try {
-      const res = await fetch(`http://${window.location.hostname}:2068/api/fs/create`, {
+      const res = await fetch(`/api/fs/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: targetPath, type: newItemType }),
@@ -104,7 +104,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
   // Single or Batch Download to Phone Storage
   const handleDownload = () => {
     const downloadPath = selectedItems.length > 0 ? selectedItems.join(',') : currentPath;
-    window.location.href = `http://${window.location.hostname}:2068/api/fs/download?path=${encodeURIComponent(downloadPath)}`;
+    window.location.href = `${window.location.origin}/api/fs/download?path=${encodeURIComponent(downloadPath)}`;
   };
 
   // Phone to Server Upload Handler
@@ -118,7 +118,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
     }
 
     try {
-      const res = await fetch(`http://${window.location.hostname}:2068/api/fs/upload?target_dir=${encodeURIComponent(currentPath)}`, {
+      const res = await fetch(`/api/fs/upload?target_dir=${encodeURIComponent(currentPath)}`, {
         method: 'POST',
         body: formData,
       });
@@ -144,7 +144,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
               <span className="crumb-item" onClick={() => fetchDirectory(crumb.path)}>
                 {crumb.name}
               </span>
-              {idx < getBreadcrumbs().length - 1 && <ChevronRight size={12} color="#A3B1B8" />}
+              {idx < getBreadcrumbs().length - 1 && <ChevronRight size={12} color="var(--text-muted)" />}
             </React.Fragment>
           ))}
         </div>
@@ -154,14 +154,14 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
             <RefreshCw size={14} className={loading ? 'spin' : ''} />
           </button>
           <button className="tb-btn" onClick={() => setShowSearchModal(true)} title="Tab-Scoped File Search">
-            <Search size={14} color="#88C0D0" />
+            <Search size={14} color="var(--accent-mana)" />
           </button>
           <button className="tb-btn" onClick={() => setNewFileModal(true)} title="New File/Folder">
-            <Plus size={14} color="#4C7864" />
+            <Plus size={14} color="var(--status-active)" />
           </button>
           {selectedItems.length > 0 && (
             <button className="tb-btn delete" onClick={handleDeleteSelected} title="Move to Trash">
-              <Trash2 size={14} color="#FF003C" />
+              <Trash2 size={14} color="var(--status-danger)" />
             </button>
           )}
           <button className="tb-btn" onClick={handleDownload} title="Download to Phone">
@@ -198,7 +198,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
                 handleSelectItem(item.path);
               }}
             />
-            {item.isDir ? <Folder size={16} color="#88C0D0" /> : <FileText size={16} color="#4C7864" />}
+            {item.isDir ? <Folder size={16} color="var(--accent-mana)" /> : <FileText size={16} color="var(--status-active)" />}
             <span className="tree-item-name">{item.name}</span>
             {item.size && <span className="tree-item-size">{item.size}</span>}
           </div>

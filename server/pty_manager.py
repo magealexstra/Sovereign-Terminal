@@ -13,6 +13,15 @@ router = APIRouter(tags=["terminal"])
 
 SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
+_tmux_bin = shutil.which("tmux")
+
+# Pre-warm the tmux server at module load time.
+# This ensures the server socket exists before any WebSocket session connects,
+# eliminating the "error connecting" race on first connection.
+if _tmux_bin:
+    subprocess.run([_tmux_bin, "start-server"], capture_output=True, check=False)
+
+
 def set_pty_size(fd, rows, cols):
     """Set Linux PTY window size via TIOCSWINSZ ioctl signal."""
     try:
@@ -21,35 +30,53 @@ def set_pty_size(fd, rows, cols):
     except Exception as e:
         print(f"Error setting PTY size: {e}")
 
+
 @router.websocket("/ws/terminal")
-async def websocket_terminal(websocket: WebSocket, session: str = "mobile-voice"):
+async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = "/workspace"):
     await websocket.accept()
 
-    tmux_bin = shutil.which("tmux")
+    tmux_bin = _tmux_bin
+    target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("WORKSPACE_ROOT", "/workspace")
+
     if tmux_bin:
-        cmd = [tmux_bin, "new-session", "-A", "-s", session]
+        # Attach to existing session (-A) if available, or create new one if not.
+        cmd = [tmux_bin, "new-session", "-A", "-s", session, "-c", target_cwd]
     else:
         cmd = [shutil.which("bash") or "/bin/sh"]
 
     master_fd, slave_fd = pty.openpty()
-    
+
     env = os.environ.copy()
     env["TERM"] = "xterm-256color"
     env["COLORTERM"] = "truecolor"
+    if os.getenv("TZ"):
+        env["TZ"] = os.getenv("TZ")
+
+    def preexec():
+        os.setsid()
+        try:
+            fcntl.ioctl(slave_fd, termios.TIOCSCTTY, 0)
+        except Exception:
+            pass
 
     proc = subprocess.Popen(
         cmd,
-        preexec_fn=os.setsid,
+        preexec_fn=preexec,
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,
         universal_newlines=False,
-        cwd=os.getenv("WORKSPACE_ROOT", "/workspace"),
+        cwd=target_cwd,
         env=env
     )
     os.close(slave_fd)
 
     set_pty_size(master_fd, 24, 80)
+
+    # NOTE: Global tmux options (window-size manual, status-position bottom, mouse on)
+    # are now set via /root/.tmux.conf baked into the container image.
+    # We do NOT call subprocess.run set-option here — doing so per-session caused
+    # race conditions that crashed the tmux server when multiple tabs opened quickly.
 
     loop = asyncio.get_event_loop()
 
@@ -73,7 +100,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "mobile-voice"
     try:
         while True:
             msg = await websocket.receive_text()
-            
+
             if msg.startswith("{") and msg.endswith("}"):
                 try:
                     import json
@@ -86,17 +113,29 @@ async def websocket_terminal(websocket: WebSocket, session: str = "mobile-voice"
                         set_pty_size(master_fd, rows, cols)
                         if tmux_bin:
                             try:
-                                subprocess.run([tmux_bin, "resize-window", "-t", session, "-x", str(cols), "-y", str(rows)], check=False)
+                                # Resize the tmux window to match the new PTY dimensions.
+                                # No send-keys C-l — tmux redraws automatically on resize.
+                                subprocess.run(
+                                    [tmux_bin, "resize-window", "-t", f"{session}:0",
+                                     "-x", str(cols), "-y", str(rows)],
+                                    capture_output=True, check=False
+                                )
+                                subprocess.run(
+                                    [tmux_bin, "refresh-client", "-t", session],
+                                    capture_output=True, check=False
+                                )
                             except Exception:
                                 pass
                         continue
+
                     elif msg_type == "sudo_macro":
                         if SUDO_MACRO_SECRET:
                             os.write(master_fd, (SUDO_MACRO_SECRET + "\n").encode("utf-8"))
                         continue
+
                 except Exception:
                     pass
-            
+
             os.write(master_fd, msg.encode("utf-8"))
 
     except WebSocketDisconnect:
