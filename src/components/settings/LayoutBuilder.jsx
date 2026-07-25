@@ -104,11 +104,12 @@ export default function LayoutBuilder() {
     showToast(`Added '${itemKey}' to TouchBar`);
   };
 
-  // Single-click on pool chip adds directly to macro bar
+  // Select a pool chip (must press Add button to append to TouchBar)
   const handleSelectPoolItem = (e, itemKey) => {
     e.stopPropagation();
     if (itemKey === '(No Custom Buttons Created Yet)') return;
-    handleAddDirect(itemKey);
+    setSelectedPoolItem(itemKey);
+    setSelectedBarIndex(null);
   };
 
   const handleSelectBarItem = (e, index) => {
@@ -117,11 +118,14 @@ export default function LayoutBuilder() {
     setSelectedPoolItem(null);
   };
 
-  // Add selected pool item to TouchBar
+  // Add selected pool item to TouchBar when user clicks the Add button
   const handleAddSelectedToBar = (e) => {
     if (e) e.stopPropagation();
     if (!selectedPoolItem) return;
-    handleAddDirect(selectedPoolItem);
+    const updated = [...touchBarSlots, selectedPoolItem];
+    saveLayout(updated);
+    showToast(`Added '${selectedPoolItem}' to TouchBar`);
+    setSelectedPoolItem(null);
   };
 
   // Move selected TouchBar item left or right
@@ -220,7 +224,7 @@ export default function LayoutBuilder() {
         {/* 2. MIDDLE UPPER SECTION: AVAILABLE BUTTONS POOL */}
         <div className="available-pool-section" onClick={handleContainerClick}>
           <div className="pool-section-label" onClick={handleContainerClick}>
-            <span>AVAILABLE BUTTONS POOL ({poolItems.length}) — Click any chip to add to TouchBar</span>
+            <span>AVAILABLE BUTTONS POOL ({poolItems.length})</span>
             {hiddenPoolChips.length > 0 && (
               <button
                 type="button"
@@ -248,13 +252,9 @@ export default function LayoutBuilder() {
                   type="button"
                   className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''}`}
                   onClick={(e) => handleSelectPoolItem(e, item)}
-                  title="Click to add button directly to your TouchBar"
+                  title="Click to select button"
                 >
-                  {isLauncher ? (
-                    <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />
-                  ) : (
-                    <Plus size={10} color="var(--status-active)" style={{ marginRight: '3px' }} />
-                  )}
+                  {isLauncher && <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />}
                   <span>{item}</span>
                 </button>
               );
