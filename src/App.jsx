@@ -212,6 +212,12 @@ export default function App() {
     const doc = openDocuments.find((d) => d.path === filepath);
     if (!doc) return;
 
+    // Safety backstop: never silently discard unsaved changes.
+    // The CodeEditor UI already shows a Save/Discard/Cancel modal and calls
+    // onCloseTab(path, true) after the user confirms — so this guard only
+    // fires if handleCloseTab is ever called directly without force=true.
+    if (!force && doc.isModified) return;
+
     const filtered = openDocuments.filter((d) => d.path !== filepath);
     setOpenDocuments(filtered);
     if (activeFilePath === filepath && filtered.length > 0) {

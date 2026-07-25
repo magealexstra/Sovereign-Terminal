@@ -7,8 +7,17 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastSpeechRef = useRef('');
+  const micToastTimerRef = useRef(null);
 
   const [selectedSuite, setSelectedSuite] = useState('AGY');
+
+  // Inline mic-error toast — replaces browser alert() for non-blocking UX
+  const [micToast, setMicToast] = useState(null);
+  const showMicToast = (msg) => {
+    setMicToast(msg);
+    clearTimeout(micToastTimerRef.current);
+    micToastTimerRef.current = setTimeout(() => setMicToast(null), 4000);
+  };
 
   // Load active TouchBar layout from localStorage (or fallback defaults)
   const [activeSlots, setActiveSlots] = useState(() => {
@@ -191,7 +200,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Web Speech API is not supported in this browser. Please use keyboard dictation.');
+      showMicToast('Voice dictation not supported in this browser.');
       return;
     }
 
@@ -230,11 +239,11 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
             isRecordingRef.current = false;
             setIsRecording(false);
-            alert('Microphone access denied. Please grant microphone permissions in your browser. Note: Browsers require HTTPS or localhost for voice dictation.');
+            showMicToast('Mic access denied — HTTPS or localhost required.');
           } else if (e.error === 'network') {
             isRecordingRef.current = false;
             setIsRecording(false);
-            alert('Speech recognition requires an active network connection.');
+            showMicToast('Voice recognition requires a network connection.');
           }
         };
 
@@ -445,6 +454,13 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Mic error toast — non-blocking replacement for alert() */}
+      {micToast && (
+        <div className="copy-toast" style={{ bottom: '4.5rem', top: 'auto' }}>
+          <span>{micToast}</span>
         </div>
       )}
     </>
