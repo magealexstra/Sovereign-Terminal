@@ -102,6 +102,7 @@ export default function ButtonStudio() {
   const handleSaveButtons = () => {
     try {
       localStorage.setItem('sovereign_buttons', JSON.stringify(buttons));
+      window.dispatchEvent(new Event('storage'));
       setSaveToast(true);
       setTimeout(() => setSaveToast(false), 2000);
     } catch {}

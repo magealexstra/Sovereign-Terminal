@@ -85,27 +85,6 @@ export default function LayoutBuilder() {
 
   const poolItems = getPoolItems();
 
-  // Selection Handlers with propagation control
-  const handleSelectPoolItem = (e, itemKey) => {
-    e.stopPropagation();
-    if (itemKey === '(No Custom Buttons Created Yet)') return;
-    
-    // If user clicks the already-selected chip, immediately add it to bar for tap-friendly UX!
-    if (selectedPoolItem === itemKey) {
-      handleAddDirect(itemKey);
-      return;
-    }
-
-    setSelectedPoolItem(itemKey);
-    setSelectedBarIndex(null);
-  };
-
-  const handleSelectBarItem = (e, index) => {
-    e.stopPropagation();
-    setSelectedBarIndex(index);
-    setSelectedPoolItem(null);
-  };
-
   // Save TouchBar layout to localStorage and dispatch storage event for real-time sync with TouchBar
   const saveLayout = (newSlots) => {
     setTouchBarSlots(newSlots);
@@ -115,12 +94,27 @@ export default function LayoutBuilder() {
     } catch {}
   };
 
-  // Add item directly to TouchBar with toast feedback
+  // Add item directly to TouchBar with toast feedback and highlight in preview strip
   const handleAddDirect = (itemKey) => {
     if (!itemKey || itemKey === '(No Custom Buttons Created Yet)') return;
     const updated = [...touchBarSlots, itemKey];
     saveLayout(updated);
+    setSelectedBarIndex(updated.length - 1);
+    setSelectedPoolItem(itemKey);
     showToast(`Added '${itemKey}' to TouchBar`);
+  };
+
+  // Single-click on pool chip adds directly to macro bar
+  const handleSelectPoolItem = (e, itemKey) => {
+    e.stopPropagation();
+    if (itemKey === '(No Custom Buttons Created Yet)') return;
+    handleAddDirect(itemKey);
+  };
+
+  const handleSelectBarItem = (e, index) => {
+    e.stopPropagation();
+    setSelectedBarIndex(index);
+    setSelectedPoolItem(null);
   };
 
   // Add selected pool item to TouchBar
@@ -128,7 +122,6 @@ export default function LayoutBuilder() {
     if (e) e.stopPropagation();
     if (!selectedPoolItem) return;
     handleAddDirect(selectedPoolItem);
-    setSelectedPoolItem(null);
   };
 
   // Move selected TouchBar item left or right
@@ -227,7 +220,7 @@ export default function LayoutBuilder() {
         {/* 2. MIDDLE UPPER SECTION: AVAILABLE BUTTONS POOL */}
         <div className="available-pool-section" onClick={handleContainerClick}>
           <div className="pool-section-label" onClick={handleContainerClick}>
-            <span>AVAILABLE BUTTONS POOL ({poolItems.length}) — Tap chip to select, tap again to add directly</span>
+            <span>AVAILABLE BUTTONS POOL ({poolItems.length}) — Click any chip to add to TouchBar</span>
             {hiddenPoolChips.length > 0 && (
               <button
                 type="button"
@@ -255,9 +248,13 @@ export default function LayoutBuilder() {
                   type="button"
                   className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''}`}
                   onClick={(e) => handleSelectPoolItem(e, item)}
-                  title="Tap once to select, tap again or press Add to append to TouchBar"
+                  title="Click to add button directly to your TouchBar"
                 >
-                  {isLauncher && <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />}
+                  {isLauncher ? (
+                    <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />
+                  ) : (
+                    <Plus size={10} color="var(--status-active)" style={{ marginRight: '3px' }} />
+                  )}
                   <span>{item}</span>
                 </button>
               );

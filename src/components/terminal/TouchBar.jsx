@@ -316,25 +316,37 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             );
           }
 
-          // Special Key Mapping Handlers
-          const keyMappings = {
-            '⚡ MACROS': 'MACROS_ACTION',
-            'MACROS': 'MACROS_ACTION',
-            'ESC': '\x1b',
-            'TAB': '\t',
-            'DEL': '\x1b[3~',
-            '^C': '\x03',
-            '^Z': '\x1a',
-            '|': '|',
-            '~': '~',
-            '/': '/',
-            'clear': 'clear\n',
-            'sudo': 'sudo ',
-            'exit': 'exit\n',
-            'ArrowUp': '\x1b[A',
-            'ArrowDown': '\x1b[B',
-            'ArrowLeft': '\x1b[D',
-            'ArrowRight': '\x1b[C',
+          // Command Payload Resolver (supports special keys, custom buttons, & raw commands)
+          const getCommandPayload = (itemKey) => {
+            const keyMappings = {
+              'ESC': '\x1b',
+              'TAB': '\t',
+              'DEL': '\x1b[3~',
+              '^C': '\x03',
+              '^Z': '\x1a',
+              '|': '|',
+              '~': '~',
+              '/': '/',
+              'clear': 'clear\n',
+              'sudo': 'sudo ',
+              'exit': 'exit\n',
+              'ArrowUp': '\x1b[A',
+              'ArrowDown': '\x1b[B',
+              'ArrowLeft': '\x1b[D',
+              'ArrowRight': '\x1b[C',
+            };
+            if (keyMappings[itemKey]) return keyMappings[itemKey];
+
+            try {
+              const saved = localStorage.getItem('sovereign_buttons');
+              if (saved) {
+                const btns = JSON.parse(saved);
+                const match = btns.find(b => (b.label || b.name) === itemKey);
+                if (match && match.value) return match.value;
+              }
+            } catch {}
+
+            return itemKey.endsWith('\n') ? itemKey : `${itemKey}\n`;
           };
 
           if (item === '⚡ MACROS' || item === 'MACROS') {
@@ -355,7 +367,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             <button
               key={`slot-${item}-${idx}`}
               className="touch-btn"
-              onClick={() => onKeyPress(keyMappings[item] || (item.endsWith('\n') ? item : `${item}\n`))}
+              onClick={() => onKeyPress(getCommandPayload(item))}
             >
               {item}
             </button>
