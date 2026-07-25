@@ -19,8 +19,13 @@ SAFE_TRASH_MODE = os.getenv("SAFE_TRASH_MODE", "true").lower() in ("true", "1", 
 ENABLE_PERMANENT_DELETE = os.getenv("ENABLE_PERMANENT_DELETE", "false").lower() in ("true", "1", "yes")
 
 def get_safe_path(target_path: str) -> Path:
-    """Ensure path is absolute and resolved safely."""
+    """Ensure path is absolute and resolved safely within WORKSPACE_ROOT boundary."""
+    root = Path(WORKSPACE_ROOT).resolve()
     p = Path(target_path).resolve()
+    try:
+        p.relative_to(root)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied: Path is outside workspace root boundary")
     return p
 
 @router.get("/tree")

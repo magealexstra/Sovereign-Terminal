@@ -202,7 +202,10 @@ export default function App() {
           <Terminal
             activeSession={activeSession}
             voiceInput={voiceInput}
-            onDataSent={(data) => {}}
+            onOpenFile={(filepath) => {
+              handleOpenFile(filepath);
+              setActiveMainTab('explorer');
+            }}
           />
 
           <TouchBar

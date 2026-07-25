@@ -7,17 +7,43 @@ import { ArrowDown, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import '@xterm/xterm/css/xterm.css';
 
-export default function Terminal({ activeSession, voiceInput, onDataSent }) {
+export default function Terminal({ activeSession, voiceInput, onOpenFile }) {
   const { theme, fontSizeTerminal } = useApp();
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
   const fitAddonInstance = useRef(null);
   const socketRef = useRef(null);
+  const selectionTimer = useRef(null);
   
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [copyToast, setCopyToast] = useState(false);
 
-  // Dynamic font size updates across xterm instance
+  // Helper to generate xterm theme object from AppContext palette
+  const getTermTheme = (currentTheme) => ({
+    background: currentTheme?.bgEarth || '#141E26',
+    foreground: currentTheme?.textParchment || '#E6EDF0',
+    cursor: currentTheme?.accentHighlight || '#88C0D0',
+    cursorAccent: currentTheme?.bgEarth || '#141E26',
+    selectionBackground: 'rgba(136, 192, 208, 0.4)',
+    black: '#3B4252',
+    red: '#BF616A',
+    green: '#A3BE8C',
+    yellow: '#EBCB8B',
+    blue: '#81A1C1',
+    magenta: '#B48EAD',
+    cyan: '#88C0D0',
+    white: '#E5E9F0',
+    brightBlack: '#4C566A',
+    brightRed: '#D08770',
+    brightGreen: '#A3BE8C',
+    brightYellow: '#EBCB8B',
+    brightBlue: '#5E81AC',
+    brightMagenta: '#B48EAD',
+    brightCyan: '#8FBCBB',
+    brightWhite: '#ECEFF4',
+  });
+
+  // Live font size updates across active xterm instance
   useEffect(() => {
     if (xtermInstance.current && fitAddonInstance.current) {
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
@@ -30,33 +56,15 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     }
   }, [fontSizeTerminal]);
 
+  // Live color theme updates across active xterm instance
+  useEffect(() => {
+    if (xtermInstance.current) {
+      xtermInstance.current.options.theme = getTermTheme(theme);
+    }
+  }, [theme]);
+
   useEffect(() => {
     if (!terminalRef.current) return;
-
-    // High contrast terminal theme palette
-    const termTheme = {
-      background: theme?.bgEarth || '#141E26',
-      foreground: theme?.textParchment || '#E6EDF0',
-      cursor: theme?.accentHighlight || '#88C0D0',
-      cursorAccent: theme?.bgEarth || '#141E26',
-      selectionBackground: 'rgba(136, 192, 208, 0.4)',
-      black: '#3B4252',
-      red: '#BF616A',
-      green: '#A3BE8C',
-      yellow: '#EBCB8B',
-      blue: '#81A1C1',
-      magenta: '#B48EAD',
-      cyan: '#88C0D0',
-      white: '#E5E9F0',
-      brightBlack: '#4C566A',
-      brightRed: '#D08770',
-      brightGreen: '#A3BE8C',
-      brightYellow: '#EBCB8B',
-      brightBlue: '#5E81AC',
-      brightMagenta: '#B48EAD',
-      brightCyan: '#8FBCBB',
-      brightWhite: '#ECEFF4',
-    };
 
     const term = new XTerm({
       cursorBlink: true,
@@ -65,7 +73,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       fontSize: fontSizeTerminal || 14,
       lineHeight: 1.2,
       scrollback: 5000,
-      theme: termTheme,
+      theme: getTermTheme(theme),
       allowProposedApi: true,
     });
 
@@ -76,6 +84,38 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
 
     term.loadAddon(fitAddon);
     term.loadAddon(webLinksAddon);
+
+    // Custom File Path Link Router (/workspace/..., /Heimr/..., ./...)
+    term.registerLinkProvider({
+      provideLinks: (bufferLineNumber, callback) => {
+        const lineText = term.buffer.active?.getLine(bufferLineNumber - 1)?.translateToString(true);
+        if (!lineText) {
+          callback([]);
+          return;
+        }
+        const regex = /(?:\/workspace|\/Heimr|\.\/|\.\.\/)[^\s:\x1b'"]+\.[a-zA-Z0-9]+/g;
+        const links = [];
+        let match;
+        while ((match = regex.exec(lineText)) !== null) {
+          const pathText = match[0];
+          const startIdx = match.index;
+          links.push({
+            range: {
+              start: { x: startIdx + 1, y: bufferLineNumber },
+              end: { x: startIdx + pathText.length, y: bufferLineNumber }
+            },
+            text: pathText,
+            activate: (evt, text) => {
+              if (onOpenFile) {
+                onOpenFile(text);
+              }
+            }
+          });
+        }
+        callback(links);
+      }
+    });
+
     term.open(terminalRef.current);
 
     try {
@@ -100,14 +140,18 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     setTimeout(performFit, 50);
     setTimeout(performFit, 200);
 
+    // Debounced Copy-on-Select Clipboard Handler
     term.onSelectionChange(() => {
-      const selection = term.getSelection();
-      if (selection && selection.trim().length > 0) {
-        navigator.clipboard.writeText(selection).then(() => {
-          setCopyToast(true);
-          setTimeout(() => setCopyToast(false), 2000);
-        }).catch(() => {});
-      }
+      if (selectionTimer.current) clearTimeout(selectionTimer.current);
+      selectionTimer.current = setTimeout(() => {
+        const selection = term.getSelection();
+        if (selection && selection.trim().length > 0) {
+          navigator.clipboard.writeText(selection).then(() => {
+            setCopyToast(true);
+            setTimeout(() => setCopyToast(false), 2000);
+          }).catch(() => {});
+        }
+      }, 300);
     });
 
     term.onScroll(() => {
@@ -117,6 +161,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
       }
     });
 
+    // Retaining Port 2068 for testing environment compatibility
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.hostname}:2068/ws/terminal?session=${activeSession}`;
     const socket = new WebSocket(wsUrl);
@@ -135,7 +180,6 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     socket.onopen = () => {
       sendResizeHandshake();
       socket.send('\r');
-      // 2-Step Delayed Resize Handshake to ensure tmux session attaches after initial load
       setTimeout(sendResizeHandshake, 250);
     };
 
@@ -172,6 +216,7 @@ export default function Terminal({ activeSession, voiceInput, onDataSent }) {
     }
 
     return () => {
+      if (selectionTimer.current) clearTimeout(selectionTimer.current);
       resizeObserver.disconnect();
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);
