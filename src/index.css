@@ -3001,3 +3001,133 @@ html, body, #root {
   font-size: 0.65rem;
   font-weight: 700;
 }
+
+/* ── Login Modal Overlay & Card ─────────────────────────────────────────── */
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 16, 22, 0.92);
+  backdrop-filter: blur(12px);
+  padding: 1rem;
+}
+
+.login-modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 14px;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(94, 129, 172, 0.15);
+  border: 1px solid var(--accent-mana);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.login-header h2 {
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-parchment);
+  letter-spacing: 0.06em;
+  margin: 0 0 0.4rem 0;
+}
+
+.login-header p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(191, 97, 106, 0.15);
+  border: 1px solid var(--red, #BF616A);
+  border-radius: 8px;
+  color: #D08770;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.login-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.login-input-box:focus-within {
+  border-color: var(--accent-mana);
+}
+
+.login-input-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.login-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 40px;
+  background: var(--accent-mana);
+  color: var(--bg-earth);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.login-submit-btn:hover {
+  opacity: 0.9;
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

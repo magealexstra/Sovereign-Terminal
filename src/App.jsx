@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal as TerminalIcon, FolderTree, Sliders } from 'lucide-react';
+import { Terminal as TerminalIcon, FolderTree, Sliders, LogOut } from 'lucide-react';
 import { useApp } from './context/AppContext';
 import { useSessions } from './hooks/useSessions';
 import { useToast } from './hooks/useToast';
@@ -12,10 +12,40 @@ import FileExplorer from './components/explorer/FileExplorer';
 import CodeEditor from './components/explorer/CodeEditor';
 
 import SettingsManager from './components/settings/SettingsManager';
+import LoginModal from './components/auth/LoginModal';
 
 export default function App() {
   const { activeMainTab, setActiveMainTab } = useApp();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  // Authentication State & Session Verification
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [authEnabled, setAuthEnabled] = useState(true);
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/verify');
+        if (res.ok) {
+          const data = await res.json();
+          setIsAuthenticated(true);
+          setAuthEnabled(data.auth_enabled !== false);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      }
+    };
+    verifyAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    setIsAuthenticated(false);
+  };
 
   // Dynamic Visual Viewport & Android VirtualKeyboard API Listener
   useEffect(() => {
@@ -189,6 +219,9 @@ export default function App() {
 
   return (
     <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+      {!isAuthenticated && (
+        <LoginModal onLoginSuccess={() => setIsAuthenticated(true)} />
+      )}
       {/* Header with OmniState Logo & Vertically Stacked Title */}
       <header className="main-nav-bar">
         <div className="brand-title" title="Sovereign Terminal">
@@ -234,6 +267,17 @@ export default function App() {
             <Sliders size={13} />
             <span>Settings</span>
           </button>
+
+          {authEnabled && (
+            <button
+              type="button"
+              className="nav-tab-btn logout-nav-btn"
+              onClick={handleLogout}
+              title="Logout Session"
+            >
+              <LogOut size={13} color="var(--red, #BF616A)" />
+            </button>
+          )}
         </div>
       </header>
 

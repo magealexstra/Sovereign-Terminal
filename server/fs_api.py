@@ -4,10 +4,11 @@ import zipfile
 import subprocess
 from io import BytesIO
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, Response
+from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Depends
 from fastapi.responses import StreamingResponse
+from auth import require_auth
 
-router = APIRouter(prefix="/api/fs", tags=["filesystem"])
+router = APIRouter(prefix="/api/fs", tags=["filesystem"], dependencies=[Depends(require_auth)])
 
 WORKSPACE_ROOT = os.getenv("WORKSPACE_ROOT", "/workspace")
 TRASH_DIR = os.getenv("TRASH_DIR", os.path.join(WORKSPACE_ROOT, "_temp_trash"))

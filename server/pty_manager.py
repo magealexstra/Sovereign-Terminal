@@ -8,6 +8,7 @@ import termios
 import asyncio
 import subprocess
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from auth import ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions
 
 router = APIRouter(tags=["terminal"])
 
@@ -33,6 +34,12 @@ def set_pty_size(fd, rows, cols):
 
 @router.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = "/workspace"):
+    if ENABLE_AUTH:
+        cookie_token = websocket.cookies.get(SESSION_COOKIE_NAME)
+        if not cookie_token or cookie_token not in active_sessions:
+            await websocket.close(code=1008)
+            return
+
     await websocket.accept()
 
     tmux_bin = _tmux_bin
