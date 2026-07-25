@@ -6,11 +6,12 @@ import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { Save, GitCommit, Copy, Clipboard, X, Terminal as TermIcon, FileText, Image as ImageIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../hooks/useToast';
 
 export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal }) {
   const { theme, editorFontSizePx } = useApp();
+  const { toast: editorToast, showToast: triggerToast } = useToast(2000);
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
-  const [editorToast, setEditorToast] = useState('');
   const pressTimer = useRef(null);
 
   const activeDoc = openDocuments.find((doc) => doc.path === activeFilePath) || openDocuments[0];
@@ -30,10 +31,6 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     return /\.(png|jpe?g|webp|svg|gif)$/i.test(filename);
   };
 
-  const triggerToast = (msg) => {
-    setEditorToast(msg);
-    setTimeout(() => setEditorToast(''), 2000);
-  };
 
   // Single-Tap vs Long-Press Tab Close Safeguard
   const handleTabClosePress = (docPath) => {

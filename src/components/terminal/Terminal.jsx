@@ -1,14 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ArrowDown, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../hooks/useToast';
 import '@xterm/xterm/css/xterm.css';
 
 export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile }) {
   const { theme, fontSizeTerminal } = useApp();
+  const { toast, showToast } = useToast();
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
   const fitAddonInstance = useRef(null);
@@ -17,7 +19,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const selectionTimer = useRef(null);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
-  const [copyToast, setCopyToast] = useState(false);
 
   // Helper to generate xterm theme object from AppContext palette
   const getTermTheme = (currentTheme) => ({
@@ -199,11 +200,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         const selection = term.getSelection();
         if (selection && selection.trim().length > 0) {
           writeToClipboard(selection).then(() => {
-            setCopyToast(true);
-            setTimeout(() => setCopyToast(false), 2000);
+            showToast('Copied to Clipboard');
           }).catch(() => {
-            setCopyToast(true);
-            setTimeout(() => setCopyToast(false), 2000);
+            showToast('Copied to Clipboard');
           });
         }
       }, 300);
@@ -417,10 +416,10 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   return (
     <div className="terminal-wrapper">
-      {copyToast && (
+      {toast && (
         <div className="copy-toast">
           <Copy size={13} />
-          <span>Copied to Clipboard</span>
+          <span>{toast}</span>
         </div>
       )}
 

@@ -1,0 +1,84 @@
+import React, { useState } from 'react';
+
+/**
+ * useSessions — manages the tmux terminal session tab state.
+ *
+ * Returns:
+ *   sessions            {Array}    List of { id, name, initialCwd? } objects.
+ *   activeSession       {string}   ID of the currently visible session.
+ *   voiceInput          {string}   Ephemeral string sent to the active Terminal via prop.
+ *   setActiveSession    {function} Select a session tab by ID.
+ *   handleAddSession    {function} Add a new session (inheritCwd = false).
+ *   handleCloseSession  {function} Close a session by ID (auto-creates replacement if last).
+ *   handleTerminalInput {function} Send a command string to the terminal (macro or voice).
+ *
+ * @param {string|null} activeTerminalPath  Current CWD tracked by the terminal (used for inheritCwd).
+ * @param {function}    showToast           showToast(msg) from useToast() — replaces alert().
+ */
+export function useSessions(activeTerminalPath, showToast) {
+  // Counter only ever increments — prevents duplicate names after close+add cycles
+  const sessionCounterRef = React.useRef(1);
+
+  // Give the first session a unique ID so it never collides with a stale
+  // tmux session of the same name across page reloads.
+  const initialSessionId = React.useRef(
+    `session-${Date.now().toString(36).substring(4)}`
+  );
+
+  const [sessions, setSessions] = useState(() => [
+    { id: initialSessionId.current, name: 'term-1' }
+  ]);
+  const [activeSession, setActiveSession] = useState(initialSessionId.current);
+  const [voiceInput, setVoiceInput] = useState('');
+
+  const handleAddSession = (inheritCwd = false) => {
+    if (sessions.length >= 5) {
+      // Use toast instead of browser alert() for non-blocking UX
+      if (showToast) showToast('Max 5 sessions — close a tab to add another.');
+      return;
+    }
+    const newId = `session-${Date.now().toString(36).substring(4)}`;
+    sessionCounterRef.current += 1;
+    const sessionName = `term-${sessionCounterRef.current}`;
+    const targetCwd = inheritCwd ? (activeTerminalPath || '/workspace') : '/workspace';
+    setSessions((prev) => [...prev, { id: newId, name: sessionName, initialCwd: targetCwd }]);
+    setActiveSession(newId);
+  };
+
+  const handleCloseSession = (id) => {
+    setSessions((prev) => {
+      const filtered = prev.filter((s) => s.id !== id);
+
+      if (filtered.length === 0) {
+        // Last tab closed — auto-create a fresh replacement so there's always a terminal
+        sessionCounterRef.current += 1;
+        const freshId = `session-${Date.now().toString(36).substring(4)}`;
+        const fresh = { id: freshId, name: `term-${sessionCounterRef.current}`, initialCwd: '/workspace' };
+        setActiveSession(freshId);
+        return [fresh];
+      }
+
+      if (id === activeSession) {
+        setActiveSession(filtered[filtered.length - 1].id);
+      }
+      return filtered;
+    });
+  };
+
+  // Unified input handler — used for both macro key-presses and voice dictation.
+  // Both send a string to the terminal via the ephemeral voiceInput state channel.
+  const handleTerminalInput = (text) => {
+    setVoiceInput(text);
+    setTimeout(() => setVoiceInput(''), 50);
+  };
+
+  return {
+    sessions,
+    activeSession,
+    voiceInput,
+    setActiveSession,
+    handleAddSession,
+    handleCloseSession,
+    handleTerminalInput,
+  };
+}

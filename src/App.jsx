@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal as TerminalIcon, FolderTree, Sliders } from 'lucide-react';
 import { useApp } from './context/AppContext';
+import { useSessions } from './hooks/useSessions';
+import { useToast } from './hooks/useToast';
 
 import Terminal from './components/terminal/Terminal';
 import SessionTabs from './components/terminal/SessionTabs';
@@ -70,21 +72,20 @@ export default function App() {
     };
   }, []);
 
-  // Tab 1 Terminal Sessions
-  // Counter only ever increments — prevents duplicate names after close+add cycles
-  const sessionCounterRef = React.useRef(1);
-  // Give the first session a unique ID (same pattern as handleAddSession) so
-  // it never collides with a stale tmux session of the same name across page reloads.
-  const initialSessionId = React.useRef(`session-${Date.now().toString(36).substring(4)}`);
-  const [sessions, setSessions] = useState(() => [
-    { id: initialSessionId.current, name: 'term-1' }
-  ]);
-  const [activeSession, setActiveSession] = useState(initialSessionId.current);
-  const [voiceInput, setVoiceInput] = useState('');
+  // Session limit toast (replaces the alert() that was inside useSessions)
+  const { toast: sessionToast, showToast: showSessionToast } = useToast(3000);
 
-  // Tab 2 File Explorer & Multi-Document CodeEditor State
-  const [explorerSubTab, setExplorerSubTab] = useState('tree');
+  // Tab 1 Terminal Sessions — all state and handlers live in useSessions
   const [activeTerminalPath, setActiveTerminalPath] = useState('/workspace');
+  const {
+    sessions,
+    activeSession,
+    voiceInput,
+    setActiveSession,
+    handleAddSession,
+    handleCloseSession,
+    handleTerminalInput,
+  } = useSessions(activeTerminalPath, showSessionToast);
   const [openDocuments, setOpenDocuments] = useState([
     {
       name: 'README.md',
@@ -94,46 +95,7 @@ export default function App() {
     }
   ]);
   const [activeFilePath, setActiveFilePath] = useState('/workspace/README.md');
-
-  // Terminal Handlers
-  const handleAddSession = (inheritCwd = false) => {
-    if (sessions.length >= 5) {
-      alert('Maximum 5 parallel terminal sessions reached to preserve performance.');
-      return;
-    }
-    const newId = `session-${Date.now().toString(36).substring(4)}`;
-    sessionCounterRef.current += 1;
-    const sessionName = `term-${sessionCounterRef.current}`;
-    const targetCwd = inheritCwd ? (activeTerminalPath || '/workspace') : '/workspace';
-    setSessions([...sessions, { id: newId, name: sessionName, initialCwd: targetCwd }]);
-    setActiveSession(newId);
-  };
-
-  const handleCloseSession = (id) => {
-    const filtered = sessions.filter((s) => s.id !== id);
-
-    if (filtered.length === 0) {
-      // Last tab closed — auto-create a fresh replacement so there's always a terminal
-      sessionCounterRef.current += 1;
-      const freshId = `session-${Date.now().toString(36).substring(4)}`;
-      const fresh = { id: freshId, name: `term-${sessionCounterRef.current}`, initialCwd: '/workspace' };
-      setSessions([fresh]);
-      setActiveSession(freshId);
-      return;
-    }
-
-    setSessions(filtered);
-    if (activeSession === id) {
-      setActiveSession(filtered[filtered.length - 1].id);
-    }
-  };
-
-  // Unified input handler — used for both macro key-presses and voice dictation.
-  // Both call sites send a string to the terminal via the voiceInput state channel.
-  const handleTerminalInput = (text) => {
-    setVoiceInput(text);
-    setTimeout(() => setVoiceInput(''), 50);
-  };
+  const [explorerSubTab, setExplorerSubTab] = useState('tree');
 
   // File Explorer & CodeEditor Handlers
   const handleOpenFile = async (filepath) => {
@@ -277,6 +239,11 @@ export default function App() {
 
       {/* Tab 1: Multi-Tab WebGL Terminal */}
       <div className="tab-content-panel" style={{ display: activeMainTab === 'terminal' ? 'flex' : 'none' }}>
+        {sessionToast && (
+          <div className="copy-toast" style={{ top: '4rem', bottom: 'auto' }}>
+            <span>{sessionToast}</span>
+          </div>
+        )}
         <SessionTabs
           sessions={sessions}
           activeSession={activeSession}
