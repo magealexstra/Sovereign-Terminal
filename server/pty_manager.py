@@ -8,7 +8,7 @@ import termios
 import asyncio
 import subprocess
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from auth import ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions
+from auth import AUTH_MODE, ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions
 
 router = APIRouter(tags=["terminal"])
 
@@ -34,7 +34,7 @@ def set_pty_size(fd, rows, cols):
 
 @router.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = "/workspace"):
-    if ENABLE_AUTH:
+    if AUTH_MODE != "disabled":
         cookie_token = websocket.cookies.get(SESSION_COOKIE_NAME)
         if not cookie_token or cookie_token not in active_sessions:
             await websocket.close(code=1008)

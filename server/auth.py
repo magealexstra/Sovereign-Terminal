@@ -8,6 +8,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 # AUTH_MODE options: 'token' (default) | 'pam' | 'disabled'
 DEFAULT_ENABLE_AUTH = os.getenv("ENABLE_AUTH", "true").lower() in ("true", "1", "yes")
 AUTH_MODE = os.getenv("AUTH_MODE", DEFAULT_ENABLE_AUTH and "token" or "disabled").lower()
+ENABLE_AUTH = (AUTH_MODE != "disabled")
 SERVER_AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "sovereign_terminal_token")
 SESSION_COOKIE_NAME = "sovereign_session"
 
