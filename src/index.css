@@ -405,26 +405,26 @@ html, body, #root {
   animation: pulse 1s infinite;
 }
 
-/* 12-Macro Symmetrical Popup Grid Modal — Right-Pinned Ergonomic Layout */
+/* 12-Macro Symmetrical Popup Grid Modal — Top-Right Pinned Ergonomic Layout */
 .macro-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: rgba(10, 17, 24, 0.82);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: flex-end;
   z-index: 100;
-  padding: 1rem;
+  padding: 3rem 1rem 1rem 1rem;
 }
 
 .macro-modal-content {
-  width: 92vw;
-  max-width: 380px;
-  max-height: 80vh;
+  width: 90vw;
+  max-width: 360px;
+  max-height: 65dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg-canopy);
@@ -462,7 +462,7 @@ html, body, #root {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.45rem;
-  max-height: 48vh;
+  max-height: 42dvh;
   overflow-y: auto;
   padding-right: 0.25rem;
   scrollbar-width: thin;
