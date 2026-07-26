@@ -5,6 +5,9 @@ dist-ssr
 *.local
 *.log
 _temp_trash
+testing/venv
+testing/logs/screenshots/
+
 
 # Environment Secrets
 config.env
@@ -24,4 +27,15 @@ docs/
 
 # SSL Certificates & Local Test Data
 *.pem
+*.crt
+*.key
 Chart.csv
+testing/logs/
+
+# Python Bytecode & OS Files
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db
+

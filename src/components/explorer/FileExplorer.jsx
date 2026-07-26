@@ -33,7 +33,7 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
 
   useEffect(() => {
     fetchDirectory(currentPath);
-  }, []);
+  }, [currentPath]);
 
   // Synchronize directory tree when terminal working directory changes
   useEffect(() => {

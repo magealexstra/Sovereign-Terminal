@@ -1,0 +1,14 @@
+# Sovereign Terminal Docker Build Exclusions
+node_modules
+dist
+.git
+.gitignore
+README.md
+docs/
+testing/
+*.log
+_temp_trash
+config.env
+*.pem
+*.crt
+*.key

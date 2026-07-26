@@ -16,7 +16,11 @@ services:
       - WORKSPACE_ROOT=${WORKSPACE_ROOT:-/workspace}
       - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
       - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
+      - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
+      - SSL_CERT_PATH=${SSL_CERT_PATH:-./server/certs/cert.pem}
+      - SSL_KEY_PATH=${SSL_KEY_PATH:-./server/certs/key.pem}
       - TZ=${TZ:-America/Chicago}
     volumes:
       - ${HOST_WORKSPACE_PATH:-./}:/workspace
       - /etc/localtime:/etc/localtime:ro
+

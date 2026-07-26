@@ -49,27 +49,21 @@ DIST_DIR = Path(__file__).parent.parent / "dist"
 if DIST_DIR.exists():
     app.mount("/", StaticFiles(directory=str(DIST_DIR), html=True), name="static")
 
-def ensure_ssl_certs():
-    cert_file = Path(__file__).parent / "cert.pem"
-    key_file = Path(__file__).parent / "key.pem"
+def get_ssl_certificates():
+    cert_path_str = os.getenv("SSL_CERT_PATH", str(Path(__file__).parent / "certs" / "cert.pem"))
+    key_path_str = os.getenv("SSL_KEY_PATH", str(Path(__file__).parent / "certs" / "key.pem"))
+    cert_file = Path(cert_path_str).resolve()
+    key_file = Path(key_path_str).resolve()
+
     if cert_file.exists() and key_file.exists():
+        print(f"Loaded SSL certificate: {cert_file}")
         return str(cert_file), str(key_file)
 
-    import subprocess
-    org_name = os.getenv("SSL_ORGANIZATION", "OmniState")
-    cmd = [
-        "openssl", "req", "-x509", "-newkey", "rsa:2048",
-        "-keyout", str(key_file), "-out", str(cert_file),
-        "-days", "3650", "-nodes",
-        "-subj", f"/CN=SovereignTerminal/O={org_name}"
-    ]
-    try:
-        subprocess.run(cmd, check=True, capture_output=True)
-        print(f"Generated self-signed SSL certificate: {cert_file}")
-        return str(cert_file), str(key_file)
-    except Exception as e:
-        print(f"Failed to auto-generate SSL certificate: {e}")
-        return None, None
+    print(f"Warning: ENABLE_HTTPS is set to true, but certificate files were not found.")
+    print(f"Expected cert: {cert_file}")
+    print(f"Expected key: {key_file}")
+    print("Please see docs/HTTPS_AND_NETWORKING_GUIDE.md for Tailscale, Nginx Proxy Manager, or SSL certificate setup.")
+    return None, None
 
 if __name__ == "__main__":
     default_port = "2068" if os.getenv("ENV", "development") == "development" else "2069"
@@ -78,7 +72,7 @@ if __name__ == "__main__":
 
     ssl_cert, ssl_key = (None, None)
     if enable_https:
-        ssl_cert, ssl_key = ensure_ssl_certs()
+        ssl_cert, ssl_key = get_ssl_certificates()
 
     print(f"Starting Sovereign Terminal Gateway on port {port} (HTTPS: {enable_https})...")
 

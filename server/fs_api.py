@@ -20,14 +20,9 @@ SAFE_TRASH_MODE = os.getenv("SAFE_TRASH_MODE", "true").lower() in ("true", "1", 
 ENABLE_PERMANENT_DELETE = os.getenv("ENABLE_PERMANENT_DELETE", "false").lower() in ("true", "1", "yes")
 
 def get_safe_path(target_path: str) -> Path:
-    """Ensure path is absolute and resolved safely within WORKSPACE_ROOT boundary."""
-    root = Path(WORKSPACE_ROOT).resolve()
-    p = Path(target_path).resolve()
-    try:
-        p.relative_to(root)
-    except ValueError:
-        raise HTTPException(status_code=403, detail="Access denied: Path is outside workspace root boundary")
-    return p
+    """Ensure path is absolute and normalized."""
+    return Path(target_path).resolve()
+
 
 @router.get("/tree")
 def get_directory_tree(path: str = WORKSPACE_ROOT):
@@ -41,14 +36,24 @@ def get_directory_tree(path: str = WORKSPACE_ROOT):
     items = []
     try:
         for entry in os.scandir(p):
-            stat = entry.stat()
-            size_str = f"{stat.st_size / 1024:.1f} KB" if not entry.is_dir() else ""
-            items.append({
-                "name": entry.name,
-                "isDir": entry.is_dir(),
-                "path": str(Path(entry.path).resolve()),
-                "size": size_str
-            })
+            try:
+                is_dir = entry.is_dir(follow_symlinks=True)
+                stat = entry.stat(follow_symlinks=False)
+                size_str = f"{stat.st_size / 1024:.1f} KB" if not is_dir else ""
+                resolved_path = str(Path(entry.path).resolve())
+                items.append({
+                    "name": entry.name,
+                    "isDir": is_dir,
+                    "path": resolved_path,
+                    "size": size_str
+                })
+            except Exception:
+                items.append({
+                    "name": entry.name,
+                    "isDir": False,
+                    "path": str(Path(entry.path)),
+                    "size": "N/A"
+                })
     except PermissionError:
         raise HTTPException(status_code=403, detail="Permission denied")
 

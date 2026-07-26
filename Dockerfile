@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY server/requirements.txt ./server/requirements.txt
 RUN pip install --no-cache-dir -r ./server/requirements.txt
 
+
 # Copy built frontend dist & server code
 COPY --from=builder /app/dist ./dist
 COPY server ./server

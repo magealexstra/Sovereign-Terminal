@@ -101,18 +101,30 @@ cp config.env.example config.env
 docker compose up -d
 ```
 
+## HTTPS, Tailscale & Remote Access
+
+Sovereign Terminal runs HTTP on port `2068` (or `2069` in production templates) by default. To unlock Web Speech API microphone dictation on mobile devices and browsers, secure HTTPS access is required.
+
+* **Tailscale (Recommended for Mobile Voice)**: Execute `tailscale serve https / http://127.0.0.1:2068` on your host machine to get instant, free Let's Encrypt certificates for your MagicDNS `.ts.net` address.
+* **Reverse Proxies & Tunnels**: Supports Nginx Proxy Manager, Caddy, Cloudflare Tunnels (`cloudflared`), and local `mkcert` SAN certificates.
+* **Security & Privacy**: Zero network scanning, zero background probing, and zero external telemetry. All session data remains 100% local.
+
+For full step-by-step setup guides, consult [HTTPS and Networking Guide](docs/HTTPS_AND_NETWORKING_GUIDE.md).
+
 ---
 
 ## Architecture & Technical Documentation
 
 For detailed architectural specifications, consult the documents in the `docs/` directory:
 
+* [HTTPS, Tailscale & Remote Access Guide](docs/HTTPS_AND_NETWORKING_GUIDE.md)
 * [Overall Architecture Specification](docs/OVERALL_SOVEREIGN_TERMINAL_DESIGN.md)
 * [Backend Gateway Specification](docs/SOVEREIGN_BACKEND_GATEWAY.md)
 * [Tab 1 Multi-Tab Terminal Specification](docs/TAB_1_MULTI_TAB_TERMINAL.md)
 * [Tab 2 File Explorer & Editor Specification](docs/TAB_2_FILE_EXPLORER_AND_EDITOR.md)
 * [Tab 3 Settings & Studio Specification](docs/TAB_3_SETTINGS_AND_STUDIO.md)
 * [Development Plan & Roadmap](docs/DEVELOPMENT_PLAN.md)
+
 
 ---
 
