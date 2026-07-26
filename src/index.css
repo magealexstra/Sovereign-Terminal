@@ -368,13 +368,19 @@ html, body, #root {
 
 .sub-suite-bar {
   display: flex;
+  align-items: center;
   gap: 0.35rem;
-  margin-top: 0.4rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 0.35rem 0;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
 }
 
 .sub-suite-pill {
-  flex: 1;
-  padding: 0.25rem 0.4rem;
+  flex: 0 0 auto;
+  padding: 0.25rem 0.6rem;
   background: var(--bg-earth);
   border: 1px solid var(--border-forest);
   border-radius: 12px;
@@ -399,7 +405,7 @@ html, body, #root {
   animation: pulse 1s infinite;
 }
 
-/* 12-Macro Symmetrical Popup Grid Modal */
+/* 12-Macro Symmetrical Popup Grid Modal — Right-Pinned Ergonomic Layout */
 .macro-modal-overlay {
   position: fixed;
   top: 0;
@@ -409,33 +415,38 @@ html, body, #root {
   background: rgba(10, 17, 24, 0.82);
   backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  justify-content: flex-end;
   z-index: 100;
   padding: 1rem;
 }
 
 .macro-modal-content {
-  width: 100%;
-  max-width: 440px;
+  width: 92vw;
+  max-width: 380px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-canopy);
   border: 1px solid var(--border-sage);
-  border-radius: 10px;
-  padding: 1.25rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
 }
 
 .macro-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
   border-bottom: 1px solid var(--border-forest);
+  flex-shrink: 0;
 }
 
 .macro-modal-header h3 {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   letter-spacing: 0.05em;
   color: var(--text-parchment);
 }
@@ -449,8 +460,14 @@ html, body, #root {
 
 .macro-grid-3x4 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  max-height: 48vh;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 0.5rem;
 }
 
 .macro-grid-btn {
