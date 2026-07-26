@@ -19,7 +19,8 @@ export default function App() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   // Authentication State & Session Verification
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthVerified, setIsAuthVerified] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(true);
   const [authMode, setAuthMode] = useState('token');
 
@@ -50,6 +51,8 @@ export default function App() {
         }
       } catch {
         setIsAuthenticated(false);
+      } finally {
+        setIsAuthVerified(true);
       }
     };
     verifyAuth();
@@ -231,6 +234,22 @@ export default function App() {
       setActiveFilePath(filtered[0].path);
     }
   };
+
+  if (!isAuthVerified) {
+    return (
+      <div className="login-modal-overlay">
+        <div className="login-modal-card" style={{ maxWidth: '320px', padding: '2.5rem 1.5rem' }}>
+          <div className="login-header" style={{ marginBottom: 0 }}>
+            <div className="login-icon-badge">
+              <TerminalIcon size={22} color="var(--accent-mana)" />
+            </div>
+            <h2>SOVEREIGN TERMINAL</h2>
+            <p>Verifying workstation session...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>

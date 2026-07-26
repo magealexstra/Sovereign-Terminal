@@ -271,6 +271,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
     const connect = () => {
       if (!isMounted) return;
+      const el = terminalRef.current;
+      if (!el || el.clientHeight === 0) {
+        // Container not painted yet — delay connect until next layout frame
+        requestAnimationFrame(() => setTimeout(connect, 50));
+        return;
+      }
 
       const sock = new WebSocket(wsUrl);
       socketRef.current = sock;
@@ -279,16 +285,15 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         reconnectAttempts = 0;
         sendResizeHandshake();
         
-        // Delayed carriage return & refresh ensuring prompt is drawn after resize handshake finishes
+        // Carriage return ensuring prompt is drawn after resize handshake finishes
         setTimeout(() => {
           if (sock.readyState === WebSocket.OPEN) {
             sock.send('\r');
           }
-        }, 100);
+        }, 50);
 
-        setTimeout(sendResizeHandshake, 250);
+        setTimeout(sendResizeHandshake, 200);
         setTimeout(sendResizeHandshake, 500);
-        setTimeout(sendResizeHandshake, 1200);
       };
 
       sock.onmessage = (event) => { term.write(event.data); };
