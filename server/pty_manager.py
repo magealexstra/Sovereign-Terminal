@@ -56,6 +56,10 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     env = os.environ.copy()
     env["TERM"] = "xterm-256color"
     env["COLORTERM"] = "truecolor"
+    if not env.get("USER"):
+        env["USER"] = os.getenv("USER", "root")
+    if not env.get("HOME"):
+        env["HOME"] = os.getenv("HOME", "/root")
     if os.getenv("TZ"):
         env["TZ"] = os.getenv("TZ")
 

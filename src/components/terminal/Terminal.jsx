@@ -60,10 +60,17 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
           xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
           xtermInstance.current.scrollToBottom();
           xtermInstance.current.focus();
+
+          const sock = socketRef.current;
+          if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current) {
+            const { cols, rows } = fitAddonInstance.current;
+            if (cols && rows) sock.send(JSON.stringify({ type: 'resize', cols, rows }));
+          }
         } catch (e) {}
       };
       requestAnimationFrame(activate);
       setTimeout(activate, 50);
+      setTimeout(activate, 150);
     }
   }, [isActive]);
 
@@ -149,6 +156,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     // Initial fit pulses — lets the DOM fully paint the flex layout before measuring
     setTimeout(performFit, 50);
     setTimeout(performFit, 200);
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        performFit();
+      });
+    }
 
     // Debounced Copy-on-Select Clipboard Handler
     term.onSelectionChange(() => {
@@ -265,10 +278,14 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       sock.onopen = () => {
         reconnectAttempts = 0;
         sendResizeHandshake();
-        sock.send('\r');
-        // Staggered resize retries: the first shot may read cols=0 if the DOM
-        // hasn't fully painted yet (especially on first page load). The 500ms
-        // and 1200ms retries ensure the prompt appears even on slow devices.
+        
+        // Delayed carriage return & refresh ensuring prompt is drawn after resize handshake finishes
+        setTimeout(() => {
+          if (sock.readyState === WebSocket.OPEN) {
+            sock.send('\r');
+          }
+        }, 100);
+
         setTimeout(sendResizeHandshake, 250);
         setTimeout(sendResizeHandshake, 500);
         setTimeout(sendResizeHandshake, 1200);
