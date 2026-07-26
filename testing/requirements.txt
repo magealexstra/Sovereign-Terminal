@@ -1,0 +1,3 @@
+# Sovereign Terminal Integration & E2E Testing Suite Requirements
+playwright>=1.40.0
+websockets>=12.0
