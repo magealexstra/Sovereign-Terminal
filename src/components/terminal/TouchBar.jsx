@@ -20,23 +20,23 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   };
 
   const SUB_LABELS = {
-    AGY: 'AGY (Anti-Gravity)',
-    CLD: 'CLD (Claude)',
-    HMS: 'HMS (Hermes)',
-    APT: 'APT (Debian)',
-    PAC: 'PAC (Arch)',
-    YUM: 'YUM (Fedora)',
-    DOC: 'DOC (Docker)',
-    GIT: 'GIT (Git)',
-    SYS: 'SYS (System)',
-    NET: 'NET (Network)',
-    PY: 'PY (Python)',
-    TMX: 'TMX (Tmux)',
-    KEY_NAV: 'NAV (Arrows)',
-    KEY_FN: 'FN (F1-F12)',
-    KEY_SYM: 'SYM (Operators)',
-    KEY_MODE: 'MODE (Escapes)',
-    KEY_LINE: 'LINE (Cursor)'
+    AGY: 'AGY',
+    CLD: 'CLD',
+    HMS: 'HMS',
+    APT: 'APT',
+    PAC: 'PAC',
+    YUM: 'YUM',
+    DOC: 'DOC',
+    GIT: 'GIT',
+    SYS: 'SYS',
+    NET: 'NET',
+    PY: 'PY',
+    TMX: 'TMX',
+    KEY_NAV: 'NAV',
+    KEY_FN: 'FN',
+    KEY_SYM: 'SYM',
+    KEY_MODE: 'MODE',
+    KEY_LINE: 'LINE'
   };
 
   // Inline mic-error toast — replaces browser alert() for non-blocking UX
@@ -488,7 +488,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           <div className="macro-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="macro-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Zap size={16} color="var(--status-danger)" />
+                <Zap size={16} color="var(--accent-mana)" />
                 <h3>{selectedSuite.replace('KEY_', '')} TOOLKIT</h3>
               </div>
               <button className="close-modal-btn" onClick={() => setShowMacroModal(false)}>

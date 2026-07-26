@@ -393,10 +393,10 @@ html, body, #root {
 }
 
 .sub-suite-pill.active {
-  background: var(--status-danger);
+  background: var(--accent-mana);
   color: var(--bg-earth);
-  border-color: var(--status-danger);
-  box-shadow: 0 0 8px rgba(255, 0, 60, 0.4);
+  border-color: var(--accent-mana);
+  box-shadow: 0 0 8px rgba(136, 192, 208, 0.4);
 }
 
 .touch-btn.voice-btn.recording {
