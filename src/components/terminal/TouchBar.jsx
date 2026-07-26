@@ -13,10 +13,10 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [selectedSuite, setSelectedSuite] = useState('AGY');
 
   const GROUPS = {
-    AI: { label: '🤖 AI', suites: ['AGY', 'CLD', 'HMS'] },
-    PKG: { label: '📦 PKG', suites: ['APT', 'PAC', 'YUM'] },
-    SYS: { label: '⚙️ SYS', suites: ['DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'] },
-    KEY: { label: '⌨️ KEY', suites: ['KEY_NAV', 'KEY_FN', 'KEY_SYM', 'KEY_MODE', 'KEY_LINE'] },
+    AI: { label: 'AI', suites: ['AGY', 'CLD', 'HMS'] },
+    PKG: { label: 'PKG', suites: ['APT', 'PAC', 'YUM'] },
+    SYS: { label: 'SYS', suites: ['DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'] },
+    KEY: { label: 'KEY', suites: ['KEY_NAV', 'KEY_FN', 'KEY_SYM', 'KEY_MODE', 'KEY_LINE'] },
   };
 
   const SUB_LABELS = {
