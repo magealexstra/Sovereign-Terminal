@@ -183,7 +183,7 @@ export default function ThemeSettings() {
             </div>
             <input
               type="range"
-              min="0.7" max="1.8" step="0.05"
+              min="0.6" max="2.0" step="0.05"
               value={localTerminalScale}
               onChange={(e) => setLocalTerminalScale(Number(e.target.value))}
               className="font-slider"
@@ -197,7 +197,7 @@ export default function ThemeSettings() {
             </div>
             <input
               type="range"
-              min="0.7" max="1.8" step="0.05"
+              min="0.6" max="2.0" step="0.05"
               value={localEditorScale}
               onChange={(e) => setLocalEditorScale(Number(e.target.value))}
               className="font-slider"

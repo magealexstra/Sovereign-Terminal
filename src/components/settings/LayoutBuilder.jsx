@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, Trash2, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
 import { PREBUILT_CATEGORIES } from './button-studio/buttonData';
 import { useToast } from '../../hooks/useToast';
+import { useApp } from '../../context/AppContext';
 
 export default function LayoutBuilder() {
   // Search query & category dropdown filter
@@ -10,86 +11,86 @@ export default function LayoutBuilder() {
 
   // Toast feedback
   const { toast, showToast } = useToast(2000);
+  const { syncUserSettingsToServer } = useApp();
 
   // Custom user buttons from ButtonStudio (localStorage)
   const [customButtons, setCustomButtons] = useState([]);
 
-  // Hidden pool chips (chips user removed from pool view)
-  const [hiddenPoolChips, setHiddenPoolChips] = useState(() => {
-    try {
-      const saved = localStorage.getItem('sovereign_hidden_pool_chips');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
-  // Active TouchBar items (single-row macro bar list)
-  const [touchBarSlots, setTouchBarSlots] = useState(() => {
-    try {
-      const saved = localStorage.getItem('sovereign_layout_slots');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed.bottom && Array.isArray(parsed.bottom)) return parsed.bottom;
-      }
-      return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
-    } catch {
-      return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
-    }
-  });
-
-  // Selection state
+  // Macro Suite Selection State (PRIMARY, MASTER, built-in suites, or custom macro suites)
+  const [selectedMacroSuite, setSelectedMacroSuite] = useState('PRIMARY');
+  const [customMacroSuites, setCustomMacroSuites] = useState([]);
   const [selectedPoolItem, setSelectedPoolItem] = useState(null);
   const [selectedBarIndex, setSelectedBarIndex] = useState(null);
 
-  // Synchronize custom buttons from localStorage (supports both sovereign_buttons and sovereign_custom_buttons)
+  // Load slots for the currently selected macro suite
+  const loadSlotsForSuite = (suiteKey) => {
+    try {
+      const storageKey = suiteKey === 'PRIMARY' ? 'sovereign_layout_slots' : `sovereign_macro_suite_${suiteKey}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+      if (suiteKey === 'PRIMARY') {
+        return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
+      }
+      if (PREBUILT_CATEGORIES[suiteKey]) {
+        return PREBUILT_CATEGORIES[suiteKey].items.map(i => i.label);
+      }
+      return [];
+    } catch {
+      return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
+    }
+  };
+
+  // Active TouchBar / Macro Suite slots
+  const [touchBarSlots, setTouchBarSlots] = useState(() => loadSlotsForSuite('PRIMARY'));
+
+  // Synchronize slots whenever selectedMacroSuite changes
+  useEffect(() => {
+    setTouchBarSlots(loadSlotsForSuite(selectedMacroSuite));
+    setSelectedBarIndex(null);
+  }, [selectedMacroSuite]);
+
+  // Synchronize custom buttons and custom macro suites from localStorage
   const loadCustomButtons = () => {
     try {
-      const saved1 = localStorage.getItem('sovereign_buttons');
-      const saved2 = localStorage.getItem('sovereign_custom_buttons');
+      const saved = localStorage.getItem('sovereign_buttons');
       let list = [];
-      if (saved1) list = list.concat(JSON.parse(saved1));
-      if (saved2) list = list.concat(JSON.parse(saved2));
-      const names = list.map(b => b.label || b.name || b.id).filter(Boolean);
-      setCustomButtons(Array.from(new Set(names)));
+      if (saved) list = list.concat(JSON.parse(saved));
+
+      // Sanitize out blank unedited default placeholders
+      const validList = list.filter(b => b && b.label && b.label !== 'NEW_BTN');
+
+      // Map ALL custom buttons (both macro and regular) for the Pool dropdown
+      const allCustomNames = validList.map(b => b.label || b.name || b.id).filter(Boolean);
+      setCustomButtons(Array.from(new Set(allCustomNames)));
+
+      // Find buttons where the exact function value is "macro" for the top Macro Suite selector
+      const macroSuites = validList
+        .filter(b => b && b.value && typeof b.value === 'string' && b.value.trim().toLowerCase() === 'macro')
+        .map(b => b.label || b.name || b.id)
+        .filter(Boolean);
+      setCustomMacroSuites(Array.from(new Set(macroSuites)));
     } catch {}
   };
 
   useEffect(() => {
     loadCustomButtons();
     window.addEventListener('storage', loadCustomButtons);
-    return () => window.removeEventListener('storage', loadCustomButtons);
+    window.addEventListener('sovereign_custom_buttons_updated', loadCustomButtons);
+    return () => {
+      window.removeEventListener('storage', loadCustomButtons);
+      window.removeEventListener('sovereign_custom_buttons_updated', loadCustomButtons);
+    };
   }, []);
 
-  // Compute available pool items based on category & search query
-  const getPoolItems = () => {
-    let items = [];
-    if (selectedCategory === 'CUSTOM') {
-      items = customButtons;
-      if (items.length === 0) items = ['(No Custom Buttons Created Yet)'];
-    } else if (PREBUILT_CATEGORIES[selectedCategory]) {
-      items = [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map(i => i.label)];
-    } else {
-      // All items combined
-      items = Object.entries(PREBUILT_CATEGORIES).flatMap(([key, cat]) => [key, ...cat.items.map(i => i.label)]);
-    }
-
-    // Apply Search Filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      items = items.filter(item => item.toLowerCase().includes(q));
-    }
-
-    // Filter out hidden pool chips
-    return items.filter(item => !hiddenPoolChips.includes(item));
-  };
-
-  const poolItems = getPoolItems();
-
-  // Save TouchBar layout to localStorage and dispatch storage event for real-time sync with TouchBar
+  // Save layout for the active macro suite
   const saveLayout = (newSlots) => {
     setTouchBarSlots(newSlots);
     try {
-      localStorage.setItem('sovereign_layout_slots', JSON.stringify(newSlots));
+      const storageKey = selectedMacroSuite === 'PRIMARY' ? 'sovereign_layout_slots' : `sovereign_macro_suite_${selectedMacroSuite}`;
+      localStorage.setItem(storageKey, JSON.stringify(newSlots));
       window.dispatchEvent(new Event('storage'));
     } catch {}
   };
@@ -142,25 +143,35 @@ export default function LayoutBuilder() {
     setSelectedBarIndex(targetIdx);
   };
 
-  // Dual-Purpose Delete Handler
-  const handleDelete = (e) => {
-    e.stopPropagation();
+  // Remove button from active TouchBar or Delete custom button
+  const handleRemove = (e) => {
+    if (e) e.stopPropagation();
+    
     if (selectedBarIndex !== null) {
-      // Delete button from active TouchBar
+      // Remove from TouchBar
       const itemRemoved = touchBarSlots[selectedBarIndex];
       const updated = touchBarSlots.filter((_, idx) => idx !== selectedBarIndex);
       saveLayout(updated);
       setSelectedBarIndex(null);
       if (itemRemoved) showToast(`Removed '${itemRemoved}' from TouchBar`);
-    } else if (selectedPoolItem !== null) {
-      // Hide button chip from Available Pool View
-      const updatedHidden = [...hiddenPoolChips, selectedPoolItem];
-      setHiddenPoolChips(updatedHidden);
+    } else if (selectedPoolItem !== null && customButtons.includes(selectedPoolItem)) {
+      // Delete custom button completely
       try {
-        localStorage.setItem('sovereign_hidden_pool_chips', JSON.stringify(updatedHidden));
+        const saved = localStorage.getItem('sovereign_buttons');
+        if (saved) {
+          let buttons = JSON.parse(saved);
+          buttons = buttons.filter(b => b.label !== selectedPoolItem && b.id !== selectedPoolItem && b.name !== selectedPoolItem);
+          localStorage.setItem('sovereign_buttons', JSON.stringify(buttons));
+          window.dispatchEvent(new Event('storage'));
+          window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
+          if (typeof syncUserSettingsToServer === 'function') {
+            syncUserSettingsToServer({ buttons });
+          }
+          showToast(`Deleted custom button '${selectedPoolItem}'`);
+          setSelectedPoolItem(null);
+          loadCustomButtons();
+        }
       } catch {}
-      showToast(`Hidden '${selectedPoolItem}' from Pool`);
-      setSelectedPoolItem(null);
     }
   };
 
@@ -173,6 +184,28 @@ export default function LayoutBuilder() {
     setSelectedBarIndex(null);
   };
 
+  // Compute available pool items based on category & search query
+  const getPoolItems = () => {
+    let items = [];
+    if (selectedCategory === 'CUSTOM') {
+      items = customButtons;
+      if (items.length === 0) items = ['(No Custom Buttons Created Yet)'];
+    } else if (PREBUILT_CATEGORIES[selectedCategory]) {
+      items = [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
+    } else {
+      items = Object.entries(PREBUILT_CATEGORIES).flatMap(([key, cat]) => [key, ...cat.items.map((i) => i.label)]);
+    }
+
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      items = items.filter((item) => item.toLowerCase().includes(q));
+    }
+
+    return items;
+  };
+
+  const poolItems = getPoolItems();
+
   return (
     <div className="layout-builder-container" onClick={handleContainerClick}>
       {toast && (
@@ -181,64 +214,87 @@ export default function LayoutBuilder() {
         </div>
       )}
 
-      {/* 1. TOP CARD SECTION: SEARCH + CATEGORIZED DROPDOWN */}
-      <div className="layout-editor-card" onClick={handleContainerClick}>
-        <div className="search-filter-header" onClick={handleContainerClick}>
-          <div className="search-input-box">
-            <Search size={14} color="var(--accent-mana)" />
-            <input
-              type="text"
-              placeholder="Search buttons & macros..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-
-          <div className="category-select-wrapper">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-              className="category-dropdown"
-            >
-              {/* SECTION 1: CUSTOM BUTTONS (TOP PRIORITY) */}
-              <optgroup label="CUSTOM CREATIONS">
-                <option value="CUSTOM">[CUSTOM] Custom Buttons ({customButtons.length})</option>
+      {/* 1. TOP CARD SECTION: MACRO SUITE DROPDOWN */}
+      <div className="layout-dropdown-card" onClick={handleContainerClick}>
+        <div className="macro-suite-select-wrapper">
+          <select
+            value={selectedMacroSuite}
+            onChange={(e) => {
+              e.stopPropagation();
+              setSelectedMacroSuite(e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="category-dropdown"
+            style={{
+              width: '100%',
+              background: 'var(--bg-canopy)',
+              color: 'var(--text-parchment)',
+              border: '1.5px solid var(--status-active)',
+              borderRadius: '8px',
+              fontWeight: '700',
+              height: '36px',
+              padding: '0 0.5rem',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.78rem'
+            }}
+          >
+            <optgroup label="SYSTEM MACRO BARS">
+              <option value="PRIMARY">[PRIMARY] Main TouchBar</option>
+              <option value="MASTER">[MASTER] Master Red MACROS Catalog</option>
+            </optgroup>
+            <optgroup label="PRE-BUILT SUITES">
+              {Object.keys(PREBUILT_CATEGORIES).map((catKey) => (
+                <option key={catKey} value={catKey}>
+                  [{catKey}] {PREBUILT_CATEGORIES[catKey].name}
+                </option>
+              ))}
+            </optgroup>
+            {customMacroSuites.length > 0 && (
+              <optgroup label="CUSTOM MACRO SUITES">
+                {customMacroSuites.map((suiteName) => (
+                  <option key={suiteName} value={suiteName}>
+                    [CUSTOM] {suiteName} (macro)
+                  </option>
+                ))}
               </optgroup>
-
-              {/* SECTION 2: ALPHABETICAL PRE-BUILT TOOLKITS */}
-              <optgroup label="PRE-BUILT TOOLKITS">
-                {Object.entries(PREBUILT_CATEGORIES)
-                  .sort((a, b) => a[1].name.localeCompare(b[1].name))
-                  .map(([key, cat]) => (
-                    <option key={key} value={key}>
-                      {cat.name}
-                    </option>
-                  ))}
-              </optgroup>
-            </select>
-          </div>
+            )}
+          </select>
         </div>
+      </div>
 
-        {/* 2. MIDDLE UPPER SECTION: AVAILABLE BUTTONS POOL */}
+      {/* 2. MIDDLE TOP CARD: CATEGORY DROPDOWN */}
+      <div className="layout-dropdown-card" onClick={handleContainerClick}>
+        <div className="category-select-wrapper">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            className="category-dropdown"
+          >
+            {/* SECTION 1: CUSTOM BUTTONS (TOP PRIORITY) */}
+            <optgroup label="CUSTOM CREATIONS">
+              <option value="CUSTOM">[CUSTOM] Custom Buttons ({customButtons.length})</option>
+            </optgroup>
+
+            {/* SECTION 2: ALPHABETICAL PRE-BUILT TOOLKITS */}
+            <optgroup label="PRE-BUILT TOOLKITS">
+              {Object.entries(PREBUILT_CATEGORIES)
+                .sort((a, b) => a[1].name.localeCompare(b[1].name))
+                .map(([key, cat]) => (
+                  <option key={key} value={key}>
+                    {cat.name}
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      {/* 3. MAIN WORKSPACE CARD: AVAILABLE BUTTONS POOL, PREVIEW, CONTROLS */}
+      <div className="layout-editor-card" onClick={handleContainerClick}>
         <div className="available-pool-section" onClick={handleContainerClick}>
           <div className="pool-section-label" onClick={handleContainerClick}>
             <span>AVAILABLE BUTTONS POOL ({poolItems.length})</span>
-            {hiddenPoolChips.length > 0 && (
-              <button
-                type="button"
-                className="reset-pool-link"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setHiddenPoolChips([]);
-                  try { localStorage.removeItem('sovereign_hidden_pool_chips'); } catch {}
-                  showToast('Reset hidden chips');
-                }}
-              >
-                Reset Hidden Chips
-              </button>
-            )}
           </div>
 
           <div className="available-chips-grid" onClick={handleContainerClick}>
@@ -286,59 +342,51 @@ export default function LayoutBuilder() {
                 );
               })}
             </div>
-
-            <button
-              type="button"
-              className={`add-to-bar-btn ${selectedPoolItem ? 'active-add' : ''}`}
-              onClick={(e) => handleAddSelectedToBar(e)}
-              disabled={!selectedPoolItem}
-              title="Add Selected Pool Button to TouchBar"
-            >
-              <Plus size={14} />
-              <span>Add</span>
-            </button>
           </div>
         </div>
 
-        {/* 4. BOTTOM SECTION: STREAMLINED DUAL-PURPOSE ACTION CONTROLLER */}
+        {/* 4. BOTTOM SECTION: STREAMLINED ACTION CONTROLLER (4 EQUAL BUTTONS) */}
         <div className="single-bar-control-console" onClick={handleContainerClick}>
-          <div className="console-left-group" onClick={handleContainerClick}>
-            <button
-              type="button"
-              className="action-btn"
-              disabled={selectedBarIndex === null || selectedBarIndex === 0}
-              onClick={(e) => handleMoveBarItem(e, 'left')}
-            >
-              <ArrowLeft size={13} />
-              <span>Move Left</span>
-            </button>
+          <button
+            type="button"
+            className="action-btn add-action-btn"
+            disabled={!selectedPoolItem}
+            onClick={(e) => handleAddSelectedToBar(e)}
+            title="Add Selected Pool Button to TouchBar"
+          >
+            <Plus size={13} />
+            <span>Add</span>
+          </button>
 
-            <button
-              type="button"
-              className="action-btn"
-              disabled={selectedBarIndex === null || selectedBarIndex === touchBarSlots.length - 1}
-              onClick={(e) => handleMoveBarItem(e, 'right')}
-            >
-              <span>Move Right</span>
-              <ArrowRight size={13} />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="action-btn"
+            disabled={selectedBarIndex === null || selectedBarIndex === 0}
+            onClick={(e) => handleMoveBarItem(e, 'left')}
+          >
+            <ArrowLeft size={13} />
+            <span>Move Left</span>
+          </button>
+
+          <button
+            type="button"
+            className="action-btn"
+            disabled={selectedBarIndex === null || selectedBarIndex === touchBarSlots.length - 1}
+            onClick={(e) => handleMoveBarItem(e, 'right')}
+          >
+            <span>Move Right</span>
+            <ArrowRight size={13} />
+          </button>
 
           <button
             type="button"
             className="action-btn delete-action-btn"
-            disabled={selectedBarIndex === null && selectedPoolItem === null}
-            onClick={(e) => handleDelete(e)}
-            title={selectedBarIndex !== null ? "Remove from TouchBar" : "Hide from Pool View"}
+            disabled={selectedBarIndex === null && !(selectedPoolItem !== null && customButtons.includes(selectedPoolItem))}
+            onClick={(e) => handleRemove(e)}
+            title={selectedBarIndex !== null ? "Remove selected button from TouchBar" : "Permanently delete custom button"}
           >
             <Trash2 size={13} />
-            <span>
-              {selectedBarIndex !== null
-                ? "Remove from Bar"
-                : selectedPoolItem !== null
-                ? "Hide from Pool"
-                : "Delete"}
-            </span>
+            <span>{selectedBarIndex !== null ? 'Remove' : 'Delete'}</span>
           </button>
         </div>
       </div>

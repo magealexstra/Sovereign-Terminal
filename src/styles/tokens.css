@@ -1,0 +1,58 @@
+/* ==========================================================================
+   SOVEREIGN TERMINAL — DESIGN TOKENS & ROOT RESET
+   File: src/styles/tokens.css
+   Purpose: Global CSS custom properties (colors, typography, status tokens),
+            Google Fonts imports, and universal element reset rules.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Vitni Nordic Forest Theme Tokens (Default System Palette) */
+  --bg-earth: #0A1118;           /* Nordic Void — Base background */
+  --bg-canopy: #141E26;          /* Nordic Card — Surface panels & headers */
+  --bg-panel: rgba(20, 30, 38, 0.78);
+  --bg-panel-hover: rgba(30, 45, 58, 0.88);
+
+  --border-forest: #2A3B4C;      /* Nordic Pine — Standard container borders */
+  --border-sage: #5E81AC;        /* Nordic Glacier — Active focus borders */
+
+  --text-parchment: #E6EDF0;     /* Pastel Snow — Primary high-contrast text */
+  --text-muted: #A3B1B8;         /* Wool Grey — Secondary sub-headers & icons */
+  --text-dim: #4C566A;           /* Polar Dusk — Disabled & low-contrast text */
+
+  --accent-mana: #5E81AC;        /* Glacier Blue — Primary brand accent */
+  --accent-highlight: #88C0D0;   /* Polar Ice Cyan — Active tab/pill highlight */
+  --accent-violet: #B48EAD;      /* Nordic Frost Violet — Staging drawer accent */
+  --accent-glow: rgba(136, 192, 208, 0.25);
+
+  --status-active: #4C7864;      /* Nordic Sage Green — Connected/Saved indicator */
+  --status-warning: #fbbf24;     /* Amber — Modified file dot & warnings */
+  --status-danger: #FF003C;      /* Aggressive Magenta — Error & macro alert */
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-size-terminal: 10px;
+  --font-size-editor: 14px;
+}
+
+/* Universal Element Box Sizing & Tap Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fullscreen Lock & Scroll Prevention for Mobile Viewport */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background-color: var(--bg-earth);
+  color: var(--text-parchment);
+  font-family: var(--font-sans);
+}

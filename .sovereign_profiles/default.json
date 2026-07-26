@@ -1,0 +1,121 @@
+{
+  "activeThemeKey": "VitniNordic",
+  "custButton": {
+    "label": "CUST",
+    "value": "set number of lines to copy (50)"
+  },
+  "copyDestination": "code",
+  "buttons": [
+    {
+      "id": "b1",
+      "label": "ESC",
+      "value": "\u001b",
+      "width": 2.4,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "#141E26",
+      "text": "#E6EDF0",
+      "border": "#5E81AC"
+    },
+    {
+      "id": "b2",
+      "label": "TAB",
+      "value": "\t",
+      "width": 2.4,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "#141E26",
+      "text": "#E6EDF0",
+      "border": "#5E81AC"
+    },
+    {
+      "id": "b3",
+      "label": "^C",
+      "value": "\u0003",
+      "width": 2.4,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "#141E26",
+      "text": "#E6EDF0",
+      "border": "#5E81AC"
+    },
+    {
+      "id": "b4",
+      "label": "htop",
+      "value": "htop\n",
+      "width": 3.2,
+      "height": 2,
+      "shape": "pill",
+      "bg": "#141E26",
+      "text": "#5E81AC",
+      "border": "#4C7864"
+    },
+    {
+      "id": "b5",
+      "label": "docker ps",
+      "value": "docker ps\n",
+      "width": 4.2,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "#21252b",
+      "text": "#88C0D0",
+      "border": "#fcee0a"
+    },
+    {
+      "id": "custom-1785091281071",
+      "label": "NEW_BTN",
+      "value": "Macro",
+      "width": 3.2,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "var(--bg-canopy)",
+      "text": "var(--text-parchment)",
+      "border": "var(--accent-mana)"
+    },
+    {
+      "id": "custom-1785091572154",
+      "label": "NEW_BTN",
+      "value": "Macro",
+      "width": 3.2,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "var(--bg-canopy)",
+      "text": "var(--text-parchment)",
+      "border": "var(--accent-mana)"
+    },
+    {
+      "id": "custom-1785091598175",
+      "label": "NEW_BTN",
+      "value": "Macro",
+      "width": 3.2,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "var(--bg-canopy)",
+      "text": "var(--text-parchment)",
+      "border": "var(--accent-mana)"
+    },
+    {
+      "id": "custom-1785091932794",
+      "label": "NEW_BTN",
+      "value": "Macro",
+      "width": 3.2,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "var(--bg-canopy)",
+      "text": "var(--text-parchment)",
+      "border": "var(--accent-mana)"
+    },
+    {
+      "id": "custom-1785091953035",
+      "label": "NEW_BTN",
+      "value": "Macro",
+      "width": 3.2,
+      "height": 2,
+      "shape": "rounded",
+      "bg": "var(--bg-canopy)",
+      "text": "var(--text-parchment)",
+      "border": "var(--accent-mana)"
+    }
+  ],
+  "customThemes": null
+}

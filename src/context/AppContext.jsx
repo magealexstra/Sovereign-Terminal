@@ -18,17 +18,42 @@ export function AppProvider({ children }) {
     }
   });
 
-  const [theme, setTheme] = useState(DEFAULT_THEME_PRESETS.VitniNordic);
+  const [theme, setThemeState] = useState(() => {
+    try {
+      const savedKey = localStorage.getItem('sovereign_active_theme_key');
+      const allThemes = { ...DEFAULT_THEME_PRESETS };
+      const savedCustom = localStorage.getItem('sovereign_custom_themes');
+      if (savedCustom) {
+        Object.assign(allThemes, JSON.parse(savedCustom));
+      }
+      if (savedKey && allThemes[savedKey]) {
+        return allThemes[savedKey];
+      }
+    } catch {}
+    return DEFAULT_THEME_PRESETS.VitniNordic;
+  });
+
+  const setTheme = (newTheme, themeKey = null) => {
+    setThemeState(newTheme);
+    try {
+      if (themeKey) {
+        localStorage.setItem('sovereign_active_theme_key', themeKey);
+      } else {
+        // Find matching key in themes or presets
+        const matchingEntry = Object.entries(themes).find(([, val]) => val === newTheme);
+        if (matchingEntry) {
+          localStorage.setItem('sovereign_active_theme_key', matchingEntry[0]);
+        }
+      }
+    } catch {}
+  };
+
   const [terminalScaleMultiplier, setTerminalScaleMultiplier] = useState(1.0);
   const [editorScaleMultiplier, setEditorScaleMultiplier] = useState(1.0);
 
-  // Dynamic Device Baseline Detection (Phone: 12px, Tablet: 15px, Desktop: 16px)
+  // Dynamic Device Baseline Detection (Default: 10px for maximum terminal real estate)
   const getDeviceBaseline = () => {
-    if (typeof window === 'undefined') return 14;
-    const width = window.innerWidth;
-    if (width < 600) return 12;
-    if (width <= 1024) return 15;
-    return 16;
+    return 10;
   };
 
   const [deviceBaselinePx, setDeviceBaselinePx] = useState(getDeviceBaseline);
@@ -92,10 +117,72 @@ export function AppProvider({ children }) {
     }
   };
 
+  const syncUserSettingsToServer = async (partialSettings = {}) => {
+    try {
+      const activeThemeKey = localStorage.getItem('sovereign_active_theme_key') || 'VitniNordic';
+      const custBtn = localStorage.getItem('sovereign_cust_button');
+      const copyDest = localStorage.getItem('sovereign_copy_destination');
+      const buttonsRaw = localStorage.getItem('sovereign_buttons');
+      const customThemesRaw = localStorage.getItem('sovereign_custom_themes');
+
+      const payload = {
+        activeThemeKey,
+        custButton: custBtn ? JSON.parse(custBtn) : null,
+        copyDestination: copyDest || 'clip',
+        buttons: buttonsRaw ? JSON.parse(buttonsRaw) : null,
+        customThemes: customThemesRaw ? JSON.parse(customThemesRaw) : null,
+        ...partialSettings
+      };
+
+      await fetch('/api/user/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch {}
+  };
+
+  const fetchUserSettings = async () => {
+    try {
+      const res = await fetch('/api/user/settings');
+      if (res.ok) {
+        const data = await res.json();
+        const settings = data.settings || {};
+
+        if (settings.customThemes) {
+          const mergedThemes = { ...DEFAULT_THEME_PRESETS, ...settings.customThemes };
+          setThemes(mergedThemes);
+          try { localStorage.setItem('sovereign_custom_themes', JSON.stringify(settings.customThemes)); } catch {}
+        }
+
+        if (settings.activeThemeKey) {
+          const allThemes = { ...DEFAULT_THEME_PRESETS, ...(settings.customThemes || {}) };
+          if (allThemes[settings.activeThemeKey]) {
+            setThemeState(allThemes[settings.activeThemeKey]);
+            try { localStorage.setItem('sovereign_active_theme_key', settings.activeThemeKey); } catch {}
+          }
+        }
+
+        if (settings.buttons) {
+          try { localStorage.setItem('sovereign_buttons', JSON.stringify(settings.buttons)); } catch {}
+        }
+
+        if (settings.custButton) {
+          try { localStorage.setItem('sovereign_cust_button', JSON.stringify(settings.custButton)); } catch {}
+        }
+
+        if (settings.copyDestination) {
+          try { localStorage.setItem('sovereign_copy_destination', settings.copyDestination); } catch {}
+        }
+      }
+    } catch {}
+  };
+
   const resetToDefault = () => {
-    setTheme(DEFAULT_THEME_PRESETS.VitniNordic);
+    setTheme(DEFAULT_THEME_PRESETS.VitniNordic, 'VitniNordic');
     setTerminalScaleMultiplier(1.0);
     setEditorScaleMultiplier(1.0);
+    syncUserSettingsToServer({ activeThemeKey: 'VitniNordic' });
   };
 
   return (
@@ -105,8 +192,16 @@ export function AppProvider({ children }) {
         setActiveMainTab,
         theme,
         themes,
-        setTheme,
-        saveCustomTheme,
+        setTheme: (newTheme, themeKey) => {
+          setTheme(newTheme, themeKey);
+          syncUserSettingsToServer();
+        },
+        saveCustomTheme: (customThemeObject) => {
+          saveCustomTheme(customThemeObject);
+          syncUserSettingsToServer();
+        },
+        fetchUserSettings,
+        syncUserSettingsToServer,
         resetToDefault,
         deviceBaselinePx,
         terminalScaleMultiplier,

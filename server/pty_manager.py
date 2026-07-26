@@ -124,15 +124,8 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                         set_pty_size(master_fd, rows, cols)
                         if tmux_bin:
                             try:
-                                # Resize the tmux window to match the new PTY dimensions.
-                                # No send-keys C-l — tmux redraws automatically on resize.
                                 subprocess.run(
-                                    [tmux_bin, "resize-window", "-t", f"{session}:0",
-                                     "-x", str(cols), "-y", str(rows)],
-                                    capture_output=True, check=False
-                                )
-                                subprocess.run(
-                                    [tmux_bin, "refresh-client", "-t", session],
+                                    [tmux_bin, "resize-window", "-t", session, "-x", str(cols), "-y", str(rows)],
                                     capture_output=True, check=False
                                 )
                             except Exception:

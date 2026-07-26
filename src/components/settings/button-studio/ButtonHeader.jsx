@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Save } from 'lucide-react';
 
 /**
  * ButtonHeader — Top search and dropdown selector navigation stack for Button Studio.
@@ -15,14 +15,62 @@ export default function ButtonHeader({
 }) {
   return (
     <div className="studio-top-row">
-      <div className="search-input-box" style={{ width: '100%' }}>
-        <Search size={14} color="var(--accent-mana)" />
-        <input
-          type="text"
-          placeholder="Search studio buttons & macros..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="studio-action-row" style={{ display: 'flex', width: '100%', gap: '0.4rem', marginBottom: '0.4rem' }}>
+        <button
+          type="button"
+          className="shape-tap-btn"
+          style={{
+            flex: 1,
+            height: '36px',
+            background: 'var(--bg-canopy)',
+            border: '1.5px solid var(--status-active)',
+            color: 'var(--text-parchment)',
+            borderRadius: '10px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.74rem',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.35rem',
+            transition: 'all 0.15s ease'
+          }}
+          onClick={onCreateNew}
+        >
+          <Plus size={14} color="var(--status-active)" />
+          <span>CREATE NEW BUTTON</span>
+        </button>
+
+        <button
+          type="button"
+          className="shape-tap-btn"
+          style={{
+            flex: 1,
+            height: '36px',
+            background: 'var(--bg-canopy)',
+            border: '1.5px solid var(--accent-highlight)',
+            color: 'var(--text-parchment)',
+            borderRadius: '10px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.74rem',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.35rem',
+            transition: 'all 0.15s ease'
+          }}
+          onClick={() => {
+            if (window.dispatchEvent) {
+              window.dispatchEvent(new CustomEvent('sovereign_save_studio_buttons'));
+            }
+          }}
+        >
+          <Save size={14} color="var(--accent-highlight)" />
+          <span>SAVE BUTTON</span>
+        </button>
       </div>
 
       <div className="studio-top-select-group">
@@ -37,7 +85,7 @@ export default function ButtonHeader({
             <optgroup label="CUSTOM CREATIONS">
               {filteredCustomButtons.map((b) => (
                 <option key={b.id} value={b.id}>
-                  [CUSTOM] {b.label} ({b.value.trim()})
+                  [CUSTOM] {b.label || b.id} ({b.value ? String(b.value).trim() : ''})
                 </option>
               ))}
             </optgroup>
@@ -51,7 +99,7 @@ export default function ButtonHeader({
                 <React.Fragment key={key}>
                   {cat.items.map((item, idx) => (
                     <option key={`opt-${key}-${idx}`} value={item.label}>
-                      [{key}] {item.label} ({item.value.trim()})
+                      [{key}] {item.label} ({item.value ? String(item.value).trim() : ''})
                     </option>
                   ))}
                 </React.Fragment>

@@ -103,41 +103,69 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     );
   }
 
+  const getFileBrandColor = (filename) => {
+    if (!filename) return '#88C0D0';
+    const fn = filename.toLowerCase();
+    if (fn.endsWith('.py')) return '#3776AB'; // Python Blue
+    if (fn.endsWith('.js') || fn.endsWith('.jsx')) return '#F7DF1E'; // JS Yellow
+    if (fn.endsWith('.ts') || fn.endsWith('.tsx')) return '#3178C6'; // TS Blue
+    if (fn.endsWith('.html')) return '#E34F26'; // HTML5 Orange
+    if (fn.endsWith('.css')) return '#1572B6'; // CSS3 Blue
+    if (fn.endsWith('.sh') || fn.endsWith('.bash') || fn.endsWith('.zsh')) return '#4EAA25'; // Shell Green
+    if (fn.endsWith('.json')) return '#F9A825'; // JSON Gold
+    if (fn.endsWith('.md')) return '#083FA1'; // Markdown Blue
+    if (fn.endsWith('.yaml') || fn.endsWith('.yml')) return '#CB171E'; // YAML Red
+    if (fn.includes('docker') || fn.endsWith('.dockerignore')) return '#2496ED'; // Docker Blue
+    return '#A3B1B8'; // Default Muted
+  };
+
   return (
     <div className="code-editor-workspace">
       {/* Dynamic Multi-Document Tab Bar */}
       <div className="editor-tabs-bar">
-        {openDocuments.map((doc) => (
-          <button
-            key={doc.path}
-            type="button"
-            className={`editor-tab-pill ${activeFilePath === doc.path ? 'active' : ''}`}
-            onClick={() => onSelectTab(doc.path)}
-            onTouchStart={() => handleTabClosePress(doc.path)}
-            onTouchEnd={() => handleTabCloseRelease(doc.path, doc.isModified)}
-            onMouseDown={() => {
-              isTouchDevice.current = false;
-            }}
-          >
-            <FileText size={12} />
-            <span className="tab-filename">{doc.name}</span>
-            {doc.isModified && <span className="modified-dot" title="Unsaved Changes" />}
-            <span
-              className="close-tab-icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (doc.isModified) {
-                  setCloseConfirmModal(doc.path);
-                } else {
-                  onCloseTab(doc.path, false);
-                }
+        {openDocuments.map((doc) => {
+          const brandColor = getFileBrandColor(doc.name);
+          const isActive = activeFilePath === doc.path;
+
+          return (
+            <button
+              key={doc.path}
+              type="button"
+              className={`doc-pill-btn ${isActive ? 'active' : ''}`}
+              style={{
+                borderColor: isActive ? brandColor : 'var(--border-forest)',
+                color: isActive ? 'var(--text-parchment)' : 'var(--text-muted)',
+                background: isActive ? 'var(--bg-earth)' : 'var(--bg-canopy)',
+                boxShadow: isActive ? `0 0 10px ${brandColor}50` : 'none',
+                transition: 'all 0.15s ease'
               }}
-              title="Close File (Long-press forces close)"
+              onClick={() => onSelectTab(doc.path)}
+              onTouchStart={() => handleTabClosePress(doc.path)}
+              onTouchEnd={() => handleTabCloseRelease(doc.path, doc.isModified)}
+              onMouseDown={() => {
+                isTouchDevice.current = false;
+              }}
             >
-              <X size={11} />
-            </span>
-          </button>
-        ))}
+              <FileText size={13} color={brandColor} />
+              <span className="tab-filename">{doc.name}</span>
+              {doc.isModified && <span className="modified-dot" style={{ backgroundColor: brandColor }} title="Unsaved Changes" />}
+              <span
+                className="close-tab-icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (doc.isModified) {
+                    setCloseConfirmModal(doc.path);
+                  } else {
+                    onCloseTab(doc.path, false);
+                  }
+                }}
+                title="Close File (Long-press forces close)"
+              >
+                <X size={11} />
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Editor Viewport or Image Preview Card */}
@@ -177,6 +205,11 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
                 backgroundColor: theme?.bgCanopy || '#141E26',
                 color: theme?.textMuted || '#A3B1B8',
                 borderRight: '1px solid ' + (theme?.borderForest || '#2A3B4C')
+              },
+              '.cm-scroller': {
+                overflow: 'auto !important',
+                height: '100% !important',
+                touchAction: 'pan-y'
               }
             }, { dark: true })}
             extensions={[

@@ -26,6 +26,11 @@ class ErrorBoundary extends Component {
           <AlertTriangle size={32} color="var(--status-danger)" style={{ marginBottom: '0.5rem' }} />
           <h3 style={{ margin: '0 0 0.5rem 0' }}>Sub-Tab Display Recovered</h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>A minor rendering variance occurred.</p>
+          {this.state.error && (
+            <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(255, 0, 60, 0.15)', border: '1px solid var(--status-danger)', borderRadius: '8px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', textAlign: 'left', wordBreak: 'break-all' }}>
+              {this.state.error.toString()}
+            </div>
+          )}
           <button
             type="button"
             style={{
@@ -39,7 +44,7 @@ class ErrorBoundary extends Component {
               cursor: 'pointer'
             }}
             onClick={() => {
-              this.setState({ hasError: false });
+              this.setState({ hasError: false, error: null });
               if (this.props.onReset) this.props.onReset();
             }}
           >

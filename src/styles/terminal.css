@@ -1,0 +1,613 @@
+/* ==========================================================================
+   SOVEREIGN TERMINAL — WEBGL TERMINAL & TOUCHBAR SUITE
+   File: src/styles/terminal.css
+   Purpose: Native xterm.js unconstrained layout, touch gesture rules,
+            tmux session tabs (.session-pill-btn), TouchBar shortcut bar,
+            sub-suite pills, and 12-macro popup grid modal.
+   ========================================================================== */
+
+/* Terminal Outer Shell Containers */
+.terminal-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  background-color: var(--bg-earth);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+.terminal-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
+  padding: 4px;
+  overflow: hidden;
+  background-color: var(--bg-earth);
+  touch-action: manipulation;
+}
+
+/* Touch Gesture & Selection Rules (Matching ttyd-mobile architecture) */
+.terminal-container .xterm,
+.terminal-container .xterm-screen,
+.terminal-container .xterm-helpers {
+  touch-action: manipulation !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Custom Scrollbar for xterm Viewport */
+.terminal-container .xterm-viewport {
+  background-color: var(--bg-earth) !important;
+  overflow-y: auto !important;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-track {
+  background: rgba(20, 30, 38, 0.6);
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--border-forest);
+  border-radius: 4px;
+}
+
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-highlight);
+}
+
+/* Tmux Session Tab Bar & Action Pill Buttons */
+.session-tabs-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg-canopy);
+  border-bottom: 1px solid var(--border-forest);
+  padding: 0.4rem 0.6rem;
+  gap: 0.4rem;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+}
+
+.session-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.85rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 18px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+  padding-right: 1.8rem;
+}
+
+.session-pill-btn:hover {
+  color: var(--text-parchment);
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.session-pill-btn.active {
+  color: #0A1118;
+  background: var(--accent-highlight);
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(136, 192, 208, 0.4);
+}
+
+.close-session-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.2rem;
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+.close-session-icon:hover {
+  background: rgba(255, 0, 60, 0.4);
+  color: white;
+}
+
+.add-session-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 18px;
+  color: var(--text-parchment);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-session-pill-btn:hover {
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+/* TouchBar Bottom Action Bar */
+.touch-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--bg-canopy);
+  border-top: 1px solid var(--border-forest);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.touch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 2.2rem;
+  padding: 0 0.6rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.touch-btn.sudo-btn {
+  background: rgba(136, 192, 208, 0.15);
+  border-color: var(--accent-highlight);
+  color: var(--accent-highlight);
+}
+
+.touch-btn.macro-launcher-btn {
+  background: rgba(255, 0, 60, 0.15);
+  border: 1px solid var(--status-danger);
+  color: var(--status-danger);
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(255, 0, 60, 0.3);
+}
+
+.touch-btn.macro-launcher-btn:active {
+  background: var(--status-danger);
+  color: var(--bg-earth);
+  box-shadow: 0 0 14px rgba(255, 0, 60, 0.7);
+}
+
+.sub-suite-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 0.35rem 0;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
+}
+
+.sub-suite-pill {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.6rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sub-suite-pill.active {
+  background: var(--status-active);
+  color: #0A1118;
+  border-color: var(--status-active);
+  box-shadow: 0 0 8px rgba(76, 120, 100, 0.4);
+}
+
+.touch-btn.voice-btn.recording {
+  background: var(--status-danger);
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+/* 12-Macro Popup Grid Modal Layout */
+.macro-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(10, 17, 24, 0.82);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+}
+
+.macro-modal-content {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  width: 90vw;
+  max-width: 360px;
+  max-height: 42dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+.macro-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border-forest);
+  flex-shrink: 0;
+}
+
+.macro-modal-header h3 {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: var(--text-parchment);
+}
+
+.close-modal-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.macro-grid-3x4 {
+  display: grid;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(95px, 1fr);
+  gap: 0.45rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 0.5rem;
+}
+
+.macro-grid-btn {
+  padding: 0.65rem 0.25rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.macro-grid-btn:hover, .macro-grid-btn:active {
+  background: var(--status-active);
+  color: #0A1118;
+  border-color: var(--status-active);
+}
+
+/* TouchBar Suite Launcher Chips */
+.suite-chip-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-mana);
+  background: rgba(136, 192, 208, 0.08);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  padding: 0 0.4rem;
+  height: 28px;
+  letter-spacing: 0.05em;
+  transition: all 0.15s ease;
+}
+
+.suite-chip-btn:active {
+  background: var(--status-active);
+  color: #0A1118;
+}
+
+/* Modal Suite Selector Tab Bar */
+.suite-selector-scroll {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 0.4rem;
+  scrollbar-width: thin;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.suite-tab-pill {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.suite-tab-pill.active {
+  background: var(--status-active);
+  color: #0A1118;
+  border-color: var(--status-active);
+}
+
+/* Left-Edge TouchBar-Anchored Copy Card Suite (Vertically Stacked) */
+.copy-card-container {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 3.5rem;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.copy-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 28px;
+  background: var(--bg-earth);
+  border-radius: 12px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0 2px;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+}
+
+.copy-card-btn span {
+  font-size: clamp(0.52rem, 2.2vw, 0.68rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.copy-card-btn.btn-copy {
+  border: 1.5px solid var(--status-active);
+  color: var(--text-parchment);
+}
+
+.copy-card-btn.btn-copy:active {
+  background: var(--status-active);
+  color: #0A1118;
+}
+
+.copy-card-btn.btn-all {
+  border: 1.5px solid var(--accent-mana);
+  color: var(--text-parchment);
+}
+
+.copy-card-btn.btn-all:active {
+  background: var(--accent-mana);
+  color: #0A1118;
+}
+
+.copy-card-btn.btn-cust {
+  border: 1.5px solid var(--status-danger);
+  color: var(--text-parchment);
+}
+
+.copy-card-btn.btn-cust:active {
+  background: var(--status-danger);
+  color: #0A1118;
+}
+
+.copy-card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 24px;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 0.2rem;
+}
+
+.copy-card-toggle.clip {
+  border-color: var(--status-active);
+  color: var(--status-active);
+}
+
+.copy-card-toggle.code {
+  border-color: var(--accent-highlight);
+  color: var(--accent-highlight);
+}
+
+/* Staging Drawer TouchBar-Anchored Container */
+.staging-drawer-container {
+  position: absolute;
+  bottom: 3.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  max-height: 45dvh;
+  background: var(--bg-canopy);
+  border: 1.5px solid var(--accent-violet);
+  border-radius: 12px;
+  padding: 0.6rem;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.staging-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-forest);
+}
+
+.staging-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-violet);
+  letter-spacing: 0.05em;
+}
+
+.staging-drawer-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stager-mode-toggle {
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-earth);
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stager-mode-toggle.direct {
+  border: 1px solid var(--status-active);
+  color: var(--status-active);
+}
+
+.stager-mode-toggle.two-step {
+  border: 1px solid var(--accent-highlight);
+  color: var(--accent-highlight);
+}
+
+.stager-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.staging-drawer-textarea {
+  width: 100%;
+  max-height: 28dvh;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  resize: vertical;
+  outline: none;
+}
+
+.staging-drawer-textarea:focus {
+  border-color: var(--accent-violet);
+}
+
+.staging-drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.stager-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stager-action-btn.clear-btn {
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  color: var(--text-muted);
+}
+
+.stager-action-btn.send-btn {
+  background: var(--accent-violet);
+  border: 1px solid var(--accent-violet);
+  color: #0A1118;
+  font-weight: 700;
+}
+
+.stager-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

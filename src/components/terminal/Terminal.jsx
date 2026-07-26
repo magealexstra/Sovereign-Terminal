@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
-import { WebglAddon } from '@xterm/addon-webgl';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ArrowDown, Copy } from 'lucide-react';
@@ -8,28 +7,24 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
 import { getTermTheme } from './terminal/termTheme';
 import { writeToClipboard } from './terminal/writeToClipboard';
+import CopyCard from './CopyCard';
 import '@xterm/xterm/css/xterm.css';
 
-export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile }) {
+export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onInspectText }) {
   const { theme, fontSizeTerminal } = useApp();
   const { toast, showToast } = useToast();
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
   const fitAddonInstance = useRef(null);
-  const webglAddonInstance = useRef(null);
   const socketRef = useRef(null);
   const selectionTimer = useRef(null);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
-  // Live font size updates: clear WebGL atlas first so new cell metrics are calculated,
-  // then let fitAddon.fit() own the resize completely
+  // Live font size updates: let fitAddon.fit() own the resize completely
   useEffect(() => {
     if (xtermInstance.current && fitAddonInstance.current) {
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
-      try {
-        if (webglAddonInstance.current) webglAddonInstance.current.clearTextureAtlas();
-      } catch (e) {}
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           try {
@@ -124,21 +119,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
     term.open(terminalRef.current);
 
-    // WebGL renderer with 2D canvas fallback
-    let webglAddon = null;
-    try {
-      webglAddon = new WebglAddon();
-      webglAddon.onContextLoss(() => {
-        try { webglAddon.dispose(); } catch (e) {}
-      });
-      term.loadAddon(webglAddon);
-    } catch (e) {
-      console.warn('WebGL addon fallback to 2D canvas', e);
-    }
-
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
-    webglAddonInstance.current = webglAddon;
 
     // performFit: fitAddon.fit() is the single source of truth for sizing.
     // Guard: skip if the container has zero height (display:none parent) to
@@ -284,16 +266,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       sock.onopen = () => {
         reconnectAttempts = 0;
         sendResizeHandshake();
-        
-        // Carriage return ensuring prompt is drawn after resize handshake finishes
-        setTimeout(() => {
-          if (sock.readyState === WebSocket.OPEN) {
-            sock.send('\r');
-          }
-        }, 50);
-
-        setTimeout(sendResizeHandshake, 200);
-        setTimeout(sendResizeHandshake, 500);
+        setTimeout(sendResizeHandshake, 150);
+        setTimeout(sendResizeHandshake, 400);
       };
 
       sock.onmessage = (event) => { term.write(event.data); };
@@ -386,10 +360,64 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
   }, [voiceInput]);
 
-  const scrollToBottom = () => {
-    if (xtermInstance.current) {
-      xtermInstance.current.scrollToBottom();
-      setShowScrollBottom(false);
+  // Helper: extracts buffer lines and intelligently joins soft-wrapped lines
+  const extractBufferRange = (buffer, startLine, endLine) => {
+    let result = '';
+    for (let i = startLine; i < endLine; i++) {
+      const line = buffer.getLine(i);
+      if (!line) continue;
+      const str = line.translateToString(true);
+      if (line.isWrapped && result.length > 0) {
+        result += str;
+      } else {
+        result += (result.length > 0 ? '\n' : '') + str;
+      }
+    }
+    return result.trim();
+  };
+
+  // Buffer extraction handlers for CopyCard
+  const handleCopyLastOutput = (mode) => {
+    if (!xtermInstance.current) return;
+    const term = xtermInstance.current;
+    const buffer = term.buffer.active;
+    const maxLines = Math.min(buffer.length, 60);
+    const startLine = Math.max(0, buffer.length - maxLines);
+    const text = extractBufferRange(buffer, startLine, buffer.length);
+    if (mode === 'clip') {
+      writeToClipboard(text).then(() => showToast('Copied Last Output to Clipboard')).catch(() => showToast('Copied Last Output'));
+    } else if (onInspectText) {
+      onInspectText(text, 'Last Command Output');
+    }
+  };
+
+  const handleCopyScreenBuffer = (mode) => {
+    if (!xtermInstance.current) return;
+    const term = xtermInstance.current;
+    const buffer = term.buffer.active;
+    const startLine = buffer.viewportY || 0;
+    const endLine = Math.min(buffer.length, startLine + term.rows);
+    const text = extractBufferRange(buffer, startLine, endLine);
+    if (mode === 'clip') {
+      writeToClipboard(text).then(() => showToast('Copied Screen Buffer to Clipboard')).catch(() => showToast('Copied Screen Buffer'));
+    } else if (onInspectText) {
+      onInspectText(text, 'Screen Buffer');
+    }
+  };
+
+  const handleCopyCustomLines = (mode, linesOverride) => {
+    if (!xtermInstance.current) return;
+    let customCount = typeof linesOverride === 'number' ? linesOverride : 50;
+
+    const term = xtermInstance.current;
+    const buffer = term.buffer.active;
+    const lineCount = (customCount === 0 || customCount > buffer.length) ? buffer.length : customCount;
+    const startLine = Math.max(0, buffer.length - lineCount);
+    const text = extractBufferRange(buffer, startLine, buffer.length);
+    if (mode === 'clip') {
+      writeToClipboard(text).then(() => showToast(`Copied ${lineCount} Lines to Clipboard`)).catch(() => showToast(`Copied ${lineCount} Lines`));
+    } else if (onInspectText) {
+      onInspectText(text, `Custom ${lineCount} Lines`);
     }
   };
 
@@ -400,6 +428,14 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
           <Copy size={13} />
           <span>{toast}</span>
         </div>
+      )}
+
+      {isActive && (
+        <CopyCard
+          onCopyLastOutput={handleCopyLastOutput}
+          onCopyScreenBuffer={handleCopyScreenBuffer}
+          onCopyCustomLines={handleCopyCustomLines}
+        />
       )}
 
       <div ref={terminalRef} className="terminal-container" />

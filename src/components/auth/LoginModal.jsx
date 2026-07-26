@@ -12,6 +12,8 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
 
   const isPam = authMode === 'pam';
 
+  const [saveSudoPass, setSaveSudoPass] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isPam && (!username.trim() || !password.trim())) return;
@@ -29,6 +31,11 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
       });
 
       if (res.ok) {
+        if (saveSudoPass && password) {
+          sessionStorage.setItem('sovereign_sudo_password', password);
+        } else {
+          sessionStorage.removeItem('sovereign_sudo_password');
+        }
         onLoginSuccess();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -89,6 +96,18 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
               required
             />
           </div>
+
+          {isPam && (
+            <label className="login-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.76rem', color: 'var(--text-muted)', cursor: 'pointer', margin: '0.2rem 0 0.6rem 0.2rem' }}>
+              <input
+                type="checkbox"
+                checked={saveSudoPass}
+                onChange={(e) => setSaveSudoPass(e.target.checked)}
+                style={{ accentColor: 'var(--accent-mana)', cursor: 'pointer' }}
+              />
+              <span>Save password for quick sudo entry</span>
+            </label>
+          )}
 
           <button type="submit" className="login-submit-btn" disabled={loading}>
             <span>{loading ? 'Authenticating...' : 'Authenticate'}</span>

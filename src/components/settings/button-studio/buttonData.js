@@ -88,10 +88,10 @@ export const PREBUILT_CATEGORIES = {
     { label: '/mcp',    value: '/mcp ' }
   ]},
   KEY: { name: 'Keyboard Shortcuts - KEY', items: [
-    { label: '▲ Up',        value: '\x1b[A' },
-    { label: '▼ Down',      value: '\x1b[B' },
-    { label: '◀ Left',      value: '\x1b[D' },
-    { label: '► Right',     value: '\x1b[C' },
+    { label: '▲',           value: '\x1b[A' },
+    { label: '▼',           value: '\x1b[B' },
+    { label: '◀',           value: '\x1b[D' },
+    { label: '▶',           value: '\x1b[C' },
     { label: 'PgUp',        value: '\x1b[5~' },
     { label: 'PgDn',        value: '\x1b[6~' },
     { label: 'Home',        value: '\x1b[H' },
@@ -125,10 +125,10 @@ export const PREBUILT_CATEGORIES = {
     { label: '^L',  value: '\x0c' }
   ]},
   NAV: { name: 'Navigation & Arrows - NAV', items: [
-    { label: '▲ Up',       value: '\x1b[A' },
-    { label: '▼ Down',     value: '\x1b[B' },
-    { label: '◀ Left',     value: '\x1b[D' },
-    { label: '► Right',    value: '\x1b[C' },
+    { label: '▲',          value: '\x1b[A' },
+    { label: '▼',          value: '\x1b[B' },
+    { label: '◀',          value: '\x1b[D' },
+    { label: '▶',          value: '\x1b[C' },
     { label: 'PgUp',       value: '\x1b[5~' },
     { label: 'PgDn',       value: '\x1b[6~' },
     { label: 'Home',       value: '\x1b[H' },
@@ -160,6 +160,14 @@ export const PREBUILT_CATEGORIES = {
     { label: 'curl -I',    value: 'curl -I ' },
     { label: 'dig',        value: 'dig ' },
     { label: 'traceroute', value: 'traceroute ' }
+  ]},
+  NPM: { name: 'Web Dev & Node - NPM', items: [
+    { label: 'npm install', value: 'npm install\n' },
+    { label: 'npm run dev', value: 'npm run dev\n' },
+    { label: 'npm run build', value: 'npm run build\n' },
+    { label: 'npx', value: 'npx ' },
+    { label: 'yarn add', value: 'yarn add ' },
+    { label: 'node -v', value: 'node -v\n' }
   ]},
   PAC: { name: 'Arch Pacman - PAC', items: [
     { label: 'upgrade -y',    value: 'sudo pacman -Syu\n' },
@@ -199,6 +207,15 @@ export const PREBUILT_CATEGORIES = {
     { label: 'tmux kill',   value: 'tmux kill-session -t ' },
     { label: 'split h',     value: '\x02%' },
     { label: 'split v',     value: '\x02"' }
+  ]},
+  TXT: { name: 'Search & Parse - TXT', items: [
+    { label: 'grep -rnw',  value: 'grep -rnw . -e "' },
+    { label: 'find name',  value: 'find . -type f -name "' },
+    { label: 'tail -f',    value: 'tail -f ' },
+    { label: 'watch',      value: 'watch -n 2 ' },
+    { label: 'cat',        value: 'cat ' },
+    { label: 'head',       value: 'head -n 20 ' },
+    { label: 'nano',       value: 'nano ' }
   ]},
   YUM: { name: 'Fedora/RHEL DNF - YUM', items: [
     { label: 'upgrade -y', value: 'sudo dnf upgrade --refresh -y\n' },

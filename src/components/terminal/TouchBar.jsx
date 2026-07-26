@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, KeyRound, Trash2, Zap, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { Mic, MicOff, KeyRound, Trash2, Zap, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, X, Edit3 } from 'lucide-react';
+import StagingDrawer from './StagingDrawer';
 
 export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [isRecording, setIsRecording] = useState(false);
   const [showMacroModal, setShowMacroModal] = useState(false);
+  const [showStager, setShowStager] = useState(false);
+  const [stagerText, setStagerText] = useState('');
   const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastSpeechRef = useRef('');
@@ -296,13 +299,9 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             currentTranscript += event.results[i][0].transcript;
           }
 
-          // Synchronous ref-diffing: stream only NEW text characters to terminal
-          if (currentTranscript.length > lastSpeechRef.current.length) {
-            const newText = currentTranscript.slice(lastSpeechRef.current.length);
-            if (newText && onVoiceInput) {
-              onVoiceInput(newText);
-            }
-            lastSpeechRef.current = currentTranscript;
+          if (currentTranscript) {
+            setStagerText(currentTranscript);
+            setShowStager(true);
           }
         };
 
@@ -348,26 +347,53 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   };
 
   const handleSudoMacro = () => {
-    // Send Sudo Macro JSON payload over WebSocket
-    onKeyPress(JSON.stringify({ type: 'sudo_macro' }));
+    const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
+    if (savedSudo && onKeyPress) {
+      onKeyPress(`${savedSudo}\n`);
+    }
   };
 
   return (
     <>
+      {/* TouchBar-Anchored Decoupled Command & Dictation Staging Drawer */}
+      <StagingDrawer
+        isOpen={showStager}
+        onClose={() => setShowStager(false)}
+        initialText={stagerText}
+        onSend={(payload) => {
+          if (onKeyPress) onKeyPress(payload);
+          setStagerText('');
+        }}
+      />
+
       {/* Perimeter Touch Row */}
       <div className="touch-bar">
         <button
           className={`touch-btn voice-btn ${isRecording ? 'recording' : ''}`}
-          onClick={toggleVoice}
+          onClick={() => {
+            setShowStager(true);
+            toggleVoice();
+          }}
           title="Gboard Voice Dictation"
         >
           {isRecording ? <MicOff size={15} /> : <Mic size={15} />}
         </button>
 
-        <button className="touch-btn sudo-btn" onClick={handleSudoMacro} title="Quick Sudo Password Entry">
-          <KeyRound size={14} />
-          <span>(***)</span>
+        <button
+          className="touch-btn stager-launcher-btn"
+          onClick={() => setShowStager((prev) => !prev)}
+          title="Open Command Staging Drawer"
+          style={{ borderColor: 'var(--accent-violet)', color: 'var(--accent-violet)' }}
+        >
+          <Edit3 size={15} />
         </button>
+
+        {sessionStorage.getItem('sovereign_sudo_password') && (
+          <button className="touch-btn sudo-btn" onClick={handleSudoMacro} title="Quick Sudo Password Entry">
+            <KeyRound size={14} />
+            <span>(***)</span>
+          </button>
+        )}
 
         {/* Dynamic User-Customized TouchBar Items from LayoutBuilder */}
         {activeSlots.map((item, idx) => {
@@ -411,10 +437,12 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               '▼ Down': '\x1b[B',
               '◀ Left': '\x1b[D',
               '► Right': '\x1b[C',
+              '▶ Right': '\x1b[C',
               '▲': '\x1b[A',
               '▼': '\x1b[B',
               '◀': '\x1b[D',
               '►': '\x1b[C',
+              '▶': '\x1b[C',
               'PgUp': '\x1b[5~',
               'PgDn': '\x1b[6~',
               'Home': '\x1b[H',
@@ -439,14 +467,25 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               }
             } catch {}
 
+            if (item.toLowerCase().includes('sudo')) {
+              const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
+              if (!savedSudo) return null;
+              return `${savedSudo}\n`;
+            }
+
             return itemKey.endsWith('\n') ? itemKey : `${itemKey}\n`;
           };
+
+          if (item.toLowerCase().includes('sudo') && !sessionStorage.getItem('sovereign_sudo_password')) {
+            return null;
+          }
 
           if (item === '⚡ MACROS' || item === 'MACROS') {
             return (
               <button
                 key={`slot-${item}-${idx}`}
                 className="touch-btn macro-launcher-btn"
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
                 title="Macro Master Catalog"
               >
@@ -460,6 +499,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             <button
               key={`slot-${item}-${idx}`}
               className="touch-btn"
+              onPointerDown={(e) => e.preventDefault()}
               onClick={() => onKeyPress(getCommandPayload(item))}
             >
               {item}
@@ -470,6 +510,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
         {/* Master MACROS Catalog Launcher Pinned to Far Right (Bright Red) */}
         <button
           className="touch-btn macro-launcher-btn"
+          onPointerDown={(e) => e.preventDefault()}
           onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
           title="Master Macro Catalog"
         >
@@ -477,7 +518,12 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           <span>MACROS</span>
         </button>
 
-        <button className="touch-btn clear-btn" onClick={() => onKeyPress('clear\n')} title="Clear Terminal Screen">
+        <button 
+          className="touch-btn clear-btn" 
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => onKeyPress('clear\n')} 
+          title="Clear Terminal Screen"
+        >
           <Trash2 size={14} />
         </button>
       </div>

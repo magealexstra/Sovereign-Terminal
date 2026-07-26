@@ -58,11 +58,15 @@ export default function App() {
     verifyAuth();
   }, []);
 
+  const [showBrandMenu, setShowBrandMenu] = useState(false);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {}
+    sessionStorage.clear();
     setIsAuthenticated(false);
+    setShowBrandMenu(false);
   };
 
   // Dynamic Visual Viewport & Android VirtualKeyboard API Listener
@@ -139,11 +143,42 @@ export default function App() {
       name: 'README.md',
       path: '/workspace/README.md',
       isModified: false,
-      content: '# 👑 SOVEREIGN TERMINAL\n\nWelcome to your mobile-first Linux control workstation.'
+      content: '# SOVEREIGN TERMINAL\n\nWelcome to your mobile-first Linux control workstation.'
+    },
+    {
+      name: 'USER_GUIDE.md',
+      path: '/workspace/USER_GUIDE.md',
+      isModified: false,
+      content: '# Sovereign Terminal — User Guide & Mobile Operation Manual'
     }
   ]);
   const [activeFilePath, setActiveFilePath] = useState('/workspace/README.md');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
+
+  // Load actual server README.md and USER_GUIDE.md content on startup
+  useEffect(() => {
+    fetch('/api/fs/read?path=/workspace/README.md')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.content) {
+          setOpenDocuments((prev) =>
+            prev.map((doc) => (doc.path === '/workspace/README.md' ? { ...doc, content: data.content } : doc))
+          );
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/fs/read?path=/workspace/USER_GUIDE.md')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.content) {
+          setOpenDocuments((prev) =>
+            prev.map((doc) => (doc.path === '/workspace/USER_GUIDE.md' ? { ...doc, content: data.content } : doc))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // File Explorer & CodeEditor Handlers
   const handleOpenFile = async (filepath) => {
@@ -251,14 +286,28 @@ export default function App() {
     );
   }
 
+  if (authEnabled && !isAuthenticated) {
+    return (
+      <LoginModal
+        authMode={authMode}
+        onLoginSuccess={() => {
+          setIsAuthenticated(true);
+          if (fetchUserSettings) fetchUserSettings();
+        }}
+      />
+    );
+  }
+
   return (
     <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
-      {!isAuthenticated && (
-        <LoginModal authMode={authMode} onLoginSuccess={() => setIsAuthenticated(true)} />
-      )}
       {/* Header with OmniState Logo & Vertically Stacked Title */}
-      <header className="main-nav-bar">
-        <div className="brand-title" title="Sovereign Terminal">
+      <header className="main-nav-bar" style={{ position: 'relative' }}>
+        <div
+          className="brand-title"
+          title="Session Controls (Tap to Open)"
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => setShowBrandMenu((prev) => !prev)}
+        >
           <img
             src="/omnistate-logo.png"
             alt="OmniState Logo"
@@ -273,6 +322,47 @@ export default function App() {
             <span className="brand-line-2">TERMINAL</span>
           </div>
         </div>
+
+        {/* Floating Brand Session Menu Pop-Up */}
+        {showBrandMenu && (
+          <div
+            className="brand-menu-popup"
+            style={{
+              position: 'absolute',
+              top: '3.2rem',
+              left: '0.8rem',
+              zIndex: 1000,
+              background: 'var(--bg-canopy)',
+              border: '1.5px solid var(--border-forest)',
+              borderRadius: '12px',
+              padding: '0.8rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              minWidth: '200px'
+            }}
+          >
+            <div style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+              SESSION ACTIVE ({authMode === 'pam' ? 'Linux OS PAM' : 'Token'})
+            </div>
+            <button
+              type="button"
+              className="touch-btn"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                background: 'var(--bg-earth)',
+                border: '1.5px solid var(--status-danger)',
+                color: 'var(--status-danger)',
+                fontWeight: '700',
+                padding: '0.5rem',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+              onClick={handleLogout}
+            >
+              <span>LOGOUT SESSION</span>
+            </button>
+          </div>
+        )}
 
         <div className="nav-tabs-group">
           <button

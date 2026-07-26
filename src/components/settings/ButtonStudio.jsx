@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sliders, Code, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_BUTTONS, PREBUILT_CATEGORIES } from './button-studio/buttonData';
@@ -7,7 +7,7 @@ import ButtonPreview from './button-studio/ButtonPreview';
 import AuditionConsole from './button-studio/AuditionConsole';
 
 export default function ButtonStudio() {
-  const { theme } = useApp();
+  const { theme, syncUserSettingsToServer } = useApp();
 
   // Active Buttons List — persisted to localStorage
   const [buttons, setButtons] = useState(() => {
@@ -16,10 +16,46 @@ export default function ButtonStudio() {
       return saved ? JSON.parse(saved) : DEFAULT_BUTTONS;
     } catch { return DEFAULT_BUTTONS; }
   });
+  // Dedicated CUST Button State
+  const [custButton, setCustButton] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_cust_button');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { label: 'CUST', value: 'set number of lines to copy (50)' };
+  });
 
   const [selectedId, setSelectedId] = useState('b4');
   const [searchQuery, setSearchQuery] = useState('');
-  const activeBtn = buttons.find((b) => b.id === selectedId) || buttons[0];
+
+  const isEditingCust = selectedId === 'cust-button';
+
+  const defaultFallbackBtn = {
+    id: 'b-default',
+    label: 'NEW_BTN',
+    value: '',
+    width: 3.2,
+    height: 2.0,
+    shape: 'rounded',
+    bg: 'var(--bg-canopy)',
+    text: 'var(--text-parchment)',
+    border: 'var(--accent-mana)',
+  };
+
+  const activeBtn = (isEditingCust
+    ? {
+        id: 'cust-button',
+        label: custButton?.label || 'CUST',
+        value: custButton?.value || 'set number of lines to copy (50)',
+        width: 3.2,
+        height: 2.0,
+        shape: 'pill',
+        bg: 'var(--bg-earth)',
+        text: 'var(--text-parchment)',
+        border: 'var(--status-danger)',
+        isCust: true,
+      }
+    : (buttons.find((b) => b.id === selectedId) || buttons[0] || defaultFallbackBtn)) || defaultFallbackBtn;
 
   // Target Color Layer Selection: 'text' | 'bg' | 'border'
   const [targetLayer, setTargetLayer] = useState('bg');
@@ -56,9 +92,16 @@ export default function ButtonStudio() {
     theme?.brightWhite   || '#ECEFF4',
   ];
 
-  const updateActiveBtn = (fields) => {
+  const updateActiveBtn = (updates) => {
+    if (isEditingCust) {
+      setCustButton((prev) => ({ ...prev, ...updates }));
+      return;
+    }
     setButtons((prev) =>
-      prev.map((b) => (b.id === activeBtn.id ? { ...b, ...fields } : b))
+      prev.map((b) => {
+        if (b.id !== activeBtn.id) return b;
+        return { ...b, ...updates };
+      })
     );
   };
 
@@ -66,16 +109,16 @@ export default function ButtonStudio() {
     const newId = `custom-${Date.now()}`;
     const newBtn = {
       id: newId,
-      label: 'NEW',
-      value: 'echo Hello\n',
+      label: 'NEW_BTN',
+      value: '',
       width: 3.2,
       height: 2.0,
       shape: 'rounded',
-      bg: theme?.bgCanopy || '#141E26',
-      text: theme?.textParchment || '#E6EDF0',
-      border: theme?.accentMana || '#5E81AC'
+      bg: 'var(--bg-canopy)',
+      text: 'var(--text-parchment)',
+      border: 'var(--accent-mana)'
     };
-    setButtons([...buttons, newBtn]);
+    setButtons(prev => [...prev, newBtn]);
     setSelectedId(newId);
   };
 
@@ -102,7 +145,12 @@ export default function ButtonStudio() {
   const handleSaveButtons = () => {
     try {
       localStorage.setItem('sovereign_buttons', JSON.stringify(buttons));
+      localStorage.setItem('sovereign_cust_button', JSON.stringify(custButton));
       window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
+      if (typeof syncUserSettingsToServer === 'function') {
+        syncUserSettingsToServer({ buttons, custButton });
+      }
       setSaveToast(true);
       setTimeout(() => setSaveToast(false), 2000);
     } catch {}
@@ -111,6 +159,12 @@ export default function ButtonStudio() {
   const handleClearAudition = () => {
     setAuditionHex('#88C0D0');
   };
+
+  useEffect(() => {
+    const handleSaveEvent = () => handleSaveButtons();
+    window.addEventListener('sovereign_save_studio_buttons', handleSaveEvent);
+    return () => window.removeEventListener('sovereign_save_studio_buttons', handleSaveEvent);
+  }, [buttons, custButton]);
 
   const handleSelectPresetOrCustom = (selectedKey) => {
     const custom = buttons.find((b) => b.id === selectedKey);
@@ -193,7 +247,7 @@ export default function ButtonStudio() {
             <input
               type="text"
               className="micro-input"
-              value={activeBtn.label}
+              value={activeBtn?.label || ''}
               onChange={(e) => updateActiveBtn({ label: e.target.value })}
               placeholder="Button Name"
             />
@@ -204,10 +258,46 @@ export default function ButtonStudio() {
             <textarea
               className="micro-textarea flex-1"
               rows={3}
-              value={activeBtn.value}
+              value={activeBtn?.value || ''}
               onChange={(e) => updateActiveBtn({ value: e.target.value })}
+              onBlur={() => {
+                if (isEditingCust) {
+                  const val = activeBtn?.value ? activeBtn.value.trim() : '';
+                  if (!/^\d+$/.test(val) && !/\((\d+)\)/.test(val)) {
+                    updateActiveBtn({ value: 'set number of lines to copy (50)' });
+                  }
+                }
+              }}
               placeholder="Command Payload / Function"
             />
+          </div>
+
+          {/* Pinned Interactive CUST Button Control */}
+          <div style={{ marginTop: '0.8rem', borderTop: '1px solid var(--border-forest)', paddingTop: '0.6rem', textAlign: 'center' }}>
+            <label className="field-label" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>
+              Terminal Copy Button (Tap to Edit)
+            </label>
+            <button
+              type="button"
+              className={`shape-tap-btn ${isEditingCust ? 'active' : ''}`}
+              style={{
+                width: '64px',
+                height: '32px',
+                margin: '0 auto',
+                border: '1.5px solid var(--status-danger)',
+                background: isEditingCust ? 'var(--status-danger)' : 'var(--bg-earth)',
+                color: isEditingCust ? '#0A1118' : 'var(--text-parchment)',
+                borderRadius: '12px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onClick={() => setSelectedId('cust-button')}
+            >
+              {custButton.label || 'CUST'}
+            </button>
           </div>
         </div>
 
