@@ -393,10 +393,10 @@ html, body, #root {
 }
 
 .sub-suite-pill.active {
-  background: var(--accent-mana);
-  color: var(--bg-earth);
-  border-color: var(--accent-mana);
-  box-shadow: 0 0 8px rgba(136, 192, 208, 0.4);
+  background: #A3BE8C;
+  color: #0A1118;
+  border-color: #A3BE8C;
+  box-shadow: 0 0 8px rgba(163, 190, 140, 0.4);
 }
 
 .touch-btn.voice-btn.recording {
@@ -488,9 +488,9 @@ html, body, #root {
 }
 
 .macro-grid-btn:hover, .macro-grid-btn:active {
-  background: var(--accent-highlight);
-  color: var(--bg-earth);
-  border-color: var(--accent-highlight);
+  background: #A3BE8C;
+  color: #0A1118;
+  border-color: #A3BE8C;
 }
 
 /* TouchBar Suite Launcher Chips */
@@ -509,8 +509,8 @@ html, body, #root {
 }
 
 .suite-chip-btn:active {
-  background: var(--accent-mana);
-  color: var(--bg-earth);
+  background: #A3BE8C;
+  color: #0A1118;
 }
 
 /* Modal Suite Selector Tab Bar — Right-Pinned & Fixed */
@@ -542,9 +542,9 @@ html, body, #root {
 }
 
 .suite-tab-pill.active {
-  background: var(--accent-mana);
-  color: var(--bg-earth);
-  border-color: var(--accent-mana);
+  background: #A3BE8C;
+  color: #0A1118;
+  border-color: #A3BE8C;
 }
 
 /* File Explorer Layout & Breadcrumb Bar */

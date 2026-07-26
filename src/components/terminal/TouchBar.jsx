@@ -488,7 +488,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           <div className="macro-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="macro-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Zap size={16} color="var(--accent-mana)" />
+                <Zap size={16} color="#A3BE8C" />
                 <h3>{selectedSuite.replace('KEY_', '')} TOOLKIT</h3>
               </div>
               <button className="close-modal-btn" onClick={() => setShowMacroModal(false)}>
