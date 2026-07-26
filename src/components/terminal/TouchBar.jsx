@@ -9,7 +9,35 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const lastSpeechRef = useRef('');
   const micToastTimerRef = useRef(null);
 
+  const [primaryGroup, setPrimaryGroup] = useState('AI');
   const [selectedSuite, setSelectedSuite] = useState('AGY');
+
+  const GROUPS = {
+    AI: { label: '🤖 AI', suites: ['AGY', 'CLD', 'HMS'] },
+    PKG: { label: '📦 PKG', suites: ['APT', 'PAC', 'YUM'] },
+    SYS: { label: '⚙️ SYS', suites: ['DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'] },
+    KEY: { label: '⌨️ KEY', suites: ['KEY_NAV', 'KEY_FN', 'KEY_SYM', 'KEY_MODE', 'KEY_LINE'] },
+  };
+
+  const SUB_LABELS = {
+    AGY: 'AGY (Anti-Gravity)',
+    CLD: 'CLD (Claude)',
+    HMS: 'HMS (Hermes)',
+    APT: 'APT (Debian)',
+    PAC: 'PAC (Arch)',
+    YUM: 'YUM (Fedora)',
+    DOC: 'DOC (Docker)',
+    GIT: 'GIT (Git)',
+    SYS: 'SYS (System)',
+    NET: 'NET (Network)',
+    PY: 'PY (Python)',
+    TMX: 'TMX (Tmux)',
+    KEY_NAV: 'NAV (Arrows)',
+    KEY_FN: 'FN (F1-F12)',
+    KEY_SYM: 'SYM (Operators)',
+    KEY_MODE: 'MODE (Escapes)',
+    KEY_LINE: 'LINE (Cursor)'
+  };
 
   // Inline mic-error toast — replaces browser alert() for non-blocking UX
   const [micToast, setMicToast] = useState(null);
@@ -149,6 +177,51 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'net6', label: 'curl -I', value: 'curl -I ' },
       { id: 'net7', label: 'dig', value: 'dig ' },
       { id: 'net8', label: 'traceroute', value: 'traceroute ' },
+    ],
+    PY: [
+      { id: 'py1', label: 'python3', value: 'python3 ' },
+      { id: 'py2', label: 'pip install', value: 'pip install ' },
+      { id: 'py3', label: 'venv create', value: 'python3 -m venv venv\n' },
+      { id: 'py4', label: 'venv activate', value: 'source venv/bin/activate\n' },
+      { id: 'py5', label: 'pip list', value: 'pip list\n' },
+      { id: 'py6', label: 'pip freeze', value: 'pip freeze > requirements.txt\n' },
+    ],
+    TMX: [
+      { id: 'tmx1', label: 'tmux ls', value: 'tmux ls\n' },
+      { id: 'tmx2', label: 'tmux new', value: 'tmux new-session -s ' },
+      { id: 'tmx3', label: 'tmux attach', value: 'tmux attach -t ' },
+      { id: 'tmx4', label: 'tmux kill', value: 'tmux kill-session -t ' },
+      { id: 'tmx5', label: 'split h', value: '\x02%' },
+      { id: 'tmx6', label: 'split v', value: '\x02"' },
+    ],
+    KEY_NAV: [
+      { id: 'nav1', label: '▲ Up', value: '\x1b[A' },
+      { id: 'nav2', label: '▼ Down', value: '\x1b[B' },
+      { id: 'nav3', label: '◀ Left', value: '\x1b[D' },
+      { id: 'nav4', label: '► Right', value: '\x1b[C' },
+      { id: 'nav5', label: 'PgUp', value: '\x1b[5~' },
+      { id: 'nav6', label: 'PgDn', value: '\x1b[6~' },
+      { id: 'nav7', label: 'Home', value: '\x1b[H' },
+      { id: 'nav8', label: 'End', value: '\x1b[F' },
+      { id: 'nav9', label: 'Ctrl+Left', value: '\x1b[1;5D' },
+      { id: 'nav10', label: 'Ctrl+Right', value: '\x1b[1;5C' },
+      { id: 'nav11', label: 'Shift+Tab', value: '\x1b[Z' },
+      { id: 'nav12', label: 'Backspace', value: '\x7f' },
+      { id: 'nav13', label: 'Enter', value: '\r' },
+    ],
+    KEY_FN: [
+      { id: 'fn1', label: 'F1', value: '\x1bOP' },
+      { id: 'fn2', label: 'F2', value: '\x1bOQ' },
+      { id: 'fn3', label: 'F3', value: '\x1bOR' },
+      { id: 'fn4', label: 'F4', value: '\x1bOS' },
+      { id: 'fn5', label: 'F5', value: '\x1b[15~' },
+      { id: 'fn6', label: 'F6', value: '\x1b[17~' },
+      { id: 'fn7', label: 'F7', value: '\x1b[18~' },
+      { id: 'fn8', label: 'F8', value: '\x1b[19~' },
+      { id: 'fn9', label: 'F9', value: '\x1b[20~' },
+      { id: 'fn10', label: 'F10', value: '\x1b[21~' },
+      { id: 'fn11', label: 'F11', value: '\x1b[23~' },
+      { id: 'fn12', label: 'F12', value: '\x1b[24~' },
     ],
     KEY_SYM: [
       { id: 'sym1', label: '|', value: '|' },
@@ -423,50 +496,43 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               </button>
             </div>
 
-            {/* Categorized Tool Suite Selector Bar */}
+            {/* Primary Category Group Selector Bar */}
             <div className="suite-selector-scroll">
-              {['AGY', 'CLD', 'HMS', 'APT', 'PAC', 'YUM', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'KEY'].map((key) => {
-                const isActive = selectedSuite === key || selectedSuite.startsWith(`${key}_`);
+              {Object.keys(GROUPS).map((groupKey) => {
+                const isActive = primaryGroup === groupKey;
                 return (
                   <button
-                    key={key}
+                    key={groupKey}
                     type="button"
                     className={`suite-tab-pill ${isActive ? 'active' : ''}`}
                     onClick={() => {
-                      if (key === 'KEY') setSelectedSuite('KEY_SYM');
-                      else setSelectedSuite(key);
+                      setPrimaryGroup(groupKey);
+                      const defaultSub = GROUPS[groupKey].suites[0];
+                      setSelectedSuite(defaultSub);
                     }}
                   >
-                    {key}
+                    {GROUPS[groupKey].label}
                   </button>
                 );
               })}
             </div>
 
-            {/* Stacked Sub-Suite Bar for KEY Category (SYM, MODE, LINE) */}
-            {(selectedSuite.startsWith('KEY_') || selectedSuite === 'KEY') && (
+            {/* Sub-Suite Selector Bar for Active Group */}
+            {GROUPS[primaryGroup] && (
               <div className="sub-suite-bar">
-                <button
-                  type="button"
-                  className={`sub-suite-pill ${selectedSuite === 'KEY_SYM' ? 'active' : ''}`}
-                  onClick={() => setSelectedSuite('KEY_SYM')}
-                >
-                  SYM (Operators)
-                </button>
-                <button
-                  type="button"
-                  className={`sub-suite-pill ${selectedSuite === 'KEY_MODE' ? 'active' : ''}`}
-                  onClick={() => setSelectedSuite('KEY_MODE')}
-                >
-                  MODE (Escapes)
-                </button>
-                <button
-                  type="button"
-                  className={`sub-suite-pill ${selectedSuite === 'KEY_LINE' ? 'active' : ''}`}
-                  onClick={() => setSelectedSuite('KEY_LINE')}
-                >
-                  LINE (Cursor)
-                </button>
+                {GROUPS[primaryGroup].suites.map((subKey) => {
+                  const isSubActive = selectedSuite === subKey;
+                  return (
+                    <button
+                      key={subKey}
+                      type="button"
+                      className={`sub-suite-pill ${isSubActive ? 'active' : ''}`}
+                      onClick={() => setSelectedSuite(subKey)}
+                    >
+                      {SUB_LABELS[subKey] || subKey}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
