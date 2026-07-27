@@ -8,7 +8,7 @@ docs/
 testing/
 *.log
 _temp_trash
-config.env
+.env
 *.pem
 *.crt
 *.key

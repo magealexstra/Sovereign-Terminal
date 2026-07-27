@@ -32,13 +32,13 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 
 ### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
-* **Interactive Breadcrumbs:** Tap-based directory navigation (e.g., `/workspace` > `Docs` > `Things`).
+* **Interactive Breadcrumbs:** Tap-based directory navigation (e.g., `/workspace` > `Verdand` > `The_Weaver_Shack`).
 * **Universal Language Highlighting:** CodeMirror 6 syntax highlighting supporting Python, JavaScript, C, C++, Rust, HTML, CSS, XML, SQL, JSON, Markdown, Shell, Dockerfile, and configuration formats.
 * **Native Touch Integration:** Native OS selection handles, magnifying glass, and context menus (`Copy`, `Cut`, `Paste`).
 * **Unsaved File Safeguards:** Modal dialog on tab close with explicit options (`[ Save & Close ]`, `[ Discard ]`, `[ Cancel ]`).
 * **Automated Git Commit Macro:** Auto-detects Git repository root and executes staging and commit sequences.
 * **Universal Binary Transfer:** Direct bidirectional phone-to-server transfer supporting images, archives, audio, 3D models, and PDFs, with on-the-fly zip archive streaming for multi-file downloads.
-* **Configurable Trash Protection:** Safe trash mode moves deleted files to `./_temp_trash/` by default. Permanent removal can be enabled via `ENABLE_PERMANENT_DELETE=true` in `.env`.
+* **Configurable Trash Protection:** Safe trash mode moves deleted files to `./_temp_trash/` by default. Permanent removal can be enabled via `ENABLE_PERMANENT_DELETE=true` in `config.env`.
 
 ### 3. Single-Bar Visual TouchBar Editor (Settings Tab 1)
 * **Tap-Selection Workflow:** 2-tap add, move left/right, and delete interaction model for full TouchBar customization.
@@ -79,7 +79,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 
 By default, file deletion within the File Explorer follows **Safe Trash Mode**, moving deleted items to `./_temp_trash/` instead of executing unrecoverable removal.
 
-To enable permanent deletion, update `.env`:
+To enable permanent deletion, update `config.env`:
 
 ```env
 # Enable Permanent Deletion (Bypasses _temp_trash)
@@ -102,7 +102,7 @@ git clone https://github.com/magealexstra/Sovereign_Terminal.git
 cd Sovereign_Terminal
 
 # 2. Configure environment
-cp .env.example .env
+cp config.env.example config.env
 
 # 3. Launch Docker Stack (Port 2068 in Dev / 2069 in Release)
 docker compose up -d
