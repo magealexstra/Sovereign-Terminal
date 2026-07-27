@@ -23,7 +23,7 @@ We are actively asking the community for help with the following specific items:
 Please use the GitHub Issues tab to report bugs. Include:
 * Your device model and OS version.
 * Your browser (Chrome, Safari, Firefox).
-* The Docker host OS (Anroid, IOS, Manjaro ARM, postmarketOS, Mobian, or Ubuntu Touch)
+* The Docker host OS (Android, iOS, Manjaro ARM, postmarketOS, Mobian, or Ubuntu Touch)
 * Steps to reproduce the bug.
 
 Welcome to the Faction. We're excited to build with you!

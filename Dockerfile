@@ -57,7 +57,7 @@ RUN cp /app/server/tmux.conf /etc/tmux.conf
 
 # Create a test user for PAM authentication testing
 # Uncomment the following line to easily test Option A + PAM mode out of the box:
-RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd
+# RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd
 
 EXPOSE 2068 2069
 
