@@ -56,9 +56,13 @@ Located at the bottom of the screen is the customizable TouchBar:
 
 ---
 
-## 6. Multi-User PAM Server Persistence
+## 6. Multi-User PAM Server Persistence & Multi-Device Resume
 
-When logging in via Linux PAM (`AUTH_MODE=pam`), your custom themes, button layouts, font scale settings, and CopyCard preferences are automatically saved to your server home directory:
-`/home/{username}/.config/sovereign-terminal/settings.json`
+When logging in via Linux PAM (`AUTH_MODE=pam`), your workstation is truly sovereign and persistent:
 
-Log in from any device or browser using your Linux username, and your personalized workstation environment loads instantly.
+* **Preferences Sync:** Your custom themes, button layouts, font scale settings, and CopyCard preferences are automatically saved to your server home directory:
+  `/home/{username}/.config/sovereign-terminal/settings.json`
+* **True Multi-Device Resume:** Your terminal tabs are powered by persistent background `tmux` sessions. You can close your mobile browser, drive home, log in on your desktop browser using your Linux username, and your tabs will instantly reconnect you precisely where you left off.
+* **Zombie-Proofing:** Connecting to a session from a new device explicitly kicks out any orphaned connections from previous device drop-outs, preventing locked sizes and ensuring flawless dynamic flexbox resizing perfectly matches your active screen.
+
+Log in from anywhere, and your personalized workstation environment loads instantly.

@@ -21,7 +21,9 @@ Designed to replace traditional, rigid web terminals, it pairs a hardware-accele
 
 ### 1. Multi-Tab WebGL Terminal & PTY Gateway
 * **60fps WebGL Canvas:** Powered by `@xterm/xterm` and `@xterm/addon-webgl` for GPU-accelerated rendering.
-* **tmux Session Persistence:** Multi-session tab bar supporting concurrent persistent sessions (`mobile-voice`, `dev`, `server-logs`) with controlling terminal ioctl allocation.
+* **Flawless Mobile Resizing:** Dynamically monitors DOM layout paints and guarantees pixel-perfect flexbox scaling for viewport height, preventing cut-off prompts.
+* **True Multi-Device Persistence:** Multi-session tab bar supporting concurrent persistent sessions. Close your phone browser, open a tablet, authenticate via PAM, and resume exactly where you left off.
+* **Zombie-Proof Sessions:** Advanced PTY session tracking prevents orphaned connections and guarantees accurate controlling terminal sizes across device hand-offs.
 * **Gboard Voice Engine:** Continuous Voice Activity Detection (VAD) dictation with real-time transcript diffing.
 * **Quick Sudo Entry Macro:** Single-tap encrypted sudo password entry satisfying `[sudo]` prompts without exposing plain text on screen.
 * **Master Red `MACROS` Launcher:** Pinned bright red catalog launcher granting instant access to the full command toolkit library.
