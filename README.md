@@ -11,7 +11,7 @@
 
 ## Overview
 
-**The Sovereign Terminal** is an open-source, high-performance, system-agnostic web application designed to transform mobile devices, tablets, and desktop browsers into a complete, sovereign Linux server management workstation.
+**The Sovereign Terminal** is an open-source, high-performance, system-agnostic web application explicitly designed to transform mobile phones and tablets into a complete, sovereign Linux server management workstation.
 
 Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js terminal canvas with a GUI File Explorer, CodeMirror 6 text editor, highly customizable touch bars, single-handed mobile docking, dynamic theme engine, and a dedicated Python PTY backend gateway.
 
