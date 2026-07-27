@@ -18,6 +18,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const fitAddonInstance = useRef(null);
   const socketRef = useRef(null);
   const selectionTimer = useRef(null);
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
@@ -72,6 +74,16 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
   }, [isActive]);
 
+  useEffect(() => {
+    const handleGlobalFocus = () => {
+      if (isActive && xtermInstance.current) {
+        xtermInstance.current.focus();
+      }
+    };
+    window.addEventListener('terminal-focus', handleGlobalFocus);
+    return () => window.removeEventListener('terminal-focus', handleGlobalFocus);
+  }, [isActive]);
+
   // Main terminal lifecycle — runs once per mounted instance.
   // App.jsx uses key={sess.id} so each session gets its own component instance.
   useEffect(() => {
@@ -121,6 +133,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     });
 
     term.open(terminalRef.current);
+
+    if (term.textarea) {
+      term.textarea.addEventListener('blur', (e) => {
+        const target = e.relatedTarget;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+          return; // Let the other input take focus
+        }
+        if (isActiveRef.current) {
+          // Reclaim focus aggressively to prevent keyboard dismissal
+          setTimeout(() => {
+            if (term.textarea) term.focus();
+          }, 10);
+        }
+      });
+    }
 
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
@@ -277,10 +304,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
       sock.onopen = () => {
         reconnectAttempts = 0;
-        sendResizeHandshake();
       };
 
-      sock.onmessage = (event) => { term.write(event.data); };
+      sock.onmessage = (event) => {
+        if (typeof event.data === 'string' && event.data.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed.type === 'ready') {
+              performFit();
+              sendResizeHandshake();
+              return;
+            }
+          } catch (e) {}
+        }
+        term.write(event.data);
+      };
       sock.onerror = (err) => { console.error('WebSocket Error:', err); };
 
       sock.onclose = () => {
@@ -300,12 +338,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       };
     };
 
-    // Delay the initial connection by 350ms so the two performFit pulses
-    // (50ms and 200ms) have settled and fitAddon has real col/row dimensions
-    // before the first sendResizeHandshake fires on onopen.
-    // Without this delay, the first session connects in ~5–15ms, reads cols=0,
-    // and the resize guard silently blocks — leaving tmux unable to render.
-    setTimeout(connect, 350);
+    connect();
 
     // term.onData uses socketRef.current so it targets the live socket after any reconnect
     term.onData((data) => {

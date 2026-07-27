@@ -12,6 +12,14 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const lastSpeechRef = useRef('');
   const micToastTimerRef = useRef(null);
 
+  const wasStagerOpen = useRef(false);
+  useEffect(() => {
+    if (wasStagerOpen.current && !showStager) {
+      window.dispatchEvent(new Event('terminal-focus'));
+    }
+    wasStagerOpen.current = showStager;
+  }, [showStager]);
+
   const [primaryGroup, setPrimaryGroup] = useState('AI');
   const [selectedSuite, setSelectedSuite] = useState('AGY');
 
@@ -50,17 +58,19 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
     micToastTimerRef.current = setTimeout(() => setMicToast(null), 4000);
   };
 
+  const PURGED_LAUNCHERS = ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'clear'];
+
   // Load active TouchBar layout from localStorage (or fallback defaults)
   const [activeSlots, setActiveSlots] = useState(() => {
     try {
       const saved = localStorage.getItem('sovereign_layout_slots');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed.bottom && Array.isArray(parsed.bottom)) return parsed.bottom;
+        if (Array.isArray(parsed)) return parsed.filter(item => !PURGED_LAUNCHERS.includes(item));
+        if (parsed.bottom && Array.isArray(parsed.bottom)) return parsed.bottom.filter(item => !PURGED_LAUNCHERS.includes(item));
       }
     } catch {}
-    return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
+    return ['ESC', 'TAB', '^C', '-', '/'];
   });
 
   // Listen for layout changes across tabs / settings
@@ -70,8 +80,8 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
         const saved = localStorage.getItem('sovereign_layout_slots');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) setActiveSlots(parsed);
-          else if (parsed.bottom && Array.isArray(parsed.bottom)) setActiveSlots(parsed.bottom);
+          if (Array.isArray(parsed)) setActiveSlots(parsed.filter(item => !PURGED_LAUNCHERS.includes(item)));
+          else if (parsed.bottom && Array.isArray(parsed.bottom)) setActiveSlots(parsed.bottom.filter(item => !PURGED_LAUNCHERS.includes(item)));
         }
       } catch {}
     };
@@ -367,9 +377,11 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       />
 
       {/* Perimeter Touch Row */}
-      <div className="touch-bar">
+      <div className="touch-bar" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
         <button
           className={`touch-btn voice-btn ${isRecording ? 'recording' : ''}`}
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
             setShowStager(true);
             toggleVoice();
@@ -381,6 +393,8 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
         <button
           className="touch-btn stager-launcher-btn"
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => setShowStager((prev) => !prev)}
           title="Open Command Staging Drawer"
           style={{ borderColor: 'var(--accent-violet)', color: 'var(--accent-violet)' }}
@@ -389,7 +403,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
         </button>
 
         {sessionStorage.getItem('sovereign_sudo_password') && (
-          <button className="touch-btn sudo-btn" onClick={handleSudoMacro} title="Quick Sudo Password Entry">
+          <button className="touch-btn sudo-btn" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={handleSudoMacro} title="Quick Sudo Password Entry">
             <KeyRound size={14} />
             <span>(***)</span>
           </button>
@@ -404,6 +418,8 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               <button
                 key={`slot-${item}-${idx}`}
                 className="touch-btn suite-chip-btn"
+                onPointerDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setSelectedSuite(item);
                   setShowMacroModal(true);
@@ -423,10 +439,10 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               'DEL': '\x1b[3~',
               '^C': '\x03',
               '^Z': '\x1a',
+              '-': '-',
               '|': '|',
               '~': '~',
               '/': '/',
-              'clear': 'clear\n',
               'sudo': 'sudo ',
               'exit': 'exit\n',
               'ArrowUp': '\x1b[A',
@@ -486,6 +502,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
                 key={`slot-${item}-${idx}`}
                 className="touch-btn macro-launcher-btn"
                 onPointerDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
                 title="Macro Master Catalog"
               >
@@ -500,6 +517,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               key={`slot-${item}-${idx}`}
               className="touch-btn"
               onPointerDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onKeyPress(getCommandPayload(item))}
             >
               {item}
@@ -511,6 +529,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
         <button
           className="touch-btn macro-launcher-btn"
           onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
           title="Master Macro Catalog"
         >
@@ -521,6 +540,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
         <button 
           className="touch-btn clear-btn" 
           onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onKeyPress('clear\n')} 
           title="Clear Terminal Screen"
         >
@@ -531,7 +551,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       {/* Command Suite Modal with Categorized Sub-Tabs */}
       {showMacroModal && (
         <div className="macro-modal-overlay" onClick={() => setShowMacroModal(false)}>
-          <div className="macro-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="macro-modal-content" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
             <div className="macro-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Zap size={16} color="#A3BE8C" />

@@ -1,6 +1,6 @@
 # The Sovereign Terminal
 
-> ⚠️ **NOTICE: THIS APPLICATION IS CURRENTLY UNDER ACTIVE DEVELOPMENT**
+>  **NOTICE: THIS APPLICATION IS CURRENTLY UNDER ACTIVE DEVELOPMENT**
 > *The Sovereign Terminal is actively being built and refined. Features, design specs, and APIs are evolving rapidly.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -91,49 +91,144 @@ ENABLE_PERMANENT_DELETE=true
 
 ## Quick Start Deployment
 
-Sovereign Terminal supports three distinct deployment strategies depending on your need for host integration:
+Sovereign Terminal deployment is defined by two separate concepts: **Deployment Architecture** (where it runs) and **Authentication Mode** (how you log in).
 
-### Option A: Fully Containerized Sandbox (Default)
-The easiest method for testing. Runs entirely isolated within Docker using its own internal `tmux` server and file system.
+### Overview of Deployment Matrices
 
-```bash
-# 1. Clone repository
-git clone https://github.com/yourusername/Sovereign_Terminal.git
-cd Sovereign_Terminal
+Sovereign Terminal offers two primary Authentication Modes (Token vs. PAM) combined with three primary Deployment Architectures (Option A: Sandbox, Option B: Host Passthrough, Option C: True Baremetal). This results in 5 possible installation matrices.
 
-# 2. Configure environment
-cp .env.example .env
+* **Token Mode:** The simple default. Log in with a single `SERVER_AUTH_TOKEN`.
+* **PAM Mode:** The advanced mode. Log in with your Linux OS user. Enables true multi-device resume via persistent background `tmux` sessions.
 
-# 3. Launch Docker Stack (Port 2069)
-docker compose up -d
-```
+#### Section 1: Option A (Sandbox) + Token Mode (The Default)
 
-### Option B: Containerized with Host Passthrough (Bind Mounts)
-Runs the app in Docker, but maps your host's authentication and `tmux` socket into the container so you can control your host's native environment from the web.
+This is the simplest method for getting started immediately. The terminal runs in a fully isolated container and authenticates with a simple token.
 
+**Code:** No modification needed to default `docker-compose.yml` or `Dockerfile`.
+**Explanation:** 
+1. Run `docker compose up -d` in your terminal.
+2. Open your browser and log in with the default token: `1234`.
+3. **IMPORTANT:** For prolonged usage, change `SERVER_AUTH_TOKEN` in `docker-compose.yml` (and `.env`) to a strong cryptographic string and run `docker compose up -d` again to apply the changes.
+
+#### Section 2: Option A (Sandbox) + PAM Mode (Internal Users)
+
+This runs the isolated sandbox, but uses PAM authentication against test users *inside* the container for testing multi-device persistence without touching your host machine.
+
+**Code:**
 ```yaml
-# Add these volumes to your docker-compose.yml:
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=pam
+      - PORT=2069
     volumes:
+      - ./:/workspace
+```
+**Explanation:** 
+1. Open `Dockerfile` and uncomment `# RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd`.
+2. Update your `docker-compose.yml` to the block above, changing `AUTH_MODE` to `pam`.
+3. Build and launch: `docker compose up -d --build`.
+4. Log in with user `testuser` and password `password`.
+
+#### Section 3: Option B (Host Passthrough) + Token Mode
+
+This option maps your host OS's filesystem and `tmux` environment into the container, giving you control over your real system while still protecting the web UI with a simple token login.
+
+**Code:**
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TMUX_VERSION=3.6 # MUST MATCH YOUR HOST tmux -V
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=token
+      - SERVER_AUTH_TOKEN=1234
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+      - /etc/localtime:/etc/localtime:ro
+      - /tmp/tmux-1000:/tmp/tmux-1000
+      - /home:/home
+```
+**Explanation:** 
+1. Check your host's tmux version with `tmux -V` and set `TMUX_VERSION` accordingly.
+2. The `/tmp/tmux-1000` volume allows the container to attach to your host's native tmux.
+3. Replace `1234` with a secure token!
+
+#### Section 4: Option B (Host Passthrough) + PAM Mode
+
+The ultimate containerized sovereign workstation. Manages your host system and authenticates using your actual host Linux user account.
+
+**Code:**
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TMUX_VERSION=3.6
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=pam
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+      - /etc/localtime:/etc/localtime:ro
       - /tmp/tmux-1000:/tmp/tmux-1000
       - /etc/passwd:/etc/passwd:ro
       - /etc/shadow:/etc/shadow:ro
       - /etc/group:/etc/group:ro
       - /home:/home
 ```
-Then run `docker compose up -d`.
+**Explanation:** 
+We mount `/etc/passwd`, `/etc/shadow`, and `/etc/group` in read-only mode so the container can authenticate against your host Linux users directly via PAM.
 
-### Option C: True Baremetal Execution (Host OS)
-Run the application natively on your host machine to bypass Docker completely and natively attach to your host's `tmux` sessions.
+#### Section 5: Option C (True Baremetal Execution)
 
+Run the backend natively on your host OS. Bypasses Docker completely for absolute native integration. No container layer means direct access to all system binaries, user permissions, and host networking interfaces.
+
+**Code:**
 ```bash
-# 1. Install Python dependencies and build frontend
+# Install system dependencies (Debian/Ubuntu example)
+sudo apt update && sudo apt install -y python3 python3-pip tmux nodejs npm
+
+# Install Python backend dependencies
 cd server && pip install -r requirements.txt
+
+# Install frontend dependencies and build
 cd .. && npm install && npm run build
 
-# 2. Run the Python Gateway
+# Configure environment natively
+cp .env.example .env
+# Edit .env and set AUTH_MODE=token or AUTH_MODE=pam
+
+# Run the Python Gateway natively
 cd server
 python3 -m uvicorn main:app --host 0.0.0.0 --port 2069
 ```
+**Explanation:** 
+The application reads `.env` directly from the local file system. Set `AUTH_MODE` natively and run Uvicorn. Ensure you manage the Uvicorn process with `systemd` or similar for production persistence.
 
 ## HTTPS, Tailscale & Remote Access
 

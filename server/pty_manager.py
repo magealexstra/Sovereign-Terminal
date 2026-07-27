@@ -1,4 +1,5 @@
 import os
+import pwd
 import pty
 import select
 import shutil
@@ -7,6 +8,7 @@ import fcntl
 import termios
 import asyncio
 import subprocess
+import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from auth import AUTH_MODE, ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions, require_auth
 
@@ -37,13 +39,13 @@ def list_sessions(user: dict = Depends(require_auth)):
 
 SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
-_tmux_bin = shutil.which("tmux")
+_tmux_bin = shutil.which("tmux") or shutil.which("tmux", path="/usr/local/bin:/usr/bin:/bin")
 
 # Pre-warm the tmux server at module load time.
 # This ensures the server socket exists before any WebSocket session connects,
 # eliminating the "error connecting" race on first connection.
 if _tmux_bin:
-    subprocess.run([_tmux_bin, "start-server"], capture_output=True, check=False)
+    subprocess.run([_tmux_bin, "start-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
 
 def set_pty_size(fd, rows, cols):
@@ -73,27 +75,39 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     tmux_bin = _tmux_bin
     target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("WORKSPACE_ROOT", "/workspace")
 
+    uinfo = None
+    if use_pam and target_user:
+        try:
+            uinfo = pwd.getpwnam(target_user)
+            tmux_dir = f"/tmp/tmux-{uinfo.pw_uid}"
+            if os.path.exists(tmux_dir):
+                os.chown(tmux_dir, uinfo.pw_uid, uinfo.pw_gid)
+                os.chmod(tmux_dir, 0o700)
+        except Exception as e:
+            print(f"Warning: Failed to setup user context for {target_user}: {e}", flush=True)
+
     if tmux_bin:
         # Attach to existing session (-A) if available, or create new one if not.
-        if use_pam and target_user:
-            cmd = ["su", "-", target_user, "-c", f"{tmux_bin} new-session -A -D -s {session} -c {target_cwd}"]
-        else:
-            cmd = [tmux_bin, "new-session", "-A", "-D", "-s", session, "-c", target_cwd]
+        cmd = [tmux_bin, "new-session", "-A", "-D", "-s", session, "-c", target_cwd]
     else:
-        if use_pam and target_user:
-            cmd = ["su", "-", target_user]
-        else:
-            cmd = [shutil.which("bash") or "/bin/sh"]
+        cmd = [shutil.which("bash") or "/bin/sh"]
 
     master_fd, slave_fd = pty.openpty()
 
     env = os.environ.copy()
     env["TERM"] = "xterm-256color"
     env["COLORTERM"] = "truecolor"
-    if not env.get("USER"):
-        env["USER"] = os.getenv("USER", "root")
-    if not env.get("HOME"):
-        env["HOME"] = os.getenv("HOME", "/root")
+    
+    if use_pam and target_user and uinfo:
+        env["USER"] = uinfo.pw_name
+        env["HOME"] = uinfo.pw_dir
+        env["LOGNAME"] = uinfo.pw_name
+    else:
+        if not env.get("USER"):
+            env["USER"] = os.getenv("USER", "root")
+        if not env.get("HOME"):
+            env["HOME"] = os.getenv("HOME", "/root")
+            
     if os.getenv("TZ"):
         env["TZ"] = os.getenv("TZ")
 
@@ -103,8 +117,19 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
             fcntl.ioctl(slave_fd, termios.TIOCSCTTY, 0)
         except Exception:
             pass
+            
+        if use_pam and target_user and uinfo:
+            import sys
+            try:
+                os.initgroups(target_user, uinfo.pw_gid)
+                os.setgid(uinfo.pw_gid)
+                os.setuid(uinfo.pw_uid)
+            except Exception as e:
+                print(f"FATAL: Could not drop privileges to {target_user}: {e}", file=sys.stderr)
+                os._exit(1)
 
     try:
+        print(f"Executing: {cmd}", flush=True)
         proc = subprocess.Popen(
             cmd,
             preexec_fn=preexec,
@@ -126,9 +151,24 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     set_pty_size(master_fd, 24, 80)
 
     # NOTE: Global tmux options (window-size manual, status-position bottom, mouse on)
-    # are now set via /root/.tmux.conf baked into the container image.
-    # We do NOT call subprocess.run set-option here — doing so per-session caused
-    # race conditions that crashed the tmux server when multiple tabs opened quickly.
+    # are now set via /etc/tmux.conf baked into the container image.
+
+    # Poll tmux has-session until the session is initialized and available
+    if tmux_bin:
+        for _ in range(100):  # max 5 seconds (100 * 0.05s)
+            if proc.poll() is not None:
+                break
+            if use_pam and target_user:
+                check_cmd = ["su", "-", target_user, "-c", f"{tmux_bin} has-session -t {session}"]
+            else:
+                check_cmd = [tmux_bin, "has-session", "-t", session]
+            
+            res = subprocess.run(check_cmd, capture_output=True, text=True, check=False)
+            if res.returncode == 0:
+                break
+            await asyncio.sleep(0.05)
+
+    await websocket.send_text(json.dumps({"type": "ready"}))
 
     loop = asyncio.get_event_loop()
 
@@ -159,7 +199,6 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
 
             if msg.startswith("{") and msg.endswith("}"):
                 try:
-                    import json
                     payload = json.loads(msg)
                     msg_type = payload.get("type")
 
@@ -172,12 +211,6 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                         rows = int(payload.get("rows", 24))
                         print(f"RESIZE COMMAND RECEIVED: cols={cols}, rows={rows}", flush=True)
                         set_pty_size(master_fd, rows, cols)
-                        
-                        if _tmux_bin:
-                            if use_pam and target_user:
-                                subprocess.run(["su", "-", target_user, "-c", f"{_tmux_bin} refresh-client -t {session}"], check=False)
-                            else:
-                                subprocess.run([_tmux_bin, "refresh-client", "-t", session], check=False)
                         continue
 
                     elif msg_type == "sudo_macro":

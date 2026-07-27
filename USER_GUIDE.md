@@ -1,68 +1,152 @@
-# Sovereign Terminal — User Guide & Mobile Operation Manual
+# Sovereign Terminal — Installation & Deployment Guide
 
-Welcome to **The Sovereign Terminal**, a touch-controlled, mobile-first Linux server management workstation. This manual explains key touch gestures, navigation controls, custom settings, and session options.
+## Overview of Deployment Matrices
 
----
+Sovereign Terminal offers two primary Authentication Modes (Token vs. PAM) combined with three primary Deployment Architectures (Option A: Sandbox, Option B: Host Passthrough, Option C: True Baremetal). This results in 5 possible installation matrices.
 
-## 1. Header Navigation & Session Controls
+* **Token Mode:** The simple default. Log in with a single `SERVER_AUTH_TOKEN`.
+* **PAM Mode:** The advanced mode. Log in with your Linux OS user. Enables true multi-device resume via persistent background `tmux` sessions.
 
-* **Main Navigation Bar:** Switch between **Terminal** (Tab 1), **File Explorer & Editor** (Tab 2), and **Settings Studio** (Tab 3).
-* **Brand Logo & Session Popup:** Tapping the **SOVEREIGN TERMINAL** logo image or title in the top-left header toggles the active session pop-up menu.
-  * **Session Status:** Displays your active authentication mode (Linux OS PAM or Token).
-  * **Logout:** Tap **LOGOUT SESSION** to tear down WebSocket connections, erase session credentials, and return to a clean login screen.
+### Section 1: Option A (Sandbox) + Token Mode (The Default)
 
----
+This is the simplest method for getting started immediately. The terminal runs in a fully isolated container and authenticates with a simple token.
 
-## 2. Terminal & Left-Edge Copy Suite (`CopyCard`)
+**Target Audience:** Absolute beginners.
 
-Pinned to the left edge above the TouchBar is the vertical 3-button Copy Suite:
+**Explanation:**
+1. Open your terminal and run `docker compose up -d`. This will automatically download and start the Sovereign Terminal server in the background.
+2. Open your web browser and navigate to `http://localhost:2069` (or your server's IP address on port 2069).
+3. Log in with the default token: `1234`.
+4. **IMPORTANT:** For prolonged usage, you should change `SERVER_AUTH_TOKEN` in the `docker-compose.yml` (and `.env`) to a strong cryptographic string. After editing the file, run `docker compose up -d` again to apply the changes securely.
 
-* **COPY (Sage Green):** Copies the active terminal line to your selected destination.
-* **ALL (Glacier Blue):** Copies the entire terminal scrollback buffer.
-* **CUST (Nordic Red):** Copies a specified number of lines (default 50 lines). Tap the `CUST` button in Settings -> Button Studio to edit its target line count.
-* **Destination Toggle Pill (Bottom of Card):** Tapping the pill at the bottom of the card toggles between:
-  * **`[ CLIP ]`**: Copies text directly to the system clipboard.
-  * **`[ CODE ]`**: Copies text into a new document tab inside the CodeMirror Editor.
+### Section 2: Option A (Sandbox) + PAM Mode (Internal Users)
 
----
+This runs the isolated sandbox, but uses PAM authentication against test users *inside* the container for testing multi-device persistence without touching your host machine.
 
-## 3. TouchBar, Dictation & Command Stager
+**Target Audience:** Beginners wanting to test multi-device resume.
 
-Located at the bottom of the screen is the customizable TouchBar:
+**Code:**
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=pam
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+```
 
-* **Mic Button:** Tap to activate Gboard voice dictation.
-* **Stager Launcher Button (Edit Icon):** Opens the TouchBar-anchored dictation & command staging drawer immediately above the TouchBar.
-  * **Direct Mode:** Sends commands to terminal on tap.
-  * **Two-Step Mode:** Allows reviewing and editing spoken or typed text before transmitting.
-* **Quick Sudo Button `(***)`:** Appears when opted-in during PAM login. Transmits your session sudo password without exposing text.
-* **Master Red `MACROS` Button:** Opens the complete library of categorized command toolkits (`AGY`, `CLD`, `HMS`, `APT`, `DOC`, `GIT`, `SYS`, `NET`, `PY`, `TMX`).
+**Explanation:**
+1. First, open the `Dockerfile` in the project directory. Find the line that says `# RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd` and remove the `#` at the beginning to uncomment it. This creates a test user inside the container.
+2. Update your `docker-compose.yml` file to match the exact block above. Notice that we changed `AUTH_MODE` to `pam`.
+3. Build the new container image and launch it by running: `docker compose up -d --build`.
+4. Navigate to the web UI and log in with the username `testuser` and password `password`. You can now test how sessions persist!
 
----
+### Section 3: Option B (Host Passthrough) + Token Mode
 
-## 4. File Explorer & Code Editor
+This option maps your host OS's filesystem and `tmux` environment into the container, giving you control over your real system while still protecting the web UI with a simple token login.
 
-* **File Tree Sync:** Synchronizes with your active terminal working directory.
-* **Multi-Document Tabs:** Displays open files with official language brand colors (Python Blue, JS Yellow, HTML Orange, CSS Blue, Shell Green, etc.).
-* **Touch Scrolling:** Drag with your finger to scroll long code or Markdown documents smoothly with theme-adapting scrollbars.
-* **Editor Touch Bar:** Bottom action row for **SAVE**, **SAVE & COMMIT**, **COPY ALL**, and **CLOSE**.
+**Target Audience:** Intermediate users familiar with Docker volumes.
 
----
+**Code:**
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TMUX_VERSION=3.6 # MUST MATCH YOUR HOST tmux -V
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=token
+      - SERVER_AUTH_TOKEN=1234
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+      - /etc/localtime:/etc/localtime:ro
+      - /tmp/tmux-1000:/tmp/tmux-1000
+      - /home:/home
+```
 
-## 5. Settings Studio (Tab 3)
+**Explanation:**
+1. Check your host machine's tmux version by running `tmux -V` and set the `TMUX_VERSION` arg in the compose file accordingly so the container's tmux client can talk to your host's tmux server.
+2. The `/tmp/tmux-1000` volume allows the container to attach to your host's native tmux socket.
+3. Be sure to replace `1234` with a secure token before deploying! Then run `docker compose up -d --build`.
 
-* **Button Layout Builder:** Customize TouchBar slots with 2-tap add, move, and remove workflows.
-* **Button Studio:** Customize macro button colors, labels, and functions, including the pinned interactive `CUST` button.
-* **Theme Settings:** Switch theme presets, adjust font scaling sliders (6px to 20px), and create custom Base-16 color palettes.
+### Section 4: Option B (Host Passthrough) + PAM Mode ("The Pro Option")
 
----
+The ultimate containerized sovereign workstation. Manages your host system and authenticates using your actual host Linux user account. (This is the option I use. -magealexstra)
 
-## 6. Multi-User PAM Server Persistence & Multi-Device Resume
+**Target Audience:** Advanced users managing a real Linux host.
 
-When logging in via Linux PAM (`AUTH_MODE=pam`), your workstation is truly sovereign and persistent:
+**Code:**
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - TMUX_VERSION=3.6
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=pam
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+      - /etc/localtime:/etc/localtime:ro
+      - /tmp/tmux-1000:/tmp/tmux-1000
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/shadow:/etc/shadow:ro
+      - /etc/group:/etc/group:ro
+      - /home:/home
+```
 
-* **Preferences Sync:** Your custom themes, button layouts, font scale settings, and CopyCard preferences are automatically saved to your server home directory:
-  `/home/{username}/.config/sovereign-terminal/settings.json`
-* **True Multi-Device Resume:** Your terminal tabs are powered by persistent background `tmux` sessions. You can close your mobile browser on your phone, pick up a tablet using your Linux username, and your tabs will instantly reconnect you precisely where you left off.
-* **Zombie-Proofing:** Connecting to a session from a new device explicitly kicks out any orphaned connections from previous device drop-outs, preventing locked sizes and ensuring flawless dynamic flexbox resizing perfectly matches your active screen.
+**Explanation:**
+We mount `/etc/passwd`, `/etc/shadow`, and `/etc/group` in read-only mode so the container can authenticate against your host Linux users directly via PAM. Match `TMUX_VERSION` to your host, build, and deploy.
 
-Log in from anywhere, and your personalized workstation environment loads instantly.
+### Section 5: Option C (True Baremetal Execution)
+
+Run the backend natively on your host OS. Bypasses Docker completely for absolute native integration. No container layer means direct access to all system binaries, user permissions, and host networking interfaces.
+
+**Target Audience:** Expert sysadmins bypassing Docker entirely.
+
+**Code:**
+```bash
+# Install system dependencies (Debian/Ubuntu example)
+sudo apt update && sudo apt install -y python3 python3-pip tmux nodejs npm
+
+# Install Python backend dependencies
+cd server && pip install -r requirements.txt
+
+# Install frontend dependencies and build
+cd .. && npm install && npm run build
+
+# Configure environment natively
+cp .env.example .env
+# Edit .env and set AUTH_MODE=token or AUTH_MODE=pam
+
+# Run the Python Gateway natively
+cd server
+python3 -m uvicorn main:app --host 0.0.0.0 --port 2069
+```
+
+**Explanation:**
+The application reads `.env` directly from the local file system. Set `AUTH_MODE` natively and run Uvicorn. Manage the Uvicorn process with `systemd` or similar for production persistence.

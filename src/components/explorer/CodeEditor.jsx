@@ -201,6 +201,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
             height="100%"
             theme={EditorView.theme({
               '&': {
+                height: '100%',
                 backgroundColor: theme?.bgEarth || '#0A1118',
                 color: theme?.textParchment || '#E6EDF0',
                 fontFamily: "'IBM Plex Mono', monospace",
@@ -208,7 +209,8 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
               },
               '.cm-content': {
                 caretColor: theme?.accentHighlight || '#88C0D0',
-                fontSize: `${editorFontSizePx || 14}px`
+                fontSize: `${editorFontSizePx || 14}px`,
+                paddingBottom: 'calc(100vh - var(--visual-viewport-height) + 45px)'
               },
               '&.cm-focused .cm-cursor': {
                 borderLeftColor: theme?.accentHighlight || '#88C0D0'
@@ -221,7 +223,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
               '.cm-scroller': {
                 overflow: 'auto !important',
                 height: '100% !important',
-                touchAction: 'pan-y'
+                overscrollBehavior: 'none'
               }
             }, { dark: true })}
             extensions={[

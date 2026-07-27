@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 import zipfile
 import subprocess
@@ -155,7 +156,6 @@ def delete_item(payload: dict):
     dest_path = Path(TRASH_DIR) / p.name
 
     if dest_path.exists():
-        import time
         dest_path = Path(TRASH_DIR) / f"{p.stem}_{int(time.time())}{p.suffix}"
 
     try:

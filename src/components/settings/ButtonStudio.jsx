@@ -223,6 +223,12 @@ export default function ButtonStudio() {
 
   const displayCategories = getFilteredCategories();
 
+  const shapeStyle = {
+    backgroundColor: activeBtn?.bg || 'var(--bg-canopy)',
+    color: activeBtn?.text || 'var(--text-parchment)',
+    borderColor: activeBtn?.border || 'var(--accent-mana)'
+  };
+
   return (
     <div className="touch-studio-mobile-window">
       {/* Top Search & Dropdown Navigation Stack */}
@@ -332,6 +338,7 @@ export default function ButtonStudio() {
               <button
                 type="button"
                 className={`shape-tap-btn shape-square ${activeBtn.shape === 'square' ? 'active' : ''}`}
+                style={shapeStyle}
                 onClick={() => updateActiveBtn({ shape: 'square' })}
               >
                 Square
@@ -339,6 +346,7 @@ export default function ButtonStudio() {
               <button
                 type="button"
                 className={`shape-tap-btn shape-rounded ${activeBtn.shape === 'rounded' ? 'active' : ''}`}
+                style={shapeStyle}
                 onClick={() => updateActiveBtn({ shape: 'rounded' })}
               >
                 Round
@@ -346,6 +354,7 @@ export default function ButtonStudio() {
               <button
                 type="button"
                 className={`shape-tap-btn shape-pill ${activeBtn.shape === 'pill' ? 'active' : ''}`}
+                style={shapeStyle}
                 onClick={() => updateActiveBtn({ shape: 'pill' })}
               >
                 Pill

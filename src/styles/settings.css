@@ -412,13 +412,7 @@
     margin-right: 0.25rem;
   }
 
-  .nav-tabs-group {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.3rem;
-  }
+
 
   .nav-pill-btn {
     flex: 1;
@@ -481,6 +475,8 @@
 
 .studio-dropdown {
   flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
   padding: 0.3rem 0.5rem;
   background: var(--bg-earth);
   border: 1px solid var(--border-forest);
@@ -494,6 +490,7 @@
   display: flex;
   align-items: center;
   gap: 0.2rem;
+  flex-shrink: 0;
   padding: 0.3rem 0.6rem;
   background: var(--status-active);
   color: #0d170b;
@@ -508,8 +505,8 @@
 .studio-mobile-grid {
   display: grid;
   grid-template-columns: 1fr 1.2fr 1fr;
-  grid-template-rows: minmax(180px, auto) auto;
-  gap: 0.4rem;
+  grid-template-rows: minmax(140px, 1fr) auto;
+  gap: 0.25rem;
   flex: 1;
   min-height: min-content;
 }
@@ -530,7 +527,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: 0.35rem;
   overflow: hidden;
 }
 
@@ -628,7 +625,7 @@
 
 .micro-step-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 0.3rem;
   background: var(--bg-earth);
@@ -640,8 +637,7 @@
 }
 
 .step-btn {
-  width: 1.5rem;
-  height: 1.5rem;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -650,7 +646,7 @@
   border-radius: 4px;
   color: var(--text-parchment);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: clamp(0.85rem, 1.8vh, 1.2rem);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -662,8 +658,11 @@
 }
 
 .step-val {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: clamp(0.78rem, 1.5vh, 1.05rem);
   font-weight: 700;
   color: var(--accent-mana);
 }
@@ -701,10 +700,7 @@
 .shape-tap-btn.shape-pill { border-radius: 16px; }
 
 .shape-tap-btn.active {
-  background: var(--accent-mana);
-  color: var(--bg-earth);
-  border-color: var(--accent-mana);
-  box-shadow: 0 0 8px rgba(136, 192, 208, 0.4);
+  box-shadow: 0 0 12px var(--accent-highlight), inset 0 0 0 2px var(--accent-highlight);
 }
 
 .pinned-save-wrapper {
@@ -1177,7 +1173,7 @@
 .square-slot-box.text-xs, .square-pool-tile.text-xs { font-size: 0.54rem; font-weight: 600; }
 
 /* Dynamic Equal-Distribution Tab Auto-Fitting Rules */
-.nav-tabs-group, .settings-subtabs-bar, .session-tabs-bar, .editor-tabs-bar {
+.settings-subtabs-bar, .session-tabs-bar, .editor-tabs-bar {
   display: flex !important;
   width: 100% !important;
   gap: 0.25rem !important;
@@ -1212,8 +1208,10 @@
 .theme-settings-container {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 0.75rem;
-  padding-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .section-header-compact {
@@ -1458,7 +1456,8 @@
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 0.45rem;
   overflow-y: auto;
-  max-height: 35vh;
+  flex: 1;
+  align-content: start;
   padding-right: 0.2rem;
 }
 
@@ -1905,6 +1904,7 @@
 .theme-section-grid {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
 }
 

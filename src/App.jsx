@@ -60,6 +60,17 @@ export default function App() {
 
   const [showBrandMenu, setShowBrandMenu] = useState(false);
 
+  useEffect(() => {
+    if (!showBrandMenu) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.brand-title') && !e.target.closest('.brand-menu-popup')) {
+        setShowBrandMenu(false);
+      }
+    };
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, [showBrandMenu]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -138,47 +149,39 @@ export default function App() {
     handleCloseSession,
     handleTerminalInput,
   } = useSessions(activeTerminalPath, showSessionToast);
-  const [openDocuments, setOpenDocuments] = useState([
-    {
-      name: 'README.md',
-      path: '/workspace/README.md',
-      isModified: false,
-      content: '# SOVEREIGN TERMINAL\n\nWelcome to your mobile-first Linux control workstation.'
-    },
-    {
-      name: 'USER_GUIDE.md',
-      path: '/workspace/USER_GUIDE.md',
-      isModified: false,
-      content: '# Sovereign Terminal — User Guide & Mobile Operation Manual'
-    }
-  ]);
-  const [activeFilePath, setActiveFilePath] = useState('/workspace/README.md');
+  const [openDocuments, setOpenDocuments] = useState([]);
+  const [activeFilePath, setActiveFilePath] = useState('');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
 
-  // Load actual server README.md and USER_GUIDE.md content on startup
+  // One-Time Welcome Screen: Load OPERATION_MANUAL.md after login
   useEffect(() => {
-    fetch('/api/fs/read?path=/workspace/README.md')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && data.content) {
-          setOpenDocuments((prev) =>
-            prev.map((doc) => (doc.path === '/workspace/README.md' ? { ...doc, content: data.content } : doc))
-          );
-        }
-      })
-      .catch(() => {});
+    // Only run this logic if the user is successfully authenticated
+    if (!isAuthenticated) return;
 
-    fetch('/api/fs/read?path=/workspace/USER_GUIDE.md')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && data.content) {
-          setOpenDocuments((prev) =>
-            prev.map((doc) => (doc.path === '/workspace/USER_GUIDE.md' ? { ...doc, content: data.content } : doc))
-          );
-        }
-      })
-      .catch(() => {});
-  }, []);
+    // Check if the user has already seen the manual in this browser
+    const hasSeenManual = localStorage.getItem('hasSeenManual');
+    if (!hasSeenManual) {
+      // Fetch the live manual from the container's hard drive
+      fetch('/api/fs/read?path=/workspace/OPERATION_MANUAL.md')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.content) {
+            // Open the manual as a new tab
+            setOpenDocuments([{
+              name: 'OPERATION_MANUAL.md',
+              path: '/workspace/OPERATION_MANUAL.md',
+              isModified: false,
+              content: data.content
+            }]);
+            setActiveFilePath('/workspace/OPERATION_MANUAL.md');
+            
+            // Mark it as seen so it never auto-opens again
+            localStorage.setItem('hasSeenManual', 'true');
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   // File Explorer & CodeEditor Handlers
   const handleOpenFile = async (filepath) => {
@@ -301,11 +304,10 @@ export default function App() {
   return (
     <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
       {/* Header with OmniState Logo & Vertically Stacked Title */}
-      <header className="main-nav-bar" style={{ position: 'relative' }}>
+      <header className="main-nav-bar" style={{ position: 'relative', width: '100%' }}>
         <div
-          className="brand-title"
+          className={`brand-title ${showBrandMenu ? 'active' : ''}`}
           title="Session Controls (Tap to Open)"
-          style={{ cursor: 'pointer', userSelect: 'none' }}
           onClick={() => setShowBrandMenu((prev) => !prev)}
         >
           <img
@@ -325,40 +327,16 @@ export default function App() {
 
         {/* Floating Brand Session Menu Pop-Up */}
         {showBrandMenu && (
-          <div
-            className="brand-menu-popup"
-            style={{
-              position: 'absolute',
-              top: '3.2rem',
-              left: '0.8rem',
-              zIndex: 1000,
-              background: 'var(--bg-canopy)',
-              border: '1.5px solid var(--border-forest)',
-              borderRadius: '12px',
-              padding: '0.8rem',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-              minWidth: '200px'
-            }}
-          >
-            <div style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
+          <div className="brand-menu-popup">
+            <div className="brand-menu-header">
               SESSION ACTIVE ({authMode === 'pam' ? 'Linux OS PAM' : 'Token'})
             </div>
             <button
               type="button"
-              className="touch-btn"
-              style={{
-                width: '100%',
-                justifyContent: 'center',
-                background: 'var(--bg-earth)',
-                border: '1.5px solid var(--status-danger)',
-                color: 'var(--status-danger)',
-                fontWeight: '700',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
+              className="brand-menu-logout-btn"
               onClick={handleLogout}
             >
+              <LogOut size={14} />
               <span>LOGOUT SESSION</span>
             </button>
           </div>
@@ -391,17 +369,6 @@ export default function App() {
             <Sliders size={13} />
             <span>Settings</span>
           </button>
-
-          {authEnabled && (
-            <button
-              type="button"
-              className="nav-tab-btn logout-nav-btn"
-              onClick={handleLogout}
-              title="Logout Session"
-            >
-              <LogOut size={13} color="var(--red, #BF616A)" />
-            </button>
-          )}
         </div>
       </header>
 

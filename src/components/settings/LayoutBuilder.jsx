@@ -27,19 +27,20 @@ export default function LayoutBuilder() {
     try {
       const storageKey = suiteKey === 'PRIMARY' ? 'sovereign_layout_slots' : `sovereign_macro_suite_${suiteKey}`;
       const saved = localStorage.getItem(storageKey);
+      const purgeList = ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'clear'];
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return parsed.filter(item => !purgeList.includes(item));
       }
       if (suiteKey === 'PRIMARY') {
-        return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
+        return ['ESC', 'TAB', '^C', '-', '/'];
       }
       if (PREBUILT_CATEGORIES[suiteKey]) {
-        return PREBUILT_CATEGORIES[suiteKey].items.map(i => i.label);
+        return PREBUILT_CATEGORIES[suiteKey].items.map(i => i.label).filter(item => !purgeList.includes(item));
       }
       return [];
     } catch {
-      return ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'ESC', 'TAB', '^C', 'clear'];
+      return ['ESC', 'TAB', '^C', '-', '/'];
     }
   };
 

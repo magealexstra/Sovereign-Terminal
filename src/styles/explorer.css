@@ -16,7 +16,6 @@
   min-height: 0;
   background: var(--bg-earth);
   overflow: hidden;
-  touch-action: pan-y;
 }
 
 .explorer-toolbar {
@@ -125,6 +124,7 @@
   min-height: 0;
   background: var(--bg-earth);
   overflow: hidden;
+  position: relative;
 }
 
 .editor-tabs-bar {
@@ -245,10 +245,15 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
-  touch-action: pan-y;
+  margin-bottom: calc(var(--visual-viewport-height) - 100vh);
 }
 
 /* CodeMirror Touch-Scrolling & Theme-Adapting Custom Scrollbars */
+.cm-editor {
+  position: absolute !important;
+  inset: 0 !important;
+}
+
 .cm-scroller {
   overflow: auto !important;
   height: 100% !important;
@@ -286,6 +291,11 @@
   border-top: 1px solid var(--border-forest);
   flex-shrink: 0;
   overflow-x: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
 }
 
 .editor-touch-btn {

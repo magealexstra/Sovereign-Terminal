@@ -59,7 +59,7 @@ export default function CopyCard({
   const parsedLines = parseCopyLines(custConfig.value);
 
   return (
-    <div className="copy-card-container" title="Terminal Copy Suite">
+    <div className="copy-card-container" title="Terminal Copy Suite" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
       <button
         type="button"
         className="copy-card-btn btn-copy"

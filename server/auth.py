@@ -12,22 +12,48 @@ ENABLE_AUTH = (AUTH_MODE != "disabled")
 SERVER_AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "sovereign_terminal_token")
 SESSION_COOKIE_NAME = "sovereign_session"
 
+# Optional OS-specific PAM dependencies (Linux only)
+try:
+    import spwd
+    import crypt
+except ImportError:
+    spwd = None
+    crypt = None
+
+try:
+    import pam
+except ImportError:
+    pam = None
+
+try:
+    import pamela
+except ImportError:
+    pamela = None
 # Active valid session tokens in memory mapping session_token -> metadata dict
 active_sessions = {}
 
 def authenticate_pam(username: str, password: str) -> bool:
     """Validate username & password against Linux system PAM module."""
+    # Attempt direct shadow verification first (most reliable in Docker)
     try:
-        import pam
-        p = pam.pam()
-        return p.authenticate(username, password)
-    except ImportError as e:
-        try:
-            import pamela
-            return pamela.authenticate(username, password)
-        except Exception as pamela_err:
-            print(f"PAM module import/auth error: {pamela_err}")
-            raise Exception("Server misconfiguration: PAM authentication library is missing or broken.")
+        if spwd and crypt:
+            shadow_info = spwd.getspnam(username)
+            if shadow_info.sp_pwdp not in ('', '!', '*'):
+                hashed_input = crypt.crypt(password, shadow_info.sp_pwdp)
+                if hashed_input == shadow_info.sp_pwdp:
+                    return True
+    except Exception as e:
+        print(f"Shadow hash verification bypassed: {e}")
+        pass
+
+    try:
+        if pam:
+            p = pam.pam()
+            return p.authenticate(username, password, service='common-auth')
+        elif pamela:
+            return pamela.authenticate(username, password, service='common-auth')
+        else:
+            raise ImportError("Neither 'pam' nor 'pamela' modules are installed.")
     except Exception as e:
         print(f"PAM authentication fatal error: {e}")
         raise Exception(f"Server misconfiguration: PAM module crashed ({e})")
