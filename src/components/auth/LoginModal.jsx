@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, KeyRound, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 /**
  * LoginModal — Sleek, centered authentication modal that dynamically adapts UI based on authMode ('token' vs 'pam').
@@ -9,6 +9,7 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const isPam = authMode === 'pam';
 
@@ -88,13 +89,22 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
           <div className="login-input-box">
             <KeyRound size={16} color="var(--text-muted)" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder={isPam ? 'Password...' : 'Session Auth Token...'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoFocus={!isPam}
               required
             />
+            <button 
+              type="button" 
+              onClick={() => setShowPassword(!showPassword)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+              title={showPassword ? "Hide password" : "Show password"}
+              tabIndex="-1"
+            >
+              {showPassword ? <EyeOff size={16} color="var(--text-muted)" /> : <Eye size={16} color="var(--text-muted)" />}
+            </button>
           </div>
 
           {isPam && (

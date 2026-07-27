@@ -28,7 +28,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Quick Sudo Entry Macro:** Single-tap encrypted sudo password entry satisfying `[sudo]` prompts without exposing plain text on screen.
 * **Master Red `MACROS` Launcher:** Pinned bright red catalog launcher granting instant access to the full command toolkit library.
 * **Touch Scrollback & Copy-on-Select:** Swiping up/down scrolls history smoothly; text selection automatically copies content to system clipboard.
-* **Port Decoupling & Host Auto-Resolution:** Fully decoupled REST and WebSocket architecture (`PORT=2068` in dev, `PORT=2069` in release template) with relative `/api/fs/...` paths.
+* **Port Decoupling & Host Auto-Resolution:** Fully decoupled REST and WebSocket architecture (`PORT=2069` by default) with relative `/api/fs/...` paths.
 
 ### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
@@ -98,13 +98,13 @@ The easiest method for testing. Runs entirely isolated within Docker using its o
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/magealexstra/Sovereign_Terminal.git
+git clone https://github.com/yourusername/Sovereign_Terminal.git
 cd Sovereign_Terminal
 
 # 2. Configure environment
 cp .env.example .env
 
-# 3. Launch Docker Stack (Port 2068 in Dev / 2069 in Release)
+# 3. Launch Docker Stack (Port 2069)
 docker compose up -d
 ```
 
@@ -132,14 +132,14 @@ cd .. && npm install && npm run build
 
 # 2. Run the Python Gateway
 cd server
-python3 -m uvicorn main:app --host 0.0.0.0 --port 2068
+python3 -m uvicorn main:app --host 0.0.0.0 --port 2069
 ```
 
 ## HTTPS, Tailscale & Remote Access
 
-Sovereign Terminal runs HTTP on port `2068` (or `2069` in production templates) by default. To unlock Web Speech API microphone dictation on mobile devices and browsers, secure HTTPS access is required.
+Sovereign Terminal runs HTTP on port `2069` by default. To unlock Web Speech API microphone dictation on mobile devices and browsers, secure HTTPS access is required.
 
-* **Tailscale (Recommended for Mobile Voice)**: Execute `tailscale serve https / http://127.0.0.1:2068` on your host machine to get instant, free Let's Encrypt certificates for your MagicDNS `.ts.net` address.
+* **Tailscale (Recommended for Mobile Voice)**: Execute `tailscale serve https / http://127.0.0.1:2069` on your host machine to get instant, free Let's Encrypt certificates for your MagicDNS `.ts.net` address.
 * **Reverse Proxies & Tunnels**: Supports Nginx Proxy Manager, Caddy, Cloudflare Tunnels (`cloudflared`), and local `mkcert` SAN certificates.
 * **Security & Privacy**: Zero network scanning, zero background probing, and zero external telemetry. All session data remains 100% local.
 

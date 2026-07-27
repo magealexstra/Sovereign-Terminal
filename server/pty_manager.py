@@ -104,16 +104,23 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
         except Exception:
             pass
 
-    proc = subprocess.Popen(
-        cmd,
-        preexec_fn=preexec,
-        stdin=slave_fd,
-        stdout=slave_fd,
-        stderr=slave_fd,
-        universal_newlines=False,
-        cwd=target_cwd,
-        env=env
-    )
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            preexec_fn=preexec,
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            universal_newlines=False,
+            cwd=target_cwd,
+            env=env
+        )
+    except (FileNotFoundError, PermissionError) as e:
+        os.close(slave_fd)
+        os.close(master_fd)
+        await websocket.close(code=1011, reason=f"Failed to start terminal: {str(e)}")
+        return
+        
     os.close(slave_fd)
 
     set_pty_size(master_fd, 24, 80)
@@ -128,10 +135,14 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     async def pty_read_loop():
         try:
             while True:
-                data = await loop.run_in_executor(
-                    None,
-                    lambda: os.read(master_fd, 1024) if select.select([master_fd], [], [], 0.1)[0] else None
-                )
+                try:
+                    data = await loop.run_in_executor(
+                        None,
+                        lambda: os.read(master_fd, 1024) if select.select([master_fd], [], [], 0.1)[0] else None
+                    )
+                except OSError:
+                    break
+                    
                 if data:
                     await websocket.send_text(data.decode("utf-8", errors="replace"))
                 elif proc.poll() is not None:
@@ -188,6 +199,13 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
         read_task.cancel()
         try:
             os.close(master_fd)
-            proc.terminate()
-        except Exception:
+        except OSError:
             pass
+            
+        try:
+            proc.terminate()
+            proc.wait(timeout=1.0)
+        except (ProcessLookupError, OSError):
+            pass
+        except subprocess.TimeoutExpired:
+            proc.kill()

@@ -1,9 +1,12 @@
 import os
 import uvicorn
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+import traceback
+from datetime import datetime
 
 from auth import router as auth_router
 from pty_manager import router as pty_router
@@ -12,8 +15,8 @@ from user_settings import router as user_settings_router
 
 from dotenv import load_dotenv
 
-# Load config.env from project root if present
-config_env_path = Path(__file__).parent.parent / "config.env"
+# Load .env from project root if present
+config_env_path = Path(__file__).parent.parent / ".env"
 if config_env_path.exists():
     load_dotenv(config_env_path)
 
@@ -22,6 +25,29 @@ app = FastAPI(
     description="Touch-Controlled Mobile/Tablet-First Linux Server Workstation Gateway",
     version="1.0.0"
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    workspace = os.getenv("WORKSPACE_ROOT", "/workspace")
+    log_dir = Path(workspace) / "Logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    log_file = log_dir / "server_error.log"
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    try:
+        with open(log_file, "a") as f:
+            f.write(f"[{timestamp}] Unhandled Exception on {request.method} {request.url}\n")
+            traceback.print_exc(file=f)
+            f.write("-" * 80 + "\n")
+    except Exception:
+        # Fallback to standard stdout if we can't write to the log file (e.g. permissions)
+        traceback.print_exc()
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error. Please check the server logs."}
+    )
 
 # CORS Middleware Configuration
 app.add_middleware(

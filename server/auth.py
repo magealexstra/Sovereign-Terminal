@@ -21,16 +21,16 @@ def authenticate_pam(username: str, password: str) -> bool:
         import pam
         p = pam.pam()
         return p.authenticate(username, password)
-    except ImportError:
+    except ImportError as e:
         try:
             import pamela
             return pamela.authenticate(username, password)
-        except Exception as e:
-            print(f"PAM module import/auth error: {e}")
-            return False
+        except Exception as pamela_err:
+            print(f"PAM module import/auth error: {pamela_err}")
+            raise Exception("Server misconfiguration: PAM authentication library is missing or broken.")
     except Exception as e:
-        print(f"PAM authentication error: {e}")
-        return False
+        print(f"PAM authentication fatal error: {e}")
+        raise Exception(f"Server misconfiguration: PAM module crashed ({e})")
 
 def is_authenticated(request: Request) -> bool:
     if AUTH_MODE == "disabled":
@@ -67,7 +67,13 @@ def login(payload: dict, response: Response):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Username and password required for PAM authentication"
             )
-        authenticated = authenticate_pam(username, password)
+        try:
+            authenticated = authenticate_pam(username, password)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
     else:
         # Default AUTH_MODE == "token"
         if not password:

@@ -72,8 +72,10 @@ def read_file(path: str):
         with open(p, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
         return {"path": str(p), "content": content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to read file")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
 
 @router.post("/save")
 def save_file(payload: dict):
@@ -91,8 +93,10 @@ def save_file(payload: dict):
         with open(p, "w", encoding="utf-8") as f:
             f.write(content)
         return {"status": "saved", "path": str(p)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to save file")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
 
 @router.post("/create")
 def create_item(payload: dict):
@@ -112,8 +116,10 @@ def create_item(payload: dict):
             p.parent.mkdir(parents=True, exist_ok=True)
             p.touch(exist_ok=True)
         return {"status": "created", "path": str(p)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to create item")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
 
 @router.post("/delete")
 def delete_item(payload: dict):
@@ -139,7 +145,9 @@ def delete_item(payload: dict):
             else:
                 os.remove(p)
             return {"status": "deleted_permanently", "path": str(p)}
-        except Exception as e:
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Permission denied to delete item")
+        except OSError as e:
             raise HTTPException(status_code=500, detail=f"Permanent deletion failed: {e}")
 
     # Default Safe Mode: Move to _temp_trash
@@ -153,8 +161,10 @@ def delete_item(payload: dict):
     try:
         shutil.move(str(p), str(dest_path))
         return {"status": "trashed", "destination": str(dest_path), "mode": "safe_trash"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to move item to trash")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
 
 @router.post("/git-commit")
 def git_commit_file(payload: dict):

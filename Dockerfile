@@ -33,6 +33,9 @@ COPY server ./server
 # Install global tmux config so options are set once at server start (not per-session)
 RUN cp /app/server/tmux.conf /root/.tmux.conf
 
+# Create a test user for PAM authentication testing
+RUN useradd -m -s /bin/bash testuser && echo 'testuser:testpassword' | chpasswd
+
 EXPOSE 2068 2069
 
 WORKDIR /app/server
