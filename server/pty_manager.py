@@ -7,10 +7,33 @@ import fcntl
 import termios
 import asyncio
 import subprocess
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from auth import AUTH_MODE, ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from auth import AUTH_MODE, ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions, require_auth
 
 router = APIRouter(tags=["terminal"])
+
+@router.get("/api/terminal/sessions")
+def list_sessions(user: dict = Depends(require_auth)):
+    target_user = None
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    if use_pam and user:
+        target_user = user.get("username")
+
+    if _tmux_bin:
+        try:
+            if use_pam and target_user:
+                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} list-sessions -F '#S'"]
+            else:
+                cmd = [_tmux_bin, "list-sessions", "-F", "#S"]
+
+            res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if res.returncode == 0 and res.stdout:
+                sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
+                return {"sessions": sessions}
+        except Exception:
+            pass
+
+    return {"sessions": []}
 
 SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
@@ -34,11 +57,16 @@ def set_pty_size(fd, rows, cols):
 
 @router.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = "/workspace"):
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    target_user = None
+
     if AUTH_MODE != "disabled":
         cookie_token = websocket.cookies.get(SESSION_COOKIE_NAME)
         if not cookie_token or cookie_token not in active_sessions:
             await websocket.close(code=1008)
             return
+        if use_pam:
+            target_user = active_sessions[cookie_token].get("username")
 
     await websocket.accept()
 
@@ -47,9 +75,15 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
 
     if tmux_bin:
         # Attach to existing session (-A) if available, or create new one if not.
-        cmd = [tmux_bin, "new-session", "-A", "-s", session, "-c", target_cwd]
+        if use_pam and target_user:
+            cmd = ["su", "-", target_user, "-c", f"{tmux_bin} new-session -A -D -s {session} -c {target_cwd}"]
+        else:
+            cmd = [tmux_bin, "new-session", "-A", "-D", "-s", session, "-c", target_cwd]
     else:
-        cmd = [shutil.which("bash") or "/bin/sh"]
+        if use_pam and target_user:
+            cmd = ["su", "-", target_user]
+        else:
+            cmd = [shutil.which("bash") or "/bin/sh"]
 
     master_fd, slave_fd = pty.openpty()
 
@@ -118,18 +152,21 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                     payload = json.loads(msg)
                     msg_type = payload.get("type")
 
+                    if msg_type == "debug":
+                        print(f"DEBUG FROM FRONTEND: {payload.get('msg')}", flush=True)
+                        continue
+
                     if msg_type == "resize":
-                        cols = payload.get("cols", 80)
-                        rows = payload.get("rows", 24)
+                        cols = int(payload.get("cols", 80))
+                        rows = int(payload.get("rows", 24))
+                        print(f"RESIZE COMMAND RECEIVED: cols={cols}, rows={rows}", flush=True)
                         set_pty_size(master_fd, rows, cols)
-                        if tmux_bin:
-                            try:
-                                subprocess.run(
-                                    [tmux_bin, "resize-window", "-t", session, "-x", str(cols), "-y", str(rows)],
-                                    capture_output=True, check=False
-                                )
-                            except Exception:
-                                pass
+                        
+                        if _tmux_bin:
+                            if use_pam and target_user:
+                                subprocess.run(["su", "-", target_user, "-c", f"{_tmux_bin} refresh-client -t {session}"], check=False)
+                            else:
+                                subprocess.run([_tmux_bin, "refresh-client", "-t", session], check=False)
                         continue
 
                     elif msg_type == "sudo_macro":
@@ -137,7 +174,8 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                             os.write(master_fd, (SUDO_MACRO_SECRET + "\n").encode("utf-8"))
                         continue
 
-                except Exception:
+                except Exception as e:
+                    print(f"ERROR in websocket JSON processing: {e}", flush=True)
                     pass
 
             os.write(master_fd, msg.encode("utf-8"))

@@ -23,16 +23,19 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   // Live font size updates: let fitAddon.fit() own the resize completely
   useEffect(() => {
-    if (xtermInstance.current && fitAddonInstance.current) {
+    if (xtermInstance.current) {
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      if (fitAddonInstance.current && socketRef.current?.readyState === WebSocket.OPEN) {
+        setTimeout(() => {
           try {
             fitAddonInstance.current.fit();
-            xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
+            const { cols, rows } = fitAddonInstance.current;
+            if (cols && rows) {
+              socketRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
+            }
           } catch (e) {}
-        });
-      });
+        }, 100);
+      }
     }
   }, [fontSizeTerminal]);
 
@@ -244,10 +247,19 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     // sendResizeHandshake always reads socketRef.current so it works after reconnects
     const sendResizeHandshake = () => {
       const sock = socketRef.current;
-      if (sock && sock.readyState === WebSocket.OPEN && fitAddon) {
-        fitAddon.fit();
-        const { cols, rows } = fitAddon;
-        if (cols && rows) sock.send(JSON.stringify({ type: 'resize', cols, rows }));
+      const currentTerm = xtermInstance.current;
+      if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current && currentTerm) {
+        try {
+          if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
+          
+          fitAddonInstance.current.fit();
+          const cols = currentTerm.cols;
+          const rows = currentTerm.rows;
+          
+          if (cols && rows) {
+            sock.send(JSON.stringify({ type: 'resize', cols, rows }));
+          }
+        } catch (e) {}
       }
     };
 
@@ -266,8 +278,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       sock.onopen = () => {
         reconnectAttempts = 0;
         sendResizeHandshake();
-        setTimeout(sendResizeHandshake, 150);
-        setTimeout(sendResizeHandshake, 400);
       };
 
       sock.onmessage = (event) => { term.write(event.data); };
@@ -305,16 +315,13 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     });
 
     // ── ResizeObserver ───────────────────────────────────────────────────────
-    // Debounced 200ms. When the soft keyboard opens, the container briefly shrinks.
-    // isKeyboardOpenRef (a ref so the closure reads the latest value) gates
-    // sendResizeHandshake during that transition — preserving the tmux session geometry.
     let resizeDebounce = null;
     const handleResize = () => {
       performFit();
       clearTimeout(resizeDebounce);
       resizeDebounce = setTimeout(() => {
-        if (!isKeyboardOpenRef.current) sendResizeHandshake();
-      }, 200);
+        sendResizeHandshake();
+      }, 150);
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
@@ -339,10 +346,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const isKeyboardOpenRef = useRef(isKeyboardOpen);
   isKeyboardOpenRef.current = isKeyboardOpen;
 
-  // When keyboard closes, run one resize handshake so the terminal expands back correctly
+  // When keyboard state changes, pulse the resize logic to ensure we catch
+  // the exact resting height after the mobile browser animation finishes.
   useEffect(() => {
-    if (!isKeyboardOpen && fitAddonInstance.current && socketRef.current) {
-      setTimeout(() => {
+    if (fitAddonInstance.current) {
+      const pulseFit = () => {
         try {
           fitAddonInstance.current.fit();
           const { cols, rows } = fitAddonInstance.current;
@@ -350,7 +358,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             socketRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
           }
         } catch (e) {}
-      }, 300);
+      };
+      
+      pulseFit();
+      setTimeout(pulseFit, 150);
+      setTimeout(pulseFit, 350);
+      setTimeout(pulseFit, 650);
     }
   }, [isKeyboardOpen]);
 

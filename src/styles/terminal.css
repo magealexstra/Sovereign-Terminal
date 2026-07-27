@@ -238,11 +238,11 @@
 
 /* 12-Macro Popup Grid Modal Layout */
 .macro-modal-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100dvh;
+  right: 0;
+  bottom: 0;
   background: rgba(10, 17, 24, 0.82);
   backdrop-filter: blur(8px);
   z-index: 100;
@@ -250,8 +250,8 @@
 
 .macro-modal-content {
   position: absolute;
-  top: 50%;
-  right: 1rem;
+  bottom: 3.5rem;
+  right: 0.5rem;
   width: 90vw;
   max-width: 360px;
   max-height: 42dvh;

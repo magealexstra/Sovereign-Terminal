@@ -25,11 +25,32 @@ export function useSessions(activeTerminalPath, showToast) {
     `session-${Date.now().toString(36).substring(4)}`
   );
 
-  const [sessions, setSessions] = useState(() => [
-    { id: initialSessionId.current, name: 'term-1' }
-  ]);
-  const [activeSession, setActiveSession] = useState(initialSessionId.current);
+  const [sessions, setSessions] = useState([]);
+  const [activeSession, setActiveSession] = useState('');
   const [voiceInput, setVoiceInput] = useState('');
+
+  React.useEffect(() => {
+    fetch('/api/terminal/sessions')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.sessions && data.sessions.length > 0) {
+          const loadedSessions = data.sessions.map((id, index) => ({
+            id: id,
+            name: `term-${index + 1}`
+          }));
+          sessionCounterRef.current = loadedSessions.length;
+          setSessions(loadedSessions);
+          setActiveSession(loadedSessions[0].id);
+        } else {
+          setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
+          setActiveSession(initialSessionId.current);
+        }
+      })
+      .catch(() => {
+        setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
+        setActiveSession(initialSessionId.current);
+      });
+  }, []);
 
   const handleAddSession = (inheritCwd = false) => {
     if (sessions.length >= 5) {
