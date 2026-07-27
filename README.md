@@ -13,14 +13,14 @@
 
 **The Sovereign Terminal** is an open-source, high-performance, system-agnostic web application designed to transform mobile devices, tablets, and desktop browsers into a complete, sovereign Linux server management workstation.
 
-Designed to replace traditional, rigid web terminals, it pairs a hardware-accelerated 60fps WebGL terminal canvas with a GUI File Explorer, CodeMirror 6 text editor, highly customizable touch bars, single-handed mobile docking, dynamic theme engine, and a dedicated Python PTY backend gateway.
+Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js terminal canvas with a GUI File Explorer, CodeMirror 6 text editor, highly customizable touch bars, single-handed mobile docking, dynamic theme engine, and a dedicated Python PTY backend gateway.
 
 ---
 
 ## Key Features & Current Development State
 
-### 1. Multi-Tab WebGL Terminal & PTY Gateway
-* **60fps WebGL Canvas:** Powered by `@xterm/xterm` and `@xterm/addon-webgl` for GPU-accelerated rendering.
+### 1. Multi-Tab Terminal Canvas & PTY Gateway
+* **Universal Terminal Canvas:** Powered by `@xterm/xterm` with DOM/canvas fallback compatibility to eliminate mobile Safari crashes.
 * **Flawless Mobile Resizing:** Dynamically monitors DOM layout paints and guarantees pixel-perfect flexbox scaling for viewport height, preventing cut-off prompts.
 * **True Multi-Device Persistence:** Multi-session tab bar supporting concurrent persistent sessions. Close your phone browser, open a tablet, authenticate via PAM, and resume exactly where you left off.
 * **Zombie-Proof Sessions:** Advanced PTY session tracking prevents orphaned connections and guarantees accurate controlling terminal sizes across device hand-offs.
@@ -33,7 +33,7 @@ Designed to replace traditional, rigid web terminals, it pairs a hardware-accele
 ### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
 * **Interactive Breadcrumbs:** Tap-based directory navigation (e.g., `/workspace` > `Verdand` > `The_Weaver_Shack`).
-* **Universal Language Highlighting:** CodeMirror 6 syntax highlighting supporting Python, JavaScript, C, C++, Rust, Go, Markdown, HTML, CSS, JSON, Shell, Dockerfile, and configuration formats.
+* **Universal Language Highlighting:** CodeMirror 6 syntax highlighting supporting Python, JavaScript, C, C++, Rust, HTML, CSS, XML, SQL, JSON, Markdown, Shell, Dockerfile, and configuration formats.
 * **Native Touch Integration:** Native OS selection handles, magnifying glass, and context menus (`Copy`, `Cut`, `Paste`).
 * **Unsaved File Safeguards:** Modal dialog on tab close with explicit options (`[ Save & Close ]`, `[ Discard ]`, `[ Cancel ]`).
 * **Automated Git Commit Macro:** Auto-detects Git repository root and executes staging and commit sequences.
@@ -91,6 +91,11 @@ ENABLE_PERMANENT_DELETE=true
 
 ## Quick Start Deployment
 
+Sovereign Terminal supports three distinct deployment strategies depending on your need for host integration:
+
+### Option A: Fully Containerized Sandbox (Default)
+The easiest method for testing. Runs entirely isolated within Docker using its own internal `tmux` server and file system.
+
 ```bash
 # 1. Clone repository
 git clone https://github.com/magealexstra/Sovereign_Terminal.git
@@ -101,6 +106,33 @@ cp config.env.example config.env
 
 # 3. Launch Docker Stack (Port 2068 in Dev / 2069 in Release)
 docker compose up -d
+```
+
+### Option B: Containerized with Host Passthrough (Bind Mounts)
+Runs the app in Docker, but maps your host's authentication and `tmux` socket into the container so you can control your host's native environment from the web.
+
+```yaml
+# Add these volumes to your docker-compose.yml:
+    volumes:
+      - /tmp/tmux-1000:/tmp/tmux-1000
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/shadow:/etc/shadow:ro
+      - /etc/group:/etc/group:ro
+      - /home:/home
+```
+Then run `docker compose up -d`.
+
+### Option C: True Baremetal Execution (Host OS)
+Run the application natively on your host machine to bypass Docker completely and natively attach to your host's `tmux` sessions.
+
+```bash
+# 1. Install Python dependencies and build frontend
+cd server && pip install -r requirements.txt
+cd .. && npm install && npm run build
+
+# 2. Run the Python Gateway
+cd server
+python3 -m uvicorn main:app --host 0.0.0.0 --port 2068
 ```
 
 ## HTTPS, Tailscale & Remote Access

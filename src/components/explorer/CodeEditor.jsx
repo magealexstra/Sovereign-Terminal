@@ -4,6 +4,12 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
+import { cpp } from '@codemirror/lang-cpp';
+import { rust } from '@codemirror/lang-rust';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { xml } from '@codemirror/lang-xml';
+import { sql } from '@codemirror/lang-sql';
 import { Save, GitCommit, Copy, Clipboard, X, Terminal as TermIcon, FileText, Image as ImageIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
@@ -19,10 +25,16 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
   const getLanguageExtension = (filename) => {
     if (!filename) return [markdown()];
     const fn = filename.toLowerCase();
-    if (fn.endsWith('.py')) return [python()];
+    if (fn.endsWith('.js') || fn.endsWith('.jsx') || fn.endsWith('.ts') || fn.endsWith('.tsx')) return [javascript({ jsx: true })];
+    if (fn.endsWith('.py') || fn.endsWith('.mpy') || fn.endsWith('.upy')) return [python()];
     if (fn.endsWith('.json')) return [json()];
     if (fn.endsWith('.md')) return [markdown()];
-    if (fn.endsWith('.js') || fn.endsWith('.jsx') || fn.endsWith('.ts') || fn.endsWith('.tsx')) return [javascript({ jsx: true })];
+    if (fn.endsWith('.c') || fn.endsWith('.cpp') || fn.endsWith('.h') || fn.endsWith('.hpp')) return [cpp()];
+    if (fn.endsWith('.rs')) return [rust()];
+    if (fn.endsWith('.html') || fn.endsWith('.htm')) return [html()];
+    if (fn.endsWith('.css')) return [css()];
+    if (fn.endsWith('.xml') || fn.endsWith('.svg')) return [xml()];
+    if (fn.endsWith('.sql')) return [sql()];
     return [];
   };
 
