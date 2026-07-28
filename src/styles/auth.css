@@ -11,6 +11,9 @@
   inset: 0;
   z-index: 9999;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   background: rgba(10, 16, 22, 0.92);
   backdrop-filter: blur(12px);
   padding: 1rem;
@@ -18,7 +21,9 @@
 }
 
 .login-modal-card {
-  margin: auto;
+  margin-top: max(2rem, 12vh);
+  margin-bottom: 2rem;
+  flex-shrink: 0;
   width: 100%;
   max-width: 380px;
   background: var(--bg-canopy);
@@ -27,11 +32,6 @@
   padding: 2rem 1.75rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   text-align: center;
-}
-
-.keyboard-open .login-modal-card {
-  margin-top: 1rem;
-  margin-bottom: 2rem;
 }
 
 .login-header {
