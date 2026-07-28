@@ -436,9 +436,10 @@
   gap: 0.5rem;
   width: 100%;
   height: 100%;
-  overflow-y: auto !important;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch !important;
+  -webkit-overflow-scrolling: touch;
   padding: 0.25rem;
   scrollbar-width: thin;
   scrollbar-color: var(--border-forest) var(--bg-earth);
@@ -1200,7 +1201,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto !important;
+  overflow-y: auto;
 
   padding: 0.5rem;
 }

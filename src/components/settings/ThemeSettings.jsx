@@ -278,6 +278,7 @@ export default function ThemeSettings() {
                 className="theme-name-field"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 placeholder="e.g. Mage Sovereign Dark"
               />
             </div>

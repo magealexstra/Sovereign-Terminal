@@ -101,6 +101,7 @@ export default function AuditionConsole({
               className="audition-hex-input"
               value={auditionHex}
               onChange={(e) => setAuditionHex(e.target.value)}
+              onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               placeholder="#HEX"
             />
           </div>

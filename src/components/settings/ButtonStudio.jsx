@@ -255,6 +255,7 @@ export default function ButtonStudio() {
               className="micro-input"
               value={activeBtn?.label || ''}
               onChange={(e) => updateActiveBtn({ label: e.target.value })}
+              onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               placeholder="Button Name"
             />
           </div>
@@ -266,6 +267,7 @@ export default function ButtonStudio() {
               rows={3}
               value={activeBtn?.value || ''}
               onChange={(e) => updateActiveBtn({ value: e.target.value })}
+              onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
               onBlur={() => {
                 if (isEditingCust) {
                   const val = activeBtn?.value ? activeBtn.value.trim() : '';
