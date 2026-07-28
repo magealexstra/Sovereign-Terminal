@@ -380,7 +380,7 @@
 /* Left-Edge TouchBar-Anchored Copy Card Suite (Vertically Stacked) */
 .copy-card-container {
   position: absolute;
-  left: 0.5rem;
+  right: 0.5rem;
   bottom: 3.5rem;
   z-index: 90;
   display: flex;
