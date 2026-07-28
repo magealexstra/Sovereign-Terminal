@@ -138,3 +138,14 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Bulletproof Mobile Keyboard Scroll Fix */
+@media (max-width: 768px) {
+  .login-modal-overlay::after {
+    content: '';
+    display: block;
+    min-height: 55vh; /* Forces the container to overflow so the user can always scroll the form up past the keyboard */
+    width: 100%;
+    flex-shrink: 0;
+  }
+}

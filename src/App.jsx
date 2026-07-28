@@ -89,35 +89,40 @@ export default function App() {
       } catch (e) {}
     }
 
-    const handleViewportResize = (event) => {
+    const handleViewportResize = () => {
       const fullHeight = window.innerHeight;
       let targetHeight = fullHeight;
       let keyboardActive = false;
+      let kbHeight = 0;
 
-      if (window.visualViewport) {
+      if ('virtualKeyboard' in navigator) {
+        // Modern Android: Use exact geometry from the new API
+        kbHeight = navigator.virtualKeyboard.boundingRect.height;
+        keyboardActive = kbHeight > 100;
+        targetHeight = keyboardActive ? (fullHeight - kbHeight) : fullHeight;
+      } else if (window.visualViewport) {
+        // iOS Safari: Fallback to visual viewport differences
         const vvHeight = window.visualViewport.height;
         // Soft keyboard active threshold: visualViewport height is >100px smaller than full window height
         keyboardActive = (fullHeight - vvHeight) > 100;
         targetHeight = keyboardActive ? vvHeight : fullHeight;
-      } else if (event && event.target && event.target.boundingRect) {
-        const kbHeight = event.target.boundingRect.height;
-        keyboardActive = kbHeight > 100;
-        targetHeight = keyboardActive ? (fullHeight - kbHeight) : fullHeight;
       }
 
       setIsKeyboardOpen(keyboardActive);
 
-      document.documentElement.style.setProperty(
-        '--visual-viewport-height',
-        `${targetHeight}px`
-      );
+      const newHeightStr = `${targetHeight}px`;
+      if (document.documentElement.style.getPropertyValue('--visual-viewport-height') !== newHeightStr) {
+        document.documentElement.style.setProperty(
+          '--visual-viewport-height',
+          newHeightStr
+        );
+      }
     };
 
     handleViewportResize();
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportResize);
-      window.visualViewport.addEventListener('scroll', handleViewportResize);
     }
 
     if ('virtualKeyboard' in navigator) {
@@ -127,7 +132,6 @@ export default function App() {
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportResize);
-        window.visualViewport.removeEventListener('scroll', handleViewportResize);
       }
       if ('virtualKeyboard' in navigator) {
         navigator.virtualKeyboard.removeEventListener('geometrychange', handleViewportResize);
