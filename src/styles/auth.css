@@ -29,6 +29,11 @@
   text-align: center;
 }
 
+.keyboard-open .login-modal-card {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+
 .login-header {
   display: flex;
   flex-direction: column;
