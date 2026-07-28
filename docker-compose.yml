@@ -9,7 +9,8 @@ services:
     ports:
       - "2069:2069"
     environment:
-      - AUTH_MODE=pam
+      - AUTH_MODE=token
+      - SERVER_AUTH_TOKEN=1234
       - PORT=2069
     volumes:
       - ./:/workspace

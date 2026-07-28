@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 # Sovereign Terminal Playwright End-to-End UI & Terminal Card Test Suite
-BASE_URL = os.getenv("SERVER_URL", "http://localhost:2068")
+BASE_URL = os.getenv("SERVER_URL", "http://localhost:2069")
 AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "1234")
 
 # Setup Directories & Logging

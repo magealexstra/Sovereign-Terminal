@@ -13,6 +13,26 @@ This is the simplest method for getting started immediately. The terminal runs i
 
 **Target Audience:** Absolute beginners.
 
+**Code:**
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=token
+      - SERVER_AUTH_TOKEN=1234
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+```
+
 **Explanation:**
 1. Open your terminal and run `docker compose up -d`. This will automatically download and start the Sovereign Terminal server in the background.
 2. Open your web browser and navigate to `http://localhost:2069` (or your server's IP address on port 2069).

@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 # Sovereign Terminal Tab 1 (Terminal Card & Session Swapping) Audit Suite
-BASE_URL = os.getenv("SERVER_URL", "http://localhost:2068")
+BASE_URL = os.getenv("SERVER_URL", "http://localhost:2069")
 AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "1234")
 
 LOGS_DIR = Path(__file__).parent / "logs"

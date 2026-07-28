@@ -16,7 +16,6 @@
   height: 100%;
   background: radial-gradient(circle at 50% 25%, var(--bg-canopy) 0%, var(--bg-earth) 100%) no-repeat fixed;
   overflow: hidden;
-  overscroll-behavior: none;
 }
 
 /* Keyboard Open: Contract Height to Visual Viewport above Soft Keyboard */
@@ -29,7 +28,6 @@
   width: 100vw;
   height: var(--visual-viewport-height);
   overflow: hidden;
-  overscroll-behavior: none;
 }
 
 /* Tab Content Panel Container */

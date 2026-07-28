@@ -104,8 +104,26 @@ Sovereign Terminal offers two primary Authentication Modes (Token vs. PAM) combi
 
 This is the simplest method for getting started immediately. The terminal runs in a fully isolated container and authenticates with a simple token.
 
-**Code:** No modification needed to default `docker-compose.yml` or `Dockerfile`.
-**Explanation:** 
+**Code:** (This is the default `docker-compose.yml` provided in the repository)
+```yaml
+version: '3.8'
+services:
+  sovereign-terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sovereign-terminal
+    restart: unless-stopped
+    ports:
+      - "2069:2069"
+    environment:
+      - AUTH_MODE=token
+      - SERVER_AUTH_TOKEN=1234
+      - PORT=2069
+    volumes:
+      - ./:/workspace
+```
+**Explanation:**
 1. Run `docker compose up -d` in your terminal.
 2. Open your browser and log in with the default token: `1234`.
 3. **IMPORTANT:** For prolonged usage, change `SERVER_AUTH_TOKEN` in `docker-compose.yml` (and `.env`) to a strong cryptographic string and run `docker compose up -d` again to apply the changes.

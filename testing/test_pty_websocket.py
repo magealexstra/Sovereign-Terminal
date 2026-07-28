@@ -19,8 +19,8 @@ except ImportError:
     sys.exit(1)
 
 # Sovereign Terminal WebSocket PTY Gateway Integration & Audit Test Suite
-BASE_URL = os.getenv("SERVER_URL", "http://localhost:2068")
-WS_URL = os.getenv("WS_URL", "ws://localhost:2068/ws/terminal")
+BASE_URL = os.getenv("SERVER_URL", "http://localhost:2069")
+WS_URL = os.getenv("WS_URL", "ws://localhost:2069/ws/terminal")
 AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "1234")
 
 # Setup Logging & Audit Directory

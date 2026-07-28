@@ -12,7 +12,7 @@ from pathlib import Path
 # Sovereign Terminal HTTPS and Networking Verification Test Suite
 # Generates structured audit logs in testing/logs/
 
-BASE_URL = os.getenv("SERVER_URL", "http://localhost:2068")
+BASE_URL = os.getenv("SERVER_URL", "http://localhost:2069")
 AUTH_TOKEN = os.getenv("SERVER_AUTH_TOKEN", "1234")
 
 LOGS_DIR = Path(__file__).parent / "logs"

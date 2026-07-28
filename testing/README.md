@@ -27,7 +27,7 @@ Automated WebSocket & PTY Gateway test script that verifies:
 
 ## How to Run
 
-Ensure the Sovereign Terminal container or backend server is running on port 2068:
+Ensure the Sovereign Terminal container or backend server is running on port 2069:
 
 ```bash
 # 1. Run REST & FastAPI Test Suite

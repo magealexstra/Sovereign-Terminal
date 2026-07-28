@@ -275,14 +275,16 @@ export default function App() {
 
   if (!isAuthVerified) {
     return (
-      <div className="login-modal-overlay">
-        <div className="login-modal-card" style={{ maxWidth: '320px', padding: '2.5rem 1.5rem' }}>
-          <div className="login-header" style={{ marginBottom: 0 }}>
-            <div className="login-icon-badge">
-              <TerminalIcon size={22} color="var(--accent-mana)" />
+      <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+        <div className="login-modal-overlay">
+          <div className="login-modal-card" style={{ maxWidth: '320px', padding: '2.5rem 1.5rem' }}>
+            <div className="login-header" style={{ marginBottom: 0 }}>
+              <div className="login-icon-badge">
+                <TerminalIcon size={22} color="var(--accent-mana)" />
+              </div>
+              <h2>SOVEREIGN TERMINAL</h2>
+              <p>Verifying workstation session...</p>
             </div>
-            <h2>SOVEREIGN TERMINAL</h2>
-            <p>Verifying workstation session...</p>
           </div>
         </div>
       </div>
@@ -291,13 +293,15 @@ export default function App() {
 
   if (authEnabled && !isAuthenticated) {
     return (
-      <LoginModal
-        authMode={authMode}
-        onLoginSuccess={() => {
-          setIsAuthenticated(true);
-          if (fetchUserSettings) fetchUserSettings();
-        }}
-      />
+      <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+        <LoginModal
+          authMode={authMode}
+          onLoginSuccess={() => {
+            setIsAuthenticated(true);
+            if (fetchUserSettings) fetchUserSettings();
+          }}
+        />
+      </div>
     );
   }
 
