@@ -11,14 +11,14 @@
   inset: 0;
   z-index: 9999;
   display: flex;
-  align-items: center;
-  justify-content: center;
   background: rgba(10, 16, 22, 0.92);
   backdrop-filter: blur(12px);
   padding: 1rem;
+  overflow-y: auto;
 }
 
 .login-modal-card {
+  margin: auto;
   width: 100%;
   max-width: 380px;
   background: var(--bg-canopy);
