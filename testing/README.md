@@ -48,5 +48,5 @@ All test runs generate structured, timestamped audit logs saved in `testing/logs
 You can customize the target URL or authentication token via environment variables:
 
 ```bash
-SERVER_URL="http://localhost:2068" SERVER_AUTH_TOKEN="1234" python3 testing/test_fastapi.py
+SERVER_URL="http://localhost:2069" SERVER_AUTH_TOKEN="1234" python3 testing/test_fastapi.py
 ```
