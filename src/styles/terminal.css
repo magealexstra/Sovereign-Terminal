@@ -377,23 +377,69 @@
   border-color: var(--status-active);
 }
 
-/* Left-Edge TouchBar-Anchored Copy Card Suite (Vertically Stacked) */
+/* Right-Edge Collapsible Copy Suite — Bar + Expandable Panel */
+
+/* Outer container: flex row [panel][bar], anchored above the TouchBar */
 .copy-card-container {
   position: absolute;
-  right: 0.5rem;
+  right: 0;
   bottom: 3.5rem;
   z-index: 90;
   display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+/* Expandable panel — slides left from behind the bar via max-width transition */
+.copy-card-panel {
+  display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  overflow: hidden;
+  max-width: 0;
+  padding: 0;
+  transition: max-width 0.18s ease, padding 0.18s ease;
+  /* background/border/shadow only visible in expanded state */
+}
+
+.copy-card-container.expanded .copy-card-panel {
+  max-width: 60px;
   padding: 0.4rem;
   background: var(--bg-canopy);
   border: 1px solid var(--border-forest);
-  border-radius: 14px;
+  border-right: none;              /* seamless join with bar handle */
+  border-radius: 14px 0 0 14px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
 }
 
+/* Persistent 6px tri-color bar — always visible at the right edge */
+.copy-card-bar-handle {
+  width: 12px;
+  min-height: 100px;               /* comfortable tap target height */
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 4px 0 0 4px;      /* left edge rounded, right flush with screen */
+  /* Tri-color gradient maps visually to COPY (green) / ALL (blue) / CUST (red) */
+  background: linear-gradient(
+    to bottom,
+    var(--status-active) 0% 30%,
+    var(--accent-mana)   30% 65%,
+    var(--status-danger) 65% 100%
+  );
+  transition: border-radius 0.18s ease, opacity 0.15s ease;
+}
+
+.copy-card-bar-handle:active {
+  opacity: 0.7;
+}
+
+/* When expanded, flatten the bar's left edge to join the panel cleanly */
+.copy-card-container.expanded .copy-card-bar-handle {
+  border-radius: 0;
+}
+
+/* Copy action buttons inside the panel */
 .copy-card-btn {
   display: flex;
   align-items: center;
@@ -451,6 +497,7 @@
   color: #0A1118;
 }
 
+/* CLIP/CODE destination mode toggle */
 .copy-card-toggle {
   display: flex;
   align-items: center;
