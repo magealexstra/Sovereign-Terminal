@@ -104,7 +104,7 @@
 }
 
 .session-pill-btn.active {
-  color: #0A1118;
+  color: var(--bg-earth);
   background: var(--accent-highlight);
   border-color: var(--accent-highlight);
   font-weight: 700;
@@ -224,7 +224,7 @@
 
 .sub-suite-pill.active {
   background: var(--status-active);
-  color: #0A1118;
+  color: var(--bg-earth);
   border-color: var(--status-active);
   box-shadow: 0 0 8px rgba(76, 120, 100, 0.4);
 }
@@ -319,7 +319,7 @@
 
 .macro-grid-btn:hover, .macro-grid-btn:active {
   background: var(--status-active);
-  color: #0A1118;
+  color: var(--bg-earth);
   border-color: var(--status-active);
 }
 
@@ -340,7 +340,7 @@
 
 .suite-chip-btn:active {
   background: var(--status-active);
-  color: #0A1118;
+  color: var(--bg-earth);
 }
 
 /* Modal Suite Selector Tab Bar */
@@ -373,7 +373,7 @@
 
 .suite-tab-pill.active {
   background: var(--status-active);
-  color: #0A1118;
+  color: var(--bg-earth);
   border-color: var(--status-active);
 }
 
@@ -474,7 +474,7 @@
 
 .copy-card-btn.btn-copy:active {
   background: var(--status-active);
-  color: #0A1118;
+  color: var(--bg-earth);
 }
 
 .copy-card-btn.btn-all {
@@ -484,7 +484,7 @@
 
 .copy-card-btn.btn-all:active {
   background: var(--accent-mana);
-  color: #0A1118;
+  color: var(--bg-earth);
 }
 
 .copy-card-btn.btn-cust {
@@ -494,7 +494,7 @@
 
 .copy-card-btn.btn-cust:active {
   background: var(--status-danger);
-  color: #0A1118;
+  color: var(--bg-earth);
 }
 
 /* CLIP/CODE destination mode toggle */
@@ -649,7 +649,7 @@
 .stager-action-btn.send-btn {
   background: var(--accent-violet);
   border: 1px solid var(--accent-violet);
-  color: #0A1118;
+  color: var(--bg-earth);
   font-weight: 700;
 }
 

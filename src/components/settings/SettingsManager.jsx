@@ -1,9 +1,10 @@
 import React, { useState, Component } from 'react';
-import { Palette, Edit3, Grid, AlertTriangle } from 'lucide-react';
+import { Palette, Edit3, Grid, AlertTriangle, Terminal as TmuxTabIcon } from 'lucide-react';
 
 import ThemeSettings from './ThemeSettings';
 import ButtonStudio from './ButtonStudio';
 import LayoutBuilder from './LayoutBuilder';
+import TmuxManager from './TmuxManager';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -91,6 +92,15 @@ export default function SettingsManager() {
           <Grid size={13} />
           <span className="tab-auto-text">3. Layout</span>
         </button>
+
+        <button
+          type="button"
+          className={`subtab-btn ${activeSubTab === 'tmux' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('tmux')}
+        >
+          <TmuxTabIcon size={13} />
+          <span className="tab-auto-text">4. TMUX</span>
+        </button>
       </div>
 
       {/* Active Sub-Tab Viewport protected by ErrorBoundary */}
@@ -99,6 +109,7 @@ export default function SettingsManager() {
           {activeSubTab === 'themes' && <ThemeSettings />}
           {activeSubTab === 'studio' && <ButtonStudio />}
           {activeSubTab === 'layout' && <LayoutBuilder />}
+          {activeSubTab === 'tmux'   && <TmuxManager />}
         </ErrorBoundary>
       </div>
     </div>

@@ -82,7 +82,7 @@
   background: rgba(255, 0, 60, 0.15);
   border: 1px solid var(--status-danger);
   border-radius: 8px;
-  color: #D08770;
+  color: var(--status-warning);
   font-size: 0.75rem;
   font-weight: 600;
   text-align: left;

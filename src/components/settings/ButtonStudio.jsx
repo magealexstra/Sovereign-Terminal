@@ -294,7 +294,7 @@ export default function ButtonStudio() {
                 margin: '0 auto',
                 border: '1.5px solid var(--status-danger)',
                 background: isEditingCust ? 'var(--status-danger)' : 'var(--bg-earth)',
-                color: isEditingCust ? '#0A1118' : 'var(--text-parchment)',
+                color: isEditingCust ? 'var(--bg-earth)' : 'var(--text-parchment)',
                 borderRadius: '12px',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '0.75rem',

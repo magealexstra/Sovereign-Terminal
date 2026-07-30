@@ -15,7 +15,7 @@ import SettingsManager from './components/settings/SettingsManager';
 import LoginModal from './components/auth/LoginModal';
 
 export default function App() {
-  const { activeMainTab, setActiveMainTab } = useApp();
+  const { activeMainTab, setActiveMainTab, fetchUserSettings } = useApp();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   // Authentication State & Session Verification
@@ -57,6 +57,14 @@ export default function App() {
     };
     verifyAuth();
   }, []);
+
+  // Load server profile whenever authentication is confirmed — covers both
+  // the auto-verified existing session path and the explicit login path.
+  useEffect(() => {
+    if (isAuthenticated && fetchUserSettings) {
+      fetchUserSettings();
+    }
+  }, [isAuthenticated]);
 
   const [showBrandMenu, setShowBrandMenu] = useState(false);
 
@@ -148,6 +156,7 @@ export default function App() {
     sessions,
     activeSession,
     voiceInput,
+    tmuxSessionCount,
     setActiveSession,
     handleAddSession,
     handleCloseSession,
@@ -302,7 +311,6 @@ export default function App() {
           authMode={authMode}
           onLoginSuccess={() => {
             setIsAuthenticated(true);
-            if (fetchUserSettings) fetchUserSettings();
           }}
         />
       </div>
@@ -393,6 +401,7 @@ export default function App() {
           onSelectSession={setActiveSession}
           onAddSession={handleAddSession}
           onCloseSession={handleCloseSession}
+          tmuxSessionCount={tmuxSessionCount}
         />
 
         <div style={{ flex: '1 1 100%', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>

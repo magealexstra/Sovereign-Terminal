@@ -1,0 +1,276 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, Terminal as TermIcon, X, Zap, Trash2 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+
+export default function TmuxManager() {
+  const { tmuxSettings, setTmuxSettings, syncUserSettingsToServer } = useApp();
+
+  const [detail, setDetail]             = useState([]);
+  const [sessionCount, setSessionCount] = useState(0);
+  const [loading, setLoading]           = useState(true);
+  const [serverOnline, setServerOnline] = useState(false);
+  const [killConfirm, setKillConfirm]   = useState(false);
+  const [actionMsg, setActionMsg]       = useState('');
+
+  const flash = (msg) => {
+    setActionMsg(msg);
+    setTimeout(() => setActionMsg(''), 3500);
+  };
+
+  const fetchSessions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/terminal/sessions');
+      if (res.ok) {
+        const data = await res.json();
+        setDetail(data.detail || []);
+        setSessionCount((data.sessions || []).length);
+        setServerOnline(true);
+      } else {
+        setServerOnline(false);
+      }
+    } catch {
+      setServerOnline(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  const killSession = async (id) => {
+    try {
+      const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok) {
+        flash(`Session "${id}" killed`);
+        fetchSessions();
+      }
+    } catch {}
+  };
+
+  const killAll = async () => {
+    if (!killConfirm) {
+      setKillConfirm(true);
+      setTimeout(() => setKillConfirm(false), 4000);
+      return;
+    }
+    setKillConfirm(false);
+    try {
+      await fetch('/api/terminal/sessions', { method: 'DELETE' });
+      flash('All sessions killed — server rewarmed');
+      fetchSessions();
+    } catch {}
+  };
+
+  const sweepZombies = async () => {
+    let activeIds = [];
+    try {
+      const raw = localStorage.getItem('sovereign_active_session_ids');
+      activeIds = raw ? JSON.parse(raw) : [];
+    } catch {}
+    try {
+      const res = await fetch('/api/terminal/sessions/sweep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: activeIds }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const n = data.swept?.length ?? 0;
+        flash(n > 0 ? `Swept ${n} zombie session${n !== 1 ? 's' : ''}` : 'No zombie sessions found');
+        fetchSessions();
+      }
+    } catch {}
+  };
+
+  const updateBehavior = (key, value) => {
+    setTmuxSettings({ [key]: value });
+    syncUserSettingsToServer();
+  };
+
+  const applyPerfConfig = async (key, value) => {
+    setTmuxSettings({ [key]: value });
+    syncUserSettingsToServer();
+    const body = {};
+    if (key === 'scrollbackLines') body.historyLimit = value;
+    if (key === 'escapeTimeMs')    body.escapeTimeMs  = value;
+    try {
+      await fetch('/api/terminal/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch {}
+  };
+
+  const dotClass = !serverOnline
+    ? 'tmux-status-dot offline'
+    : sessionCount > 20
+    ? 'tmux-status-dot danger'
+    : sessionCount > 10
+    ? 'tmux-status-dot warn'
+    : 'tmux-status-dot ok';
+
+  return (
+    <div className="tmux-manager">
+
+      <div className="tmux-status-card">
+
+        <div className="tmux-status-left">
+          <span className={dotClass} />
+          <span className="tmux-status-text">
+            {serverOnline
+              ? `tmux server — ${sessionCount} session${sessionCount !== 1 ? 's' : ''} running`
+              : 'tmux server — unavailable'}
+          </span>
+        </div>
+        <button className="tmux-icon-btn" onClick={fetchSessions} title="Refresh session list">
+          <RefreshCw size={13} />
+        </button>
+      </div>
+
+      {actionMsg && <div className="tmux-action-flash">{actionMsg}</div>}
+
+      <div className="tmux-section">
+        <div className="tmux-section-header">
+          <span className="tmux-section-label">SESSIONS</span>
+          <div className="tmux-bulk-actions">
+            <button className="tmux-sweep-btn" onClick={sweepZombies} title="Kill sessions not open as tabs">
+              <Zap size={11} />
+              Sweep Zombies
+            </button>
+            <button
+              className={`tmux-nuclear-btn${killConfirm ? ' confirm' : ''}`}
+              onClick={killAll}
+              title={killConfirm ? 'Click again to confirm' : 'Kill all tmux sessions'}
+            >
+              <Trash2 size={11} />
+              {killConfirm ? 'Confirm' : 'Kill All'}
+            </button>
+          </div>
+        </div>
+
+        <div className="tmux-session-list">
+          {loading && <div className="tmux-empty-state">Loading...</div>}
+          {!loading && detail.length === 0 && (
+            <div className="tmux-empty-state">No active tmux sessions</div>
+          )}
+          {!loading && detail.map((sess) => (
+            <div key={sess.name} className="tmux-session-row">
+              <TermIcon size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <span className="tmux-sess-name">{sess.name}</span>
+              <span className={`tmux-badge${sess.attached ? ' attached' : ' detached'}`}>
+                {sess.attached ? 'attached' : 'detached'}
+              </span>
+              <span className="tmux-sess-windows">
+                {sess.windows} {sess.windows === 1 ? 'win' : 'wins'}
+              </span>
+              <button className="tmux-kill-btn" onClick={() => killSession(sess.name)} title={`Kill ${sess.name}`}>
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="tmux-section">
+        <div className="tmux-section-header">
+          <span className="tmux-section-label">BEHAVIOR</span>
+        </div>
+        <div className="tmux-settings-card">
+          <div className="tmux-setting-row">
+            <div className="tmux-setting-info">
+              <span className="tmux-setting-label">Kill on Close</span>
+              <span className="tmux-setting-desc">
+                Terminate the tmux session when a tab is closed.
+                Off = detach only (recommended).
+              </span>
+            </div>
+            <label className="pill-toggle">
+              <input
+                type="checkbox"
+                checked={!!tmuxSettings?.killOnClose}
+                onChange={(e) => updateBehavior('killOnClose', e.target.checked)}
+              />
+              <span className="pill-track"><span className="pill-thumb" /></span>
+            </label>
+          </div>
+
+          <div className="tmux-setting-row">
+            <div className="tmux-setting-info">
+              <span className="tmux-setting-label">Auto-sweep on Startup</span>
+              <span className="tmux-setting-desc">
+                Kill orphaned sessions when the server restarts.
+              </span>
+            </div>
+            <label className="pill-toggle">
+              <input
+                type="checkbox"
+                checked={!!tmuxSettings?.autoSweepOnStartup}
+                onChange={(e) => updateBehavior('autoSweepOnStartup', e.target.checked)}
+              />
+              <span className="pill-track"><span className="pill-thumb" /></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="tmux-section">
+        <div className="tmux-section-header">
+          <span className="tmux-section-label">PERFORMANCE</span>
+        </div>
+        <div className="tmux-settings-card">
+          <div className="tmux-setting-row">
+            <div className="tmux-setting-info">
+              <span className="tmux-setting-label">Scrollback Buffer</span>
+              <span className="tmux-setting-desc">
+                Lines of history per session. Applies to new windows only.
+              </span>
+            </div>
+            <div className="tmux-slider-col">
+              <span className="tmux-slider-value">
+                {(tmuxSettings?.scrollbackLines ?? 10000).toLocaleString()} lines
+              </span>
+              <input
+                type="range"
+                className="font-slider tmux-slider"
+                min={2000}
+                max={100000}
+                step={1000}
+                value={tmuxSettings?.scrollbackLines ?? 10000}
+                onChange={(e) => setTmuxSettings({ scrollbackLines: parseInt(e.target.value) })}
+                onMouseUp={(e) => applyPerfConfig('scrollbackLines', parseInt(e.target.value))}
+                onTouchEnd={(e) => applyPerfConfig('scrollbackLines', parseInt(e.target.value))}
+              />
+              <div className="tmux-slider-range">
+                <span>2,000</span><span>100,000</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="tmux-setting-row">
+            <div className="tmux-setting-info">
+              <span className="tmux-setting-label">Escape-time</span>
+              <span className="tmux-setting-desc">
+                Key sequence delay in ms. Use 0–10 for vim/neovim. Applies immediately.
+              </span>
+            </div>
+            <div className="tmux-num-col">
+              <input
+                type="number"
+                className="tmux-num-input"
+                min={0}
+                max={500}
+                value={tmuxSettings?.escapeTimeMs ?? 10}
+                onChange={(e) => setTmuxSettings({ escapeTimeMs: parseInt(e.target.value) || 0 })}
+                onBlur={(e) => applyPerfConfig('escapeTimeMs', parseInt(e.target.value) || 0)}
+              />
+              <span className="tmux-unit">ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * useSessions — manages the tmux terminal session tab state.
@@ -28,6 +28,7 @@ export function useSessions(activeTerminalPath, showToast) {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState('');
   const [voiceInput, setVoiceInput] = useState('');
+  const [tmuxSessionCount, setTmuxSessionCount] = useState(0);
 
   React.useEffect(() => {
     fetch('/api/terminal/sessions')
@@ -51,6 +52,27 @@ export function useSessions(activeTerminalPath, showToast) {
         setActiveSession(initialSessionId.current);
       });
   }, []);
+
+  // Poll the live tmux session count every 30 seconds independent of the tab list.
+  // This reflects background sessions that may exist even without an open UI tab.
+  useEffect(() => {
+    const poll = () =>
+      fetch('/api/terminal/sessions')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.sessions) setTmuxSessionCount(d.sessions.length); })
+        .catch(() => {});
+    poll();
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Keep localStorage in sync with the current open tab IDs so TmuxManager
+  // can determine which sessions are "active" when sweeping zombies.
+  useEffect(() => {
+    try {
+      localStorage.setItem('sovereign_active_session_ids', JSON.stringify(sessions.map(s => s.id)));
+    } catch {}
+  }, [sessions]);
 
   const handleAddSession = (inheritCwd = false) => {
     if (sessions.length >= 5) {
@@ -97,6 +119,7 @@ export function useSessions(activeTerminalPath, showToast) {
     sessions,
     activeSession,
     voiceInput,
+    tmuxSessionCount,
     setActiveSession,
     handleAddSession,
     handleCloseSession,

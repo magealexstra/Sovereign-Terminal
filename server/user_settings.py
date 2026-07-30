@@ -10,8 +10,8 @@ def get_user_config_path(request: Request) -> Path:
     """
     Resolves the server-side configuration file path for the authenticated user.
     In PAM mode: /home/{username}/.config/sovereign-terminal/settings.json
-    Fallback: /workspace/.sovereign_profiles/{username}.json
-    In Token mode: /workspace/.sovereign_profiles/default.json
+    Fallback: {project_root}/.sovereign_profiles/{username}.json
+    In Token mode: {project_root}/.sovereign_profiles/default.json
     """
     cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
     session_info = active_sessions.get(cookie_token, {})
@@ -24,11 +24,11 @@ def get_user_config_path(request: Request) -> Path:
             return user_home_config
         except Exception:
             # Fallback to shared workspace profile directory if /home/{username} is read-only
-            fallback_dir = Path(os.getenv("WORKSPACE_ROOT", "/workspace")) / ".sovereign_profiles"
+            fallback_dir = Path(os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))) / ".sovereign_profiles"
             fallback_dir.mkdir(parents=True, exist_ok=True)
             return fallback_dir / f"{username}.json"
     else:
-        profile_dir = Path(os.getenv("WORKSPACE_ROOT", "/workspace")) / ".sovereign_profiles"
+        profile_dir = Path(os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))) / ".sovereign_profiles"
         profile_dir.mkdir(parents=True, exist_ok=True)
         return profile_dir / "default.json"
 

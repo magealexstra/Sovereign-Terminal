@@ -178,7 +178,7 @@
 .brand-menu-logout-btn:hover {
   background: rgba(191, 97, 106, 0.15);
   border-color: var(--status-danger);
-  color: #ff6c6c;
+  color: var(--status-danger);
 }
 
 .brand-menu-logout-btn:active {
@@ -267,7 +267,7 @@
 }
 
 .nav-pill-btn.active {
-  color: #0A1118;
+  color: var(--bg-earth);
   background: var(--accent-highlight);
   border-color: var(--accent-highlight);
   font-weight: 700;

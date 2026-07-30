@@ -358,7 +358,7 @@
 }
 
 .nav-pill-btn.active {
-  color: #0A1118;
+  color: var(--bg-earth);
   background: var(--accent-highlight);
   border-color: var(--accent-highlight);
   font-weight: 700;
@@ -391,7 +391,7 @@
 }
 
 .subtab-btn.active {
-  color: #0A1118;
+  color: var(--bg-earth);
   background: var(--accent-highlight);
   border-color: var(--accent-highlight);
   font-weight: 700;
@@ -494,7 +494,7 @@
   flex-shrink: 0;
   padding: 0.3rem 0.6rem;
   background: var(--status-active);
-  color: #0d170b;
+  color: var(--bg-earth);
   border: none;
   border-radius: 12px;
   font-family: var(--font-sans);
@@ -1162,7 +1162,7 @@
 
 .square-pool-tile.selected-glow {
   background: var(--accent-highlight);
-  color: #0A1118;
+  color: var(--bg-earth);
   border-color: var(--accent-highlight);
   box-shadow: 0 0 12px rgba(136, 192, 208, 0.5);
 }
@@ -1562,7 +1562,7 @@
   background: var(--status-active);
   border: none;
   border-radius: 12px;
-  color: #0d170b;
+  color: var(--bg-earth);
   font-family: var(--font-sans);
   font-size: 0.68rem;
   font-weight: 700;
@@ -1604,7 +1604,7 @@
 
 .target-layer-btn.active {
   background: var(--accent-highlight);
-  color: #0A1118;
+  color: var(--bg-earth);
   border-color: var(--accent-highlight);
   font-weight: 700;
 }
@@ -1671,7 +1671,7 @@
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 800;
-  color: #FFFFFF;
+  color: var(--text-parchment);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
@@ -1717,7 +1717,7 @@
   background: var(--status-active);
   border: none;
   border-radius: 10px;
-  color: #0d170b;
+  color: var(--bg-earth);
   font-family: var(--font-sans);
   font-size: 0.68rem;
   font-weight: 700;
@@ -1734,7 +1734,7 @@
   background: rgba(255, 0, 60, 0.2);
   border: 1px solid rgba(255, 0, 60, 0.5);
   border-radius: 10px;
-  color: #ff79c6;
+  color: var(--accent-violet);
   font-family: var(--font-sans);
   font-size: 0.68rem;
   font-weight: 600;
@@ -1983,7 +1983,7 @@
   background: var(--status-active);
   border: none;
   border-radius: 8px;
-  color: #0d170b;
+  color: var(--bg-earth);
   font-family: var(--font-sans);
   font-size: 0.72rem;
   font-weight: 700;
@@ -2000,7 +2000,469 @@
   background: rgba(76, 120, 100, 0.2);
   border: 1px solid var(--status-active);
   border-radius: 10px;
-  color: #89b4fa;
+  color: var(--accent-mana);
   font-size: 0.65rem;
   font-weight: 700;
+}
+
+/* ==========================================================================
+   TMUX Session Count Badge — Session Tab Bar
+   ========================================================================== */
+
+.tmux-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+  padding-right: 0.4rem;
+  border-right: 1px solid var(--border-forest);
+  opacity: 0.9;
+  cursor: default;
+  user-select: none;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.tmux-count-badge.ok     { color: var(--status-active);  border-color: var(--status-active); }
+.tmux-count-badge.warn   { color: var(--status-warning); border-color: var(--status-warning); }
+.tmux-count-badge.danger { color: var(--status-danger);  border-color: var(--status-danger); }
+
+/* ==========================================================================
+   TMUX MANAGER PANEL — settings/TmuxManager.jsx
+   All colors via CSS vars; no hardcoded hex.
+   ========================================================================== */
+
+.tmux-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.25rem 0.125rem;
+  overflow-y: auto;
+}
+
+/* ── Status Card ──────────────────────────────────────────────────────────── */
+
+.tmux-status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+}
+
+.tmux-status-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.tmux-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+/* Offline — no server */
+.tmux-status-dot.offline {
+  background: var(--text-dim);
+  filter: none;
+}
+
+/* Online, 0–10 sessions — bright vivid green (brightness filter lifts the muted token) */
+.tmux-status-dot.ok {
+  background: var(--status-active);
+  filter: brightness(2) saturate(1.4);
+  box-shadow: 0 0 6px var(--status-active);
+}
+
+/* Online, 11–20 sessions — amber warning */
+.tmux-status-dot.warn {
+  background: var(--status-warning);
+  filter: none;
+  box-shadow: 0 0 6px var(--status-warning);
+}
+
+/* Online, 21+ sessions — red danger */
+.tmux-status-dot.danger {
+  background: var(--status-danger);
+  filter: none;
+  box-shadow: 0 0 6px var(--status-danger);
+}
+
+.tmux-status-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.tmux-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-forest);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.tmux-icon-btn:hover {
+  color: var(--text-parchment);
+  border-color: var(--border-sage);
+  background: rgba(94, 129, 172, 0.08);
+}
+
+/* ── Action Flash ─────────────────────────────────────────────────────────── */
+
+.tmux-action-flash {
+  padding: 0.45rem 0.85rem;
+  background: rgba(76, 120, 100, 0.18);
+  border: 1px solid var(--status-active);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  color: var(--status-active);
+  font-family: var(--font-mono);
+  animation: tmux-flash-in 0.15s ease;
+}
+
+@keyframes tmux-flash-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Section Shell ────────────────────────────────────────────────────────── */
+
+.tmux-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tmux-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.1rem;
+}
+
+.tmux-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+/* ── Bulk Action Buttons ──────────────────────────────────────────────────── */
+
+.tmux-bulk-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tmux-sweep-btn,
+.tmux-nuclear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.tmux-sweep-btn {
+  border-color: var(--border-forest);
+  background: transparent;
+  color: var(--text-muted);
+}
+.tmux-sweep-btn:hover {
+  border-color: var(--accent-mana);
+  color: var(--accent-mana);
+  background: rgba(94, 129, 172, 0.08);
+}
+
+.tmux-nuclear-btn {
+  border-color: var(--border-forest);
+  background: transparent;
+  color: var(--text-muted);
+}
+.tmux-nuclear-btn:hover {
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+  background: rgba(255, 0, 60, 0.06);
+}
+.tmux-nuclear-btn.confirm {
+  border-color: var(--status-danger);
+  background: rgba(255, 0, 60, 0.12);
+  color: var(--status-danger);
+  animation: tmux-pulse-danger 0.7s ease infinite alternate;
+}
+
+@keyframes tmux-pulse-danger {
+  from { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); }
+  to   { box-shadow: 0 0 0 3px rgba(255, 0, 60, 0.18); }
+}
+
+/* ── Session List ─────────────────────────────────────────────────────────── */
+
+.tmux-session-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tmux-session-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border-forest);
+  transition: background 0.1s ease;
+}
+.tmux-session-row:last-child { border-bottom: none; }
+.tmux-session-row:hover { background: rgba(255, 255, 255, 0.03); }
+
+.tmux-sess-name {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-parchment);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tmux-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 99px;
+  border: 1px solid;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.tmux-badge.attached {
+  color: var(--status-active);
+  border-color: var(--status-active);
+  background: rgba(76, 120, 100, 0.15);
+}
+.tmux-badge.detached {
+  color: var(--text-dim);
+  border-color: var(--border-forest);
+  background: transparent;
+}
+
+.tmux-sess-windows {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.tmux-kill-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.tmux-kill-btn:hover {
+  color: var(--status-danger);
+  border-color: var(--status-danger);
+  background: rgba(255, 0, 60, 0.08);
+}
+
+.tmux-empty-state {
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+/* ── Settings Card (Behavior & Performance) ──────────────────────────────── */
+
+.tmux-settings-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tmux-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid var(--border-forest);
+}
+.tmux-setting-row:last-child { border-bottom: none; }
+
+.tmux-setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.tmux-setting-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-parchment);
+}
+
+.tmux-setting-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Pill Toggle ──────────────────────────────────────────────────────────── */
+
+.pill-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pill-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.pill-track {
+  position: relative;
+  width: 2.6rem;
+  height: 1.4rem;
+  border-radius: 99px;
+  background: var(--border-forest);
+  border: 1px solid var(--border-forest);
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pill-toggle input:checked ~ .pill-track {
+  background: var(--accent-highlight);
+  border-color: var(--accent-highlight);
+}
+
+.pill-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.18rem;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--bg-earth);
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+
+.pill-toggle input:checked ~ .pill-track .pill-thumb {
+  left: calc(100% - 1.18rem);
+}
+
+/* ── Performance Slider Column ───────────────────────────────────────────── */
+
+.tmux-slider-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  min-width: 9rem;
+  flex-shrink: 0;
+}
+
+.tmux-slider-value {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--accent-highlight);
+  font-variant-numeric: tabular-nums;
+}
+
+.tmux-slider {
+  width: 100%;
+}
+
+.tmux-slider-range {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+/* ── Number Input Column ─────────────────────────────────────────────────── */
+
+.tmux-num-col {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.tmux-num-input {
+  width: 4.5rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-align: right;
+  transition: border-color 0.15s ease;
+}
+.tmux-num-input:focus {
+  outline: none;
+  border-color: var(--accent-highlight);
+}
+.tmux-num-input::-webkit-inner-spin-button,
+.tmux-num-input::-webkit-outer-spin-button { opacity: 0.4; }
+
+.tmux-unit {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
 }

@@ -11,7 +11,7 @@ from auth import require_auth
 
 router = APIRouter(prefix="/api/fs", tags=["filesystem"], dependencies=[Depends(require_auth)])
 
-WORKSPACE_ROOT = os.getenv("WORKSPACE_ROOT", "/workspace")
+WORKSPACE_ROOT = os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
 TRASH_DIR = os.getenv("TRASH_DIR", os.path.join(WORKSPACE_ROOT, "_temp_trash"))
 
 # Trash Safety vs Permanent Deletion Configuration

@@ -93,6 +93,10 @@ export default function LayoutBuilder() {
       const storageKey = selectedMacroSuite === 'PRIMARY' ? 'sovereign_layout_slots' : `sovereign_macro_suite_${selectedMacroSuite}`;
       localStorage.setItem(storageKey, JSON.stringify(newSlots));
       window.dispatchEvent(new Event('storage'));
+      // Persist primary hotbar layout to server profile so it survives storage clears
+      if (selectedMacroSuite === 'PRIMARY') {
+        syncUserSettingsToServer({ layoutSlots: newSlots });
+      }
     } catch {}
   };
 

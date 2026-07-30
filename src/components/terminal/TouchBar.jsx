@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, KeyRound, Trash2, Zap, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, X, Edit3 } from 'lucide-react';
+import { Mic, MicOff, KeyRound, Trash2, Zap, X, Edit3 } from 'lucide-react';
 import StagingDrawer from './StagingDrawer';
 
 export default function TouchBar({ onKeyPress, onVoiceInput }) {
@@ -474,6 +474,13 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             };
             if (keyMappings[itemKey]) return keyMappings[itemKey];
 
+            // Unicode arrow character fallback (thin arrows ← → ↓ ↑ and bold triangles ◀ ▶ ▼ ▲)
+            const unicodeArrows = {
+              '\u2190': '\x1b[D', '\u2192': '\x1b[C', '\u2193': '\x1b[B', '\u2191': '\x1b[A',
+              '\u25c0': '\x1b[D', '\u25b6': '\x1b[C', '\u25bc': '\x1b[B', '\u25b2': '\x1b[A'
+            };
+            if (unicodeArrows[itemKey]) return unicodeArrows[itemKey];
+
             try {
               const saved = localStorage.getItem('sovereign_buttons');
               if (saved) {
@@ -554,7 +561,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           <div className="macro-modal-content" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
             <div className="macro-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Zap size={16} color="#A3BE8C" />
+                <Zap size={16} color="var(--status-active)" />
                 <h3>{selectedSuite.replace('KEY_', '')} TOOLKIT</h3>
               </div>
               <button className="close-modal-btn" onClick={() => setShowMacroModal(false)}>

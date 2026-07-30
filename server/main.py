@@ -28,7 +28,7 @@ app = FastAPI(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    workspace = os.getenv("WORKSPACE_ROOT", "/workspace")
+    workspace = os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
     log_dir = Path(workspace) / "Logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     
@@ -69,7 +69,7 @@ def health_check():
     return {
         "status": "online",
         "service": "The Sovereign Terminal Gateway",
-        "port": os.getenv("PORT", "2068")
+        "port": os.getenv("PORT", "2069")
     }
 
 # Mount static React frontend dist folder if built
@@ -94,7 +94,7 @@ def get_ssl_certificates():
     return None, None
 
 if __name__ == "__main__":
-    default_port = "2068" if os.getenv("ENV", "development") == "development" else "2069"
+    default_port = "2069"
     port = int(os.getenv("PORT", default_port))
     enable_https = os.getenv("ENABLE_HTTPS", "false").lower() in ("true", "1", "yes")
 

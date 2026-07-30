@@ -29,6 +29,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Master Red `MACROS` Launcher:** Pinned bright red catalog launcher granting instant access to the full command toolkit library.
 * **Touch Scrollback & Copy-on-Select:** Swiping up/down scrolls history smoothly; text selection automatically copies content to system clipboard.
 * **Port Decoupling & Host Auto-Resolution:** Fully decoupled REST and WebSocket architecture (`PORT=2069` by default) with relative `/api/fs/...` paths.
+* **Live Session Count Badge:** Displays the number of active tmux sessions on the terminal tab bar. The badge changes color automatically — green (1–10), amber (11–20), and red (21+) — so you always know how many background sessions are consuming resources.
 
 ### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
@@ -40,7 +41,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Universal Binary Transfer:** Direct bidirectional phone-to-server transfer supporting images, archives, audio, 3D models, and PDFs, with on-the-fly zip archive streaming for multi-file downloads.
 * **Configurable Trash Protection:** Safe trash mode moves deleted files to `./_temp_trash/` by default. Permanent removal can be enabled via `ENABLE_PERMANENT_DELETE=true` in `.env`.
 
-### 3. Single-Bar Visual TouchBar Editor (Settings Tab 1)
+### 3. Single-Bar Visual TouchBar Editor (Settings Sub-Tab 3: Layout Builder)
 * **Tap-Selection Workflow:** 2-tap add, move left/right, and delete interaction model for full TouchBar customization.
 * **Live TouchBar Strip:** 1:1 visual preview of the scrollable bottom TouchBar with real-time `localStorage` sync (`sovereign_layout_slots`).
 * **Searchable Category Selector:** Combined real-time search bar and two-tier category dropdown menu (Custom Buttons top priority, followed by alphabetical pre-built toolkits).
@@ -66,12 +67,23 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
   * `MODE` (Signals/Escapes): `ESC`, `TAB`, `DEL` (`\x1b[3~`), `^C`, `^Z`, `^D`
   * `LINE` (Cursor Controls): `^A` (Home), `^E` (End), `^K` (Cut end), `^U` (Cut start), `^W` (Delete word), `^Y` (Paste), `^R` (History search), `^L` (Clear)
 
-### 5. Touch Button Studio & 100% Dynamic Theme Engine (Settings Tabs 2 & 3)
+### 5. Touch Button Studio & 100% Dynamic Theme Engine (Settings Sub-Tabs 1 & 2)
 * **Fluid Flexbox Button Studio:** Dynamic proportional flex scaling across 4K displays, laptops, 12" tablets, fold phones, and smartphones.
 * **Output & Function Card:** Button Name input + 3-line Function `<textarea rows={3} />`.
 * **Size, Shape & Save Card:** Width/Height steppers, vertically stacked tap shape buttons (`Square`, `Round`, `Pill`), and pinned Save button.
 * **Live Preset & Custom Dropdown:** Search bar input stacked above dropdown containing all pre-built layout commands and custom buttons.
 * **100% Dynamic Theme Engine:** Zero hardcoded colors or emojis; all icons, buttons, borders, and modals dynamically recolor with 12 curated base-16 open-source themes (Dracula, Nord, Tokyo Night, Catppuccin, Solarized, Monokai, etc.).
+
+### 6. TMUX Session Manager (Settings Sub-Tab 4)
+* **Live Session List:** Displays all active tmux sessions with name, attached/detached status, and window count. Refreshes on demand.
+* **Intelligent Status Indicator:** A color-coded dot tracks session count thresholds in real time (vivid green = ok, amber = 11–20, red = 21+).
+* **Per-Session Kill:** Remove any individual session with a single click without disturbing others.
+* **Sweep Zombies:** Identifies and terminates orphaned sessions that are no longer associated with any open terminal tab.
+* **Kill All (Confirmed):** Two-click confirmation flow to clear all tmux sessions and reset the server.
+* **Kill-on-Close Toggle:** Controls whether closing a terminal tab terminates (`on`) or detaches (`off`) the underlying tmux session. Defaults to **off** so background work survives browser closure.
+* **Auto-Sweep on Startup:** Optionally clears orphaned sessions automatically each time the backend restarts.
+* **Scrollback Buffer Control:** Configurable slider (2,000–100,000 lines) per session for fine-tuning memory vs. history depth.
+* **Escape-Time Tuning:** Direct escape-time ms control for optimal `vim`/`neovim` responsiveness, applied to the live server immediately.
 
 ---
 

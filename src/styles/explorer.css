@@ -316,7 +316,7 @@
 
 .editor-touch-btn.save {
   background: var(--status-active);
-  color: #0d170b;
+  color: var(--bg-earth);
   border-color: var(--status-active);
 }
 
@@ -380,7 +380,7 @@
 
 .modal-btn-row button.submit {
   background: var(--status-active);
-  color: #0d170b;
+  color: var(--bg-earth);
 }
 
 .modal-btn-row button.delete {

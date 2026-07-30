@@ -467,6 +467,13 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
   };
 
+  const scrollToBottom = () => {
+    if (xtermInstance.current) {
+      xtermInstance.current.scrollToBottom();
+      setShowScrollBottom(false);
+    }
+  };
+
   return (
     <div className="terminal-wrapper">
       {toast && (

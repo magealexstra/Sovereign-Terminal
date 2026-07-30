@@ -1,9 +1,19 @@
 import React from 'react';
 import { Terminal, Plus, FolderDown, X } from 'lucide-react';
 
-export default function SessionTabs({ sessions, activeSession, onSelectSession, onAddSession, onCloseSession }) {
+export default function SessionTabs({ sessions, activeSession, onSelectSession, onAddSession, onCloseSession, tmuxSessionCount = 0 }) {
+  const badgeClass =
+    tmuxSessionCount > 20 ? 'tmux-count-badge danger' :
+    tmuxSessionCount > 10 ? 'tmux-count-badge warn' :
+    'tmux-count-badge ok';
+
   return (
     <div className="session-tabs-bar">
+      {tmuxSessionCount > 0 && (
+        <span className={badgeClass} title={`${tmuxSessionCount} tmux session${tmuxSessionCount !== 1 ? 's' : ''} running`}>
+          {tmuxSessionCount}
+        </span>
+      )}
       {sessions.map((session) => (
         <button
           key={session.id}

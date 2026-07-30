@@ -13,6 +13,10 @@ testing/logs/screenshots/
 config.env
 .env
 
+# Python Virtual Environment
+.venv/
+venv/
+
 # Master Architecture Specifications (Private Workspace Specs)
 docs/
 

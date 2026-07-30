@@ -9,7 +9,8 @@ import termios
 import asyncio
 import subprocess
 import json
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from pathlib import Path
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request
 from auth import AUTH_MODE, ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions, require_auth
 
 router = APIRouter(tags=["terminal"])
@@ -23,19 +24,141 @@ def list_sessions(user: dict = Depends(require_auth)):
 
     if _tmux_bin:
         try:
+            fmt = "#{session_name}|#{session_attached}|#{session_windows}"
             if use_pam and target_user:
-                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} list-sessions -F '#S'"]
+                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} list-sessions -F '{fmt}'"]
             else:
-                cmd = [_tmux_bin, "list-sessions", "-F", "#S"]
+                cmd = [_tmux_bin, "list-sessions", "-F", fmt]
 
             res = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0 and res.stdout:
-                sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
-                return {"sessions": sessions}
+                sessions = []
+                detail = []
+                for line in res.stdout.splitlines():
+                    parts = line.strip().split("|")
+                    if not parts or not parts[0]:
+                        continue
+                    name = parts[0]
+                    attached = len(parts) > 1 and parts[1] == "1"
+                    windows = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 1
+                    sessions.append(name)
+                    detail.append({"name": name, "attached": attached, "windows": windows})
+                return {"sessions": sessions, "detail": detail}
         except Exception:
             pass
 
-    return {"sessions": []}
+    return {"sessions": [], "detail": []}
+
+
+@router.delete("/api/terminal/sessions")
+def kill_all_sessions(user: dict = Depends(require_auth)):
+    """Kill ALL tmux sessions and immediately rewarm the server."""
+    if not _tmux_bin:
+        raise HTTPException(status_code=503, detail="tmux not available")
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    target_user = user.get("username") if (use_pam and user) else None
+    try:
+        if use_pam and target_user:
+            cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} kill-server"]
+        else:
+            cmd = [_tmux_bin, "kill-server"]
+        subprocess.run(cmd, capture_output=True, text=True, check=False)
+        # Rewarm so the next connection finds a live server immediately
+        subprocess.run([_tmux_bin, "start-server"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        return {"status": "ok", "message": "All sessions killed"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/api/terminal/sessions/{session_id}")
+def kill_session(session_id: str, user: dict = Depends(require_auth)):
+    """Kill a specific tmux session by name."""
+    if not _tmux_bin:
+        raise HTTPException(status_code=503, detail="tmux not available")
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    target_user = user.get("username") if (use_pam and user) else None
+    try:
+        if use_pam and target_user:
+            cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} kill-session -t '{session_id}'"]
+        else:
+            cmd = [_tmux_bin, "kill-session", "-t", session_id]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if res.returncode == 0:
+            return {"status": "ok", "killed": session_id}
+        return {"status": "error", "detail": res.stderr.strip()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/terminal/sessions/sweep")
+async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
+    """Kill tmux sessions that are not in the provided active UI-tab list."""
+    if not _tmux_bin:
+        raise HTTPException(status_code=503, detail="tmux not available")
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    target_user = user.get("username") if (use_pam and user) else None
+
+    body = await request.json()
+    active_ids = set(body.get("active", []))
+
+    # Fetch the current live session list
+    try:
+        if use_pam and target_user:
+            cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} list-sessions -F '#S'"]
+        else:
+            cmd = [_tmux_bin, "list-sessions", "-F", "#S"]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if res.returncode != 0 or not res.stdout:
+            return {"status": "ok", "swept": []}
+        live_sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    swept = []
+    for sess in live_sessions:
+        if sess not in active_ids:
+            try:
+                if use_pam and target_user:
+                    kill_cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} kill-session -t '{sess}'"]
+                else:
+                    kill_cmd = [_tmux_bin, "kill-session", "-t", sess]
+                subprocess.run(kill_cmd, capture_output=True, text=True, check=False)
+                swept.append(sess)
+            except Exception:
+                pass
+    return {"status": "ok", "swept": swept}
+
+
+@router.post("/api/terminal/config")
+async def apply_tmux_config(request: Request, user: dict = Depends(require_auth)):
+    """Apply tmux runtime configuration options (history-limit, escape-time)."""
+    if not _tmux_bin:
+        raise HTTPException(status_code=503, detail="tmux not available")
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    target_user = user.get("username") if (use_pam and user) else None
+
+    body = await request.json()
+    options = {}
+    if "historyLimit" in body:
+        options["history-limit"] = str(max(1000, min(500000, int(body["historyLimit"]))))
+    if "escapeTimeMs" in body:
+        options["escape-time"] = str(max(0, min(500, int(body["escapeTimeMs"]))))
+
+    applied = []
+    for opt, val in options.items():
+        try:
+            if use_pam and target_user:
+                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} set-option -g {opt} {val}"]
+            else:
+                cmd = [_tmux_bin, "set-option", "-g", opt, val]
+            res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if res.returncode == 0:
+                applied.append(f"{opt}={val}")
+        except Exception:
+            pass
+
+    return {"status": "ok", "applied": applied}
 
 SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
@@ -58,7 +181,7 @@ def set_pty_size(fd, rows, cols):
 
 
 @router.websocket("/ws/terminal")
-async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = "/workspace"):
+async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = ""):
     use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
     target_user = None
 
@@ -73,7 +196,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     await websocket.accept()
 
     tmux_bin = _tmux_bin
-    target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("WORKSPACE_ROOT", "/workspace")
+    target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
 
     uinfo = None
     if use_pam and target_user:
@@ -209,7 +332,6 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                     if msg_type == "resize":
                         cols = int(payload.get("cols", 80))
                         rows = int(payload.get("rows", 24))
-                        print(f"RESIZE COMMAND RECEIVED: cols={cols}, rows={rows}", flush=True)
                         set_pty_size(master_fd, rows, cols)
                         continue
 

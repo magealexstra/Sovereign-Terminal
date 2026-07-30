@@ -51,6 +51,23 @@ export function AppProvider({ children }) {
   const [terminalScaleMultiplier, setTerminalScaleMultiplier] = useState(1.0);
   const [editorScaleMultiplier, setEditorScaleMultiplier] = useState(1.0);
 
+  const DEFAULT_TMUX_SETTINGS = { killOnClose: false, autoSweepOnStartup: false, scrollbackLines: 10000, escapeTimeMs: 10 };
+  const [tmuxSettings, setTmuxSettingsState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_tmux_settings');
+      return saved ? { ...DEFAULT_TMUX_SETTINGS, ...JSON.parse(saved) } : DEFAULT_TMUX_SETTINGS;
+    } catch {
+      return DEFAULT_TMUX_SETTINGS;
+    }
+  });
+  const setTmuxSettings = (partial) => {
+    setTmuxSettingsState(prev => {
+      const merged = { ...prev, ...partial };
+      try { localStorage.setItem('sovereign_tmux_settings', JSON.stringify(merged)); } catch {}
+      return merged;
+    });
+  };
+
   // Dynamic Device Baseline Detection (Default: 10px for maximum terminal real estate)
   const getDeviceBaseline = () => {
     return 10;
@@ -86,7 +103,10 @@ export function AppProvider({ children }) {
     root.style.setProperty('--text-dim', theme.textDim || '#4C566A');
     root.style.setProperty('--accent-mana', theme.accentMana);
     root.style.setProperty('--accent-highlight', theme.accentHighlight);
-    root.style.setProperty('--status-active', theme.statusActive || '#4C7864');
+    root.style.setProperty('--status-active',    theme.statusActive    || '#4C7864');
+    root.style.setProperty('--status-danger',    theme.statusDanger    || '#FF003C');
+    root.style.setProperty('--status-warning',   theme.statusWarning   || '#fbbf24');
+    root.style.setProperty('--accent-violet',    theme.accentViolet    || '#B48EAD');
     root.style.setProperty('--font-mono', theme.fontMono);
     root.style.setProperty('--font-sans', theme.fontSans);
     root.style.setProperty('--device-baseline-px', `${deviceBaselinePx}px`);
@@ -123,14 +143,19 @@ export function AppProvider({ children }) {
       const custBtn = localStorage.getItem('sovereign_cust_button');
       const copyDest = localStorage.getItem('sovereign_copy_destination');
       const buttonsRaw = localStorage.getItem('sovereign_buttons');
+      const layoutSlotsRaw = localStorage.getItem('sovereign_layout_slots');
       const customThemesRaw = localStorage.getItem('sovereign_custom_themes');
+
+      const tmuxRaw = localStorage.getItem('sovereign_tmux_settings');
 
       const payload = {
         activeThemeKey,
         custButton: custBtn ? JSON.parse(custBtn) : null,
         copyDestination: copyDest || 'clip',
         buttons: buttonsRaw ? JSON.parse(buttonsRaw) : null,
+        layoutSlots: layoutSlotsRaw ? JSON.parse(layoutSlotsRaw) : null,
         customThemes: customThemesRaw ? JSON.parse(customThemesRaw) : null,
+        tmux: tmuxRaw ? JSON.parse(tmuxRaw) : null,
         ...partialSettings
       };
 
@@ -174,6 +199,20 @@ export function AppProvider({ children }) {
         if (settings.copyDestination) {
           try { localStorage.setItem('sovereign_copy_destination', settings.copyDestination); } catch {}
         }
+
+        if (settings.layoutSlots && Array.isArray(settings.layoutSlots)) {
+          try {
+            localStorage.setItem('sovereign_layout_slots', JSON.stringify(settings.layoutSlots));
+            window.dispatchEvent(new Event('storage')); // triggers TouchBar activeSlots update
+          } catch {}
+        }
+
+        if (settings.tmux) {
+          try {
+            setTmuxSettingsState(prev => ({ ...prev, ...settings.tmux }));
+            localStorage.setItem('sovereign_tmux_settings', JSON.stringify(settings.tmux));
+          } catch {}
+        }
       }
     } catch {}
   };
@@ -208,6 +247,8 @@ export function AppProvider({ children }) {
         setTerminalScaleMultiplier,
         editorScaleMultiplier,
         setEditorScaleMultiplier,
+        tmuxSettings,
+        setTmuxSettings,
         terminalFontSizePx,
         editorFontSizePx,
         iconSizeSm,
