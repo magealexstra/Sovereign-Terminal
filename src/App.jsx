@@ -18,6 +18,31 @@ export default function App() {
   const { activeMainTab, setActiveMainTab, fetchUserSettings } = useApp();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
+  const [workspaceRoot, setWorkspaceRoot] = useState('/workspace');
+  const [explorerPath, setExplorerPath] = useState('');
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.workspaceRoot) {
+            setWorkspaceRoot(data.workspaceRoot);
+            setActiveTerminalPath(data.workspaceRoot);
+            setExplorerPath(data.workspaceRoot);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load system config:', e);
+      } finally {
+        setIsLoadingConfig(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
   // Authentication State & Session Verification
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthVerified, setIsAuthVerified] = useState(false);
@@ -161,7 +186,7 @@ export default function App() {
     handleAddSession,
     handleCloseSession,
     handleTerminalInput,
-  } = useSessions(activeTerminalPath, showSessionToast);
+  } = useSessions(activeTerminalPath, showSessionToast, workspaceRoot);
   const [openDocuments, setOpenDocuments] = useState([]);
   const [activeFilePath, setActiveFilePath] = useState('');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
@@ -185,18 +210,18 @@ export default function App() {
     const hasSeenManual = localStorage.getItem('hasSeenManual');
     if (!hasSeenManual) {
       // Fetch the live manual from the container's hard drive
-      fetch('/api/fs/read?path=/workspace/OPERATION_MANUAL.md')
+      fetch(`/api/fs/read?path=${workspaceRoot}/OPERATION_MANUAL.md`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data && data.content) {
             // Open the manual as a new tab
             setOpenDocuments([{
               name: 'OPERATION_MANUAL.md',
-              path: '/workspace/OPERATION_MANUAL.md',
+              path: `${workspaceRoot}/OPERATION_MANUAL.md`,
               isModified: false,
               content: data.content
             }]);
-            setActiveFilePath('/workspace/OPERATION_MANUAL.md');
+            setActiveFilePath(`${workspaceRoot}/OPERATION_MANUAL.md`);
             
             // Mark it as seen so it never auto-opens again
             localStorage.setItem('hasSeenManual', 'true');
@@ -295,6 +320,21 @@ export default function App() {
       setActiveFilePath(filtered[0].path);
     }
   };
+
+  if (isLoadingConfig) {
+    return (
+      <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+        <div className="login-modal-overlay">
+          <div className="login-modal-card" style={{ maxWidth: '320px', padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+            <div className="login-header" style={{ marginBottom: 0 }}>
+              <h2>INITIALIZING SYSTEM...</h2>
+              <p>Synchronizing configuration...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthVerified) {
     return (
@@ -474,7 +514,7 @@ export default function App() {
         </div>
 
         {explorerSubTab === 'tree' ? (
-          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} />
+          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} workspaceRoot={workspaceRoot} currentPath={explorerPath} setCurrentPath={setExplorerPath} />
         ) : (
           <CodeEditor
             openDocuments={openDocuments}

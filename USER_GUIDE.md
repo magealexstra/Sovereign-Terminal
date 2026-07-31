@@ -152,6 +152,11 @@ services:
 **Explanation:**
 We mount `/etc/passwd`, `/etc/shadow`, and `/etc/group` in read-only mode so the container can authenticate against your host Linux users directly via PAM. Match `TMUX_VERSION` to your host, build, and deploy.
 
+> **CRITICAL SETUP REQUIREMENT**
+> For Pass-through to work correctly, you **MUST** have an active `tmux` server running natively on your host machine before logging into Sovereign Terminal. If the host socket (`/tmp/tmux-1000/default`) is empty, the container will automatically spawn its own `tmux` server on that socket. Because that new server is spawned by the container, it will run inside the container's isolated filesystem (giving you a containerized shell rather than your host shell).
+> 
+> To prevent this, ensure a host session is running: `tmux -S /tmp/tmux-1000/default new -d -s host-session`
+
 ### Section 5: Option C (True Baremetal Execution)
 
 Run the backend natively on your host OS. Bypasses Docker completely for absolute native integration. No container layer means direct access to all system binaries, user permissions, and host networking interfaces.

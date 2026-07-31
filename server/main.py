@@ -72,6 +72,12 @@ def health_check():
         "port": os.getenv("PORT", "2069")
     }
 
+@app.get("/api/config")
+def get_config():
+    return {
+        "workspaceRoot": os.getenv("WORKSPACE_ROOT", "/workspace")
+    }
+
 # Mount static React frontend dist folder if built
 DIST_DIR = Path(__file__).parent.parent / "dist"
 if DIST_DIR.exists():
