@@ -260,9 +260,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
               onClick={() => onSelectTab(doc.path)}
               onTouchStart={() => handleTabClosePress(doc.path)}
               onTouchEnd={() => handleTabCloseRelease(doc.path, doc.isModified)}
-              onMouseDown={() => {
-                isTouchDevice.current = false;
-              }}
+
             >
               {doc.virtual
                 ? <Eye size={13} color="var(--text-muted)" />
