@@ -175,7 +175,7 @@
   min-height: 44px;
 }
 
-.brand-menu-logout-btn:hover {
+.brand-menu-logout-btn:active {
   background: rgba(191, 97, 106, 0.15);
   border-color: var(--status-danger);
   color: var(--status-danger);
@@ -260,7 +260,7 @@
   white-space: nowrap;
 }
 
-.nav-pill-btn:hover {
+.nav-pill-btn:active {
   color: var(--text-parchment);
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
@@ -286,7 +286,7 @@
   background: var(--border-forest);
   border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:active {
   background: var(--accent-highlight);
 }
 
@@ -331,7 +331,7 @@
   transition: transform 0.15s ease;
 }
 
-.scroll-bottom-btn:hover {
+.scroll-bottom-btn:active {
   transform: translateY(-2px);
   background: var(--accent-highlight);
   color: var(--bg-earth);

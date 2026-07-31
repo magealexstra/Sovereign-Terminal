@@ -108,12 +108,13 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     term.loadAddon(fitAddon);
     term.loadAddon(webLinksAddon);
 
-    // Custom File Path Link Router (/workspace/..., /app/..., ./...)
+    // Custom File Path Link Router (rootDir/..., /app/..., ./...)
     term.registerLinkProvider({
       provideLinks: (bufferLineNumber, callback) => {
         const lineText = term.buffer.active?.getLine(bufferLineNumber - 1)?.translateToString(true);
         if (!lineText) { callback([]); return; }
-        const regex = /(?:\/workspace|\/app|\.\/|\.\.\/)[^\s:\x1b'"]+\.[a-zA-Z0-9]+/g;
+        const escapedRoot = (rootDir || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(?:${escapedRoot}|/app|\\./|\\.\\./)[^\\s:\\x1b'"]+\\.[a-zA-Z0-9]+`, 'g');
         const links = [];
         let match;
         while ((match = regex.exec(lineText)) !== null) {

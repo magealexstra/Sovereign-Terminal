@@ -5,16 +5,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sovereign-terminal
+    container_name: ${CONTAINER_NAME:-sovereign-terminal}
     restart: unless-stopped
     ports:
       - "${PORT:-2069}:${PORT:-2069}"
-    env_file:
-      - .env
     environment:
       - PORT=${PORT:-2069}
+      - AUTH_MODE=${AUTH_MODE:-token}
+      - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN:-1234}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
       - PYTHONUNBUFFERED=1
-      - WORKSPACE_ROOT=${WORKSPACE_ROOT:-/workspace}
+      - SOVEREIGN_ROOT=/workspace
       - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
       - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
       - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
@@ -24,4 +25,7 @@ services:
     volumes:
       - ${HOST_WORKSPACE_PATH:-./}:/workspace
       - /etc/localtime:/etc/localtime:ro
+      - sovereign-terminal-data:/root/.local/share/sovereign-terminal
 
+volumes:
+  sovereign-terminal-data:

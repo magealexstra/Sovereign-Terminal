@@ -76,7 +76,7 @@
   transition: all 0.2s ease;
 }
 
-.preset-card:hover {
+.preset-card:active {
   border-color: var(--accent-highlight);
 }
 
@@ -351,7 +351,7 @@
   white-space: nowrap;
 }
 
-.nav-pill-btn:hover {
+.nav-pill-btn:active {
   color: var(--text-parchment);
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
@@ -384,7 +384,7 @@
   white-space: nowrap;
 }
 
-.subtab-btn:hover {
+.subtab-btn:active {
   color: var(--text-parchment);
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
@@ -1079,7 +1079,7 @@
   color: var(--status-danger);
 }
 
-.delete-action-btn:not(:disabled):hover, .delete-action-btn:not(:disabled):active {
+.delete-action-btn:not(:disabled):active, .delete-action-btn:not(:disabled):active {
   background: var(--status-danger);
   color: var(--bg-earth);
 }
@@ -1255,7 +1255,7 @@
   transition: all 0.15s ease;
 }
 
-.micro-preset-card:hover {
+.micro-preset-card:active {
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
 }
@@ -1363,7 +1363,7 @@
   transition: all 0.15s ease;
 }
 
-.full-preset-card:hover {
+.full-preset-card:active {
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
 }
@@ -1509,7 +1509,7 @@
   cursor: pointer;
 }
 
-.native-gear-btn:hover {
+.native-gear-btn:active {
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -1828,7 +1828,7 @@
   touch-action: manipulation;
 }
 
-.base16-swatch-cell:hover {
+.base16-swatch-cell:active {
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -2122,7 +2122,7 @@
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
-.tmux-icon-btn:hover {
+.tmux-icon-btn:active {
   color: var(--text-parchment);
   border-color: var(--border-sage);
   background: rgba(94, 129, 172, 0.08);
@@ -2195,7 +2195,7 @@
   background: transparent;
   color: var(--text-muted);
 }
-.tmux-sweep-btn:hover {
+.tmux-sweep-btn:active {
   border-color: var(--accent-mana);
   color: var(--accent-mana);
   background: rgba(94, 129, 172, 0.08);
@@ -2206,7 +2206,7 @@
   background: transparent;
   color: var(--text-muted);
 }
-.tmux-nuclear-btn:hover {
+.tmux-nuclear-btn:active {
   border-color: var(--status-danger);
   color: var(--status-danger);
   background: rgba(255, 0, 60, 0.06);
@@ -2243,7 +2243,7 @@
   transition: background 0.1s ease;
 }
 .tmux-session-row:last-child { border-bottom: none; }
-.tmux-session-row:hover { background: rgba(255, 255, 255, 0.03); }
+.tmux-session-row:active { background: rgba(255, 255, 255, 0.03); }
 
 .tmux-sess-name {
   flex: 1;
@@ -2299,7 +2299,7 @@
   flex-shrink: 0;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
-.tmux-kill-btn:hover {
+.tmux-kill-btn:active {
   color: var(--status-danger);
   border-color: var(--status-danger);
   background: rgba(255, 0, 60, 0.08);

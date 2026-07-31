@@ -29,6 +29,7 @@ services:
       - AUTH_MODE=token
       - SERVER_AUTH_TOKEN=1234
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
 ```
@@ -60,6 +61,7 @@ services:
     environment:
       - AUTH_MODE=pam
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
 ```
@@ -99,6 +101,7 @@ services:
       - AUTH_MODE=token
       - SERVER_AUTH_TOKEN=1234
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
       - /etc/localtime:/etc/localtime:ro
@@ -139,6 +142,7 @@ services:
       - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
       - AUTH_MODE=pam
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
       - /etc/localtime:/etc/localtime:ro

@@ -28,8 +28,7 @@ app = FastAPI(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    workspace = os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
-    log_dir = Path(workspace) / "Logs"
+    log_dir = Path.home() / ".local" / "share" / "sovereign-terminal" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     
     log_file = log_dir / "server_error.log"
@@ -75,7 +74,7 @@ def health_check():
 @app.get("/api/config")
 def get_config():
     return {
-        "workspaceRoot": os.getenv("WORKSPACE_ROOT", "/workspace")
+        "rootDir": os.getenv("SOVEREIGN_ROOT", str(Path.home()))
     }
 
 # Mount static React frontend dist folder if built

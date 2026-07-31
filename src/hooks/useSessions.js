@@ -15,7 +15,7 @@ import React, { useState, useEffect } from 'react';
  * @param {string|null} activeTerminalPath  Current CWD tracked by the terminal (used for inheritCwd).
  * @param {function}    showToast           showToast(msg) from useToast() — replaces alert().
  */
-export function useSessions(activeTerminalPath, showToast, workspaceRoot) {
+export function useSessions(activeTerminalPath, showToast, rootDir) {
   // Counter only ever increments — prevents duplicate names after close+add cycles
   const sessionCounterRef = React.useRef(1);
 
@@ -83,7 +83,7 @@ export function useSessions(activeTerminalPath, showToast, workspaceRoot) {
     const newId = `session-${Date.now().toString(36).substring(4)}`;
     sessionCounterRef.current += 1;
     const sessionName = `term-${sessionCounterRef.current}`;
-    let targetCwd = workspaceRoot;
+    let targetCwd = rootDir;
 
     if (inheritCwd && activeSession) {
       try {
@@ -111,7 +111,7 @@ export function useSessions(activeTerminalPath, showToast, workspaceRoot) {
         // Last tab closed — auto-create a fresh replacement so there's always a terminal
         sessionCounterRef.current += 1;
         const freshId = `session-${Date.now().toString(36).substring(4)}`;
-        const fresh = { id: freshId, name: `term-${sessionCounterRef.current}`, initialCwd: workspaceRoot };
+        const fresh = { id: freshId, name: `term-${sessionCounterRef.current}`, initialCwd: rootDir };
         setActiveSession(freshId);
         return [fresh];
       }

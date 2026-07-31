@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw } from 'lucide-react';
+import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
-  const [currentPath, setCurrentPath] = useState(() => {
-    try {
-      return localStorage.getItem('sovereign_explorer_last_path') || activeTerminalPath || '/workspace';
-    } catch {
-      return '/workspace';
-    }
-  });
+export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, currentPath, setCurrentPath }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -152,11 +145,17 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
         </div>
 
         <div className="toolbar-actions">
+          <button className="tb-btn" onClick={() => setCurrentPath(currentPath.split('/').slice(0, -1).join('/') || '/')} title="Up One Level">
+            <CornerLeftUp size={14} />
+          </button>
+          <button className="tb-btn" onClick={() => setCurrentPath(rootDir)} title="Home Directory">
+            <Home size={14} />
+          </button>
+          <button className="tb-btn" onClick={() => setCurrentPath(activeTerminalPath)} title="Snap to Terminal">
+            <Terminal size={14} />
+          </button>
           <button className="tb-btn" onClick={() => fetchDirectory(currentPath)} title="Refresh Directory">
             <RefreshCw size={14} className={loading ? 'spin' : ''} />
-          </button>
-          <button className="tb-btn" onClick={() => setShowSearchModal(true)} title="Tab-Scoped File Search">
-            <Search size={14} color="var(--accent-mana)" />
           </button>
           <button className="tb-btn" onClick={() => setNewFileModal(true)} title="New File/Folder">
             <Plus size={14} color="var(--status-active)" />
@@ -173,6 +172,9 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
             <Upload size={14} />
             <input type="file" multiple onChange={handleUpload} style={{ display: 'none' }} />
           </label>
+          <button className="tb-btn" onClick={() => setShowSearchModal(true)} title="Tab-Scoped File Search">
+            <Search size={14} color="var(--accent-mana)" />
+          </button>
         </div>
       </div>
 

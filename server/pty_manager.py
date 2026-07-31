@@ -69,7 +69,7 @@ def get_session_cwd(session: str = "main", user: dict = Depends(require_auth)):
         except Exception:
             pass
 
-    default_cwd = os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
+    default_cwd = os.getenv("SOVEREIGN_ROOT", str(Path.home()))
     return {"status": "ok", "cwd": default_cwd}
 
 
@@ -187,20 +187,24 @@ SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
 _tmux_bin = shutil.which("tmux") or shutil.which("tmux", path="/usr/local/bin:/usr/bin:/bin")
 
+# Context-Aware Socket Resolution
+# Only use the host's custom socket path if we are actually in pass-through mode.
+# Otherwise, ignore it and let tmux safely fall back to its default isolated sandbox behavior.
+_socket_path = os.environ.get("TMUX_SOCKET_PATH")
+if os.environ.get("DEPLOYMENT_MODE") != "pass-through":
+    _socket_path = None
+
 def _get_tmux_base():
-    socket_path = os.environ.get("TMUX_SOCKET_PATH")
-    return [_tmux_bin, "-S", socket_path] if socket_path else [_tmux_bin]
+    return [_tmux_bin, "-S", _socket_path] if _socket_path else [_tmux_bin]
 
 def _get_tmux_base_str():
-    socket_path = os.environ.get("TMUX_SOCKET_PATH")
-    return f"{_tmux_bin} -S '{socket_path}'" if socket_path else _tmux_bin
+    return f"{_tmux_bin} -S '{_socket_path}'" if _socket_path else _tmux_bin
 
-
-# Pre-warm the tmux server at module load time.
-# This ensures the server socket exists before any WebSocket session connects,
-# eliminating the "error connecting" race on first connection.
-if _tmux_bin and os.environ.get("DEPLOYMENT_MODE") != "pass-through" and not os.environ.get("TMUX_SOCKET_PATH"):
-    subprocess.run([_tmux_bin, "start-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+# Pre-warm the tmux server at module load time if we are in pass-through mode and the socket is missing.
+# Wait, if we are in sandbox mode, we definitely want to pre-warm the isolated server!
+# So we run start-server unconditionally if we are in sandbox mode, or if pass-through has no socket set.
+if _tmux_bin and (os.environ.get("DEPLOYMENT_MODE") != "pass-through" or not os.environ.get("TMUX_SOCKET_PATH")):
+    subprocess.run(_get_tmux_base() + ["start-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
 
 def set_pty_size(fd, rows, cols):
@@ -228,7 +232,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     await websocket.accept()
 
     tmux_bin = _tmux_bin
-    target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
+    target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("SOVEREIGN_ROOT", str(Path.home()))
 
     uinfo = None
     if use_pam and target_user:
@@ -242,6 +246,12 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
             print(f"Warning: Failed to setup user context for {target_user}: {e}", flush=True)
 
     if tmux_bin:
+        # THE GATEKEEPER: Prevent the Trapped Server Race Condition
+        if os.environ.get("DEPLOYMENT_MODE") == "pass-through" and _socket_path:
+            if not os.path.exists(_socket_path):
+                await websocket.close(code=1011, reason="Host tmux server is offline. Please start it on the host.")
+                return
+
         # Attach to existing session (-A) if available, or create new one if not.
         cmd = _get_tmux_base() + ["new-session", "-A", "-D", "-s", session, "-c", target_cwd]
     else:

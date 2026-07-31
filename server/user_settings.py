@@ -9,9 +9,9 @@ router = APIRouter(prefix="/api/user", tags=["user_settings"])
 def get_user_config_path(request: Request) -> Path:
     """
     Resolves the server-side configuration file path for the authenticated user.
-    In PAM mode: /home/{username}/.config/sovereign-terminal/settings.json
-    Fallback: {project_root}/.sovereign_profiles/{username}.json
-    In Token mode: {project_root}/.sovereign_profiles/default.json
+    In PAM mode:      /home/{username}/.config/sovereign-terminal/settings.json
+    PAM fallback:     ~/.local/share/sovereign-terminal/profiles/{username}.json
+    In Token mode:    ~/.local/share/sovereign-terminal/profiles/default.json
     """
     cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
     session_info = active_sessions.get(cookie_token, {})
@@ -23,12 +23,12 @@ def get_user_config_path(request: Request) -> Path:
             user_home_config.parent.mkdir(parents=True, exist_ok=True)
             return user_home_config
         except Exception:
-            # Fallback to shared workspace profile directory if /home/{username} is read-only
-            fallback_dir = Path(os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))) / ".sovereign_profiles"
+            # Fallback to XDG data dir if /home/{username} is read-only
+            fallback_dir = Path.home() / ".local" / "share" / "sovereign-terminal" / "profiles"
             fallback_dir.mkdir(parents=True, exist_ok=True)
             return fallback_dir / f"{username}.json"
     else:
-        profile_dir = Path(os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))) / ".sovereign_profiles"
+        profile_dir = Path.home() / ".local" / "share" / "sovereign-terminal" / "profiles"
         profile_dir.mkdir(parents=True, exist_ok=True)
         return profile_dir / "default.json"
 

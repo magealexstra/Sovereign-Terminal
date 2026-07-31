@@ -130,7 +130,7 @@
   transition: opacity 0.15s ease;
 }
 
-.login-submit-btn:hover {
+.login-submit-btn:active {
   opacity: 0.9;
 }
 

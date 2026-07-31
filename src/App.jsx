@@ -15,10 +15,10 @@ import SettingsManager from './components/settings/SettingsManager';
 import LoginModal from './components/auth/LoginModal';
 
 export default function App() {
-  const { activeMainTab, setActiveMainTab, fetchUserSettings } = useApp();
+  const { activeMainTab, setActiveMainTab, fetchUserSettings, setUsername, clearUserCache } = useApp();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-  const [workspaceRoot, setWorkspaceRoot] = useState('/workspace');
+  const [rootDir, setRootDir] = useState('');
   const [explorerPath, setExplorerPath] = useState('');
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
 
@@ -28,10 +28,10 @@ export default function App() {
         const res = await fetch('/api/config');
         if (res.ok) {
           const data = await res.json();
-          if (data.workspaceRoot) {
-            setWorkspaceRoot(data.workspaceRoot);
-            setActiveTerminalPath(data.workspaceRoot);
-            setExplorerPath(data.workspaceRoot);
+          if (data.rootDir) {
+            setRootDir(data.rootDir);
+            setActiveTerminalPath(data.rootDir);
+            setExplorerPath(data.rootDir);
           }
         }
       } catch (e) {
@@ -66,9 +66,13 @@ export default function App() {
         const res = await fetch('/api/auth/verify');
         if (res.ok) {
           const data = await res.json();
+          const uname = data.username || 'default';
+          setUsername(uname);
           setIsAuthenticated(true);
           setAuthEnabled(data.auth_enabled !== false);
           if (data.auth_mode) setAuthMode(data.auth_mode);
+          // Call directly with username — avoids stale closure from state timing
+          fetchUserSettings(uname);
         } else {
           setIsAuthenticated(false);
           const headerMode = res.headers.get('X-Auth-Mode');
@@ -82,14 +86,6 @@ export default function App() {
     };
     verifyAuth();
   }, []);
-
-  // Load server profile whenever authentication is confirmed — covers both
-  // the auto-verified existing session path and the explicit login path.
-  useEffect(() => {
-    if (isAuthenticated && fetchUserSettings) {
-      fetchUserSettings();
-    }
-  }, [isAuthenticated]);
 
   const [showBrandMenu, setShowBrandMenu] = useState(false);
 
@@ -108,8 +104,10 @@ export default function App() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {}
+    clearUserCache();       // wipe namespaced cache — device returns to defaults
     sessionStorage.clear();
     setIsAuthenticated(false);
+    setUsername('');
     setShowBrandMenu(false);
   };
 
@@ -186,7 +184,7 @@ export default function App() {
     handleAddSession,
     handleCloseSession,
     handleTerminalInput,
-  } = useSessions(activeTerminalPath, showSessionToast, workspaceRoot);
+  } = useSessions(activeTerminalPath, showSessionToast, rootDir);
   const [openDocuments, setOpenDocuments] = useState([]);
   const [activeFilePath, setActiveFilePath] = useState('');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
@@ -210,18 +208,18 @@ export default function App() {
     const hasSeenManual = localStorage.getItem('hasSeenManual');
     if (!hasSeenManual) {
       // Fetch the live manual from the container's hard drive
-      fetch(`/api/fs/read?path=${workspaceRoot}/OPERATION_MANUAL.md`)
+      fetch(`/api/fs/read?path=${rootDir}/OPERATION_MANUAL.md`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data && data.content) {
             // Open the manual as a new tab
             setOpenDocuments([{
               name: 'OPERATION_MANUAL.md',
-              path: `${workspaceRoot}/OPERATION_MANUAL.md`,
+              path: `${rootDir}/OPERATION_MANUAL.md`,
               isModified: false,
               content: data.content
             }]);
-            setActiveFilePath(`${workspaceRoot}/OPERATION_MANUAL.md`);
+            setActiveFilePath(`${rootDir}/OPERATION_MANUAL.md`);
             
             // Mark it as seen so it never auto-opens again
             localStorage.setItem('hasSeenManual', 'true');
@@ -359,8 +357,23 @@ export default function App() {
       <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
         <LoginModal
           authMode={authMode}
-          onLoginSuccess={() => {
-            setIsAuthenticated(true);
+          onLoginSuccess={async () => {
+            // Call verify after login to resolve username before loading profile
+            try {
+              const res = await fetch('/api/auth/verify');
+              if (res.ok) {
+                const data = await res.json();
+                const uname = data.username || 'default';
+                setUsername(uname);
+                if (data.auth_mode) setAuthMode(data.auth_mode);
+                setIsAuthenticated(true);
+                fetchUserSettings(uname);
+              } else {
+                setIsAuthenticated(true); // fallback — no profile load
+              }
+            } catch {
+              setIsAuthenticated(true); // fallback
+            }
           }}
         />
       </div>
@@ -452,6 +465,7 @@ export default function App() {
           onAddSession={handleAddSession}
           onCloseSession={handleCloseSession}
           tmuxSessionCount={tmuxSessionCount}
+          rootDir={rootDir}
         />
 
         <div style={{ flex: '1 1 100%', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', minHeight: 0, position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -476,6 +490,7 @@ export default function App() {
                 isKeyboardOpen={isKeyboardOpen}
                 voiceInput={voiceInput}
                 onCwdChange={(cwd) => setActiveTerminalPath(cwd)}
+                rootDir={rootDir}
                 onOpenFile={(filepath) => {
                   handleOpenFile(filepath);
                   setActiveMainTab('explorer');
@@ -514,7 +529,7 @@ export default function App() {
         </div>
 
         {explorerSubTab === 'tree' ? (
-          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} workspaceRoot={workspaceRoot} currentPath={explorerPath} setCurrentPath={setExplorerPath} />
+          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} />
         ) : (
           <CodeEditor
             openDocuments={openDocuments}

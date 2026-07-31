@@ -13,6 +13,12 @@ testing/logs/screenshots/
 config.env
 .env
 
+# Optional Deployment Configs (not required to run)
+nginx.conf
+
+# Runtime User Data
+.sovereign_profiles/
+
 # Python Virtual Environment
 .venv/
 venv/

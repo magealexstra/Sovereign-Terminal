@@ -41,6 +41,7 @@ export default function ThemeSettings() {
     themes,
     saveCustomTheme,
     resetToDefault,
+    syncUserSettingsToServer,
     deviceBaselinePx,
     terminalScaleMultiplier,
     setTerminalScaleMultiplier,
@@ -71,6 +72,12 @@ export default function ThemeSettings() {
   const handleApplyFontSettings = () => {
     setTerminalScaleMultiplier(localTerminalScale);
     setEditorScaleMultiplier(localEditorScale);
+    // Pass values as partialSettings to avoid stale closure — React state
+    // won't have propagated yet when syncUserSettingsToServer reads its closure.
+    syncUserSettingsToServer({
+      terminalScaleMultiplier: localTerminalScale,
+      editorScaleMultiplier:   localEditorScale
+    });
     setAppliedToast(true);
     setTimeout(() => setAppliedToast(false), 2500);
   };

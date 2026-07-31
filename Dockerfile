@@ -59,7 +59,7 @@ RUN cp /app/server/tmux.conf /etc/tmux.conf
 # Uncomment the following line to easily test Option A + PAM mode out of the box:
 # RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd
 
-EXPOSE 2068 2069
+EXPOSE 2069
 
 WORKDIR /app/server
 CMD ["python", "main.py"]

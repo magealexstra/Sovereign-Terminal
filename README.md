@@ -34,7 +34,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 
 ### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
-* **Interactive Breadcrumbs:** Tap-based directory navigation (e.g., `/workspace` > `Docs` > `Things`).
+* **Interactive Breadcrumbs:** Tap-based directory navigation (e.g., `~/projects` > `docs` > `things`).
 * **Universal Language Highlighting:** CodeMirror 6 syntax highlighting supporting Python, JavaScript, C, C++, Rust, HTML, CSS, XML, SQL, JSON, Markdown, Shell, Dockerfile, and configuration formats.
 * **Native Touch Integration:** Native OS selection handles, magnifying glass, and context menus (`Copy`, `Cut`, `Paste`).
 * **Unsaved File Safeguards:** Modal dialog on tab close with explicit options (`[ Save & Close ]`, `[ Discard ]`, `[ Cancel ]`).
@@ -133,6 +133,7 @@ services:
       - AUTH_MODE=token
       - SERVER_AUTH_TOKEN=1234
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
 ```
@@ -160,6 +161,7 @@ services:
     environment:
       - AUTH_MODE=pam
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
 ```
@@ -196,6 +198,7 @@ services:
       - AUTH_MODE=token
       - SERVER_AUTH_TOKEN=1234
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
       - /etc/localtime:/etc/localtime:ro
@@ -233,6 +236,7 @@ services:
       - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
       - AUTH_MODE=pam
       - PORT=2069
+      - SOVEREIGN_ROOT=/workspace
     volumes:
       - ./:/workspace
       - /etc/localtime:/etc/localtime:ro
@@ -284,22 +288,8 @@ Sovereign Terminal runs HTTP on port `2069` by default. To unlock Web Speech API
 * **Reverse Proxies & Tunnels**: Supports Nginx Proxy Manager, Caddy, Cloudflare Tunnels (`cloudflared`), and local `mkcert` SAN certificates.
 * **Security & Privacy**: Zero network scanning, zero background probing, and zero external telemetry. All session data remains 100% local.
 
-For full step-by-step setup guides, consult [HTTPS and Networking Guide](docs/HTTPS_AND_NETWORKING_GUIDE.md).
 
----
-
-## Architecture & Technical Documentation
-
-For detailed architectural specifications, consult the documents in the `docs/` directory:
-
-* [HTTPS, Tailscale & Remote Access Guide](docs/HTTPS_AND_NETWORKING_GUIDE.md)
-* [Overall Architecture Specification](docs/OVERALL_SOVEREIGN_TERMINAL_DESIGN.md)
-* [Backend Gateway Specification](docs/SOVEREIGN_BACKEND_GATEWAY.md)
-* [Tab 1 Multi-Tab Terminal Specification](docs/TAB_1_MULTI_TAB_TERMINAL.md)
-* [Tab 2 File Explorer & Editor Specification](docs/TAB_2_FILE_EXPLORER_AND_EDITOR.md)
-* [Tab 3 Settings & Studio Specification](docs/TAB_3_SETTINGS_AND_STUDIO.md)
-* [Development Plan & Roadmap](docs/DEVELOPMENT_PLAN.md)
-
+For full step-by-step setup guides, consult [`docs/HTTPS_AND_NETWORKING_GUIDE.md`](docs/HTTPS_AND_NETWORKING_GUIDE.md) in the repository.
 
 ---
 

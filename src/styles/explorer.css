@@ -44,7 +44,7 @@
   white-space: nowrap;
 }
 
-.crumb-item:hover {
+.crumb-item:active {
   color: var(--accent-highlight);
   text-decoration: underline;
 }
@@ -67,7 +67,7 @@
   cursor: pointer;
 }
 
-.tb-btn:hover {
+.tb-btn:active {
   border-color: var(--accent-highlight);
 }
 
@@ -93,7 +93,7 @@
   transition: background 0.15s ease;
 }
 
-.tree-item:hover {
+.tree-item:active {
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -210,7 +210,7 @@
   cursor: pointer;
 }
 
-.doc-tab-close:hover {
+.doc-tab-close:active {
   color: var(--status-danger);
 }
 
@@ -276,7 +276,7 @@
   border: 1px solid var(--bg-canopy);
 }
 
-.cm-scroller::-webkit-scrollbar-thumb:hover,
+.cm-scroller::-webkit-scrollbar-thumb:active,
 .cm-scroller::-webkit-scrollbar-thumb:active {
   background: var(--accent-mana);
 }

@@ -11,8 +11,8 @@ from auth import require_auth
 
 router = APIRouter(prefix="/api/fs", tags=["filesystem"], dependencies=[Depends(require_auth)])
 
-WORKSPACE_ROOT = os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
-TRASH_DIR = os.getenv("TRASH_DIR", os.path.join(WORKSPACE_ROOT, "_temp_trash"))
+SOVEREIGN_ROOT = os.getenv("SOVEREIGN_ROOT", str(Path.home()))
+TRASH_DIR = os.getenv("TRASH_DIR", os.path.join(SOVEREIGN_ROOT, "_temp_trash"))
 
 # Trash Safety vs Permanent Deletion Configuration
 # Default is True (moves deleted items to _temp_trash)
@@ -26,7 +26,7 @@ def get_safe_path(target_path: str) -> Path:
 
 
 @router.get("/tree")
-def get_directory_tree(path: str = WORKSPACE_ROOT):
+def get_directory_tree(path: str = SOVEREIGN_ROOT):
     """
     Returns directory tree listing, file sizes, permissions, and file type metadata.
     """

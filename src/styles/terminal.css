@@ -60,7 +60,7 @@
   border-radius: 4px;
 }
 
-.terminal-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
+.terminal-container .xterm-viewport::-webkit-scrollbar-thumb:active {
   background: var(--accent-highlight);
 }
 
@@ -97,7 +97,7 @@
   padding-right: 1.8rem;
 }
 
-.session-pill-btn:hover {
+.session-pill-btn:active {
   color: var(--text-parchment);
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
@@ -124,7 +124,7 @@
   transition: background 0.15s ease;
 }
 
-.close-session-icon:hover {
+.close-session-icon:active {
   background: rgba(255, 0, 60, 0.4);
   color: white;
 }
@@ -142,7 +142,7 @@
   transition: all 0.2s ease;
 }
 
-.add-session-pill-btn:hover {
+.add-session-pill-btn:active {
   border-color: var(--accent-highlight);
   background: var(--bg-canopy);
 }
@@ -330,7 +330,7 @@
   overflow: hidden;
 }
 
-.macro-grid-btn:hover, .macro-grid-btn:active {
+.macro-grid-btn:active, .macro-grid-btn:active {
   background: var(--status-active);
   color: var(--bg-earth);
   border-color: var(--status-active);

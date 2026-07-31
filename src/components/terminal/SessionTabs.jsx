@@ -1,7 +1,7 @@
 import React from 'react';
 import { Terminal, Plus, FolderDown, X } from 'lucide-react';
 
-export default function SessionTabs({ sessions, activeSession, onSelectSession, onAddSession, onCloseSession, tmuxSessionCount = 0 }) {
+export default function SessionTabs({ sessions, activeSession, onSelectSession, onAddSession, onCloseSession, tmuxSessionCount = 0, rootDir }) {
   const badgeClass =
     tmuxSessionCount > 20 ? 'tmux-count-badge danger' :
     tmuxSessionCount > 10 ? 'tmux-count-badge warn' :
@@ -36,13 +36,13 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
         </button>
       ))}
 
-      {/* Button 1: New Session at Root (/workspace) */}
+      {/* Button 1: New Session at Root */}
       <button
         type="button"
         className="add-session-pill-btn"
         onClick={() => onAddSession(false)}
         disabled={sessions.length >= 5}
-        title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : 'New Session at Workspace Root (/workspace)'}
+        title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : `New Session at Root Dir (${rootDir})`}
         style={{ opacity: sessions.length >= 5 ? 0.4 : 1, cursor: sessions.length >= 5 ? 'not-allowed' : 'pointer' }}
       >
         <Plus size={14} />
