@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Terminal as TerminalIcon, FolderTree, Sliders, LogOut } from 'lucide-react';
 import { useApp } from './context/AppContext';
 import { useSessions } from './hooks/useSessions';
@@ -188,6 +188,8 @@ export default function App() {
   const [openDocuments, setOpenDocuments] = useState([]);
   const [activeFilePath, setActiveFilePath] = useState('');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
+  const inspectCountRef = useRef(0);
+  const [treeRefreshKey, setTreeRefreshKey] = useState(0);
 
   // Dispatch layout reflow on return to Terminal tab to snap absolute footers/stagers to bottom: 3.5rem
   useEffect(() => {
@@ -268,6 +270,7 @@ export default function App() {
   const handleSaveFile = async (filepath) => {
     const doc = openDocuments.find((d) => d.path === filepath);
     if (!doc) return;
+    if (doc.virtual) return;
 
     try {
       const res = await fetch(`/api/fs/save`, {
@@ -287,6 +290,8 @@ export default function App() {
 
   const handleGitCommit = async (filepath) => {
     await handleSaveFile(filepath);
+    const commitDoc = openDocuments.find((d) => d.path === filepath);
+    if (!commitDoc || commitDoc.virtual) return;
     try {
       const res = await fetch(`/api/fs/git-commit`, {
         method: 'POST',
@@ -302,6 +307,52 @@ export default function App() {
     }
   };
 
+  const handleInspectText = (text) => {
+    inspectCountRef.current += 1;
+    const count  = inspectCountRef.current;
+    const name   = `Inspect ${count}`;
+    const path   = `__inspect__/inspect_${count}_${Date.now()}`;
+    const newDoc = { name, path, content: text, isModified: false, virtual: true };
+    setOpenDocuments((prev) => [...prev, newDoc]);
+    setActiveFilePath(path);
+    setExplorerSubTab('editor');
+    setActiveMainTab('explorer');
+  };
+
+  const handleSaveAs = async (virtualPath, realPath, content) => {
+    try {
+      const res = await fetch('/api/fs/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: realPath, content }),
+      });
+      if (!res.ok) {
+        showSessionToast('Save As failed — check the file path');
+        return;
+      }
+      setOpenDocuments((prev) =>
+        prev.map((d) =>
+          d.path === virtualPath
+            ? { ...d, path: realPath, name: realPath.split('/').pop(), isModified: false, virtual: false }
+            : d
+        )
+      );
+      setActiveFilePath(realPath);
+      setTreeRefreshKey((k) => k + 1);
+      showSessionToast(`Saved as ${realPath.split('/').pop()}`);
+    } catch (e) {
+      showSessionToast('Save As failed — connection error');
+    }
+  };
+
+  const suggestedSaveDir = (() => {
+    if (activeFilePath && !activeFilePath.startsWith('__inspect__')) {
+      const last = activeFilePath.lastIndexOf('/');
+      return last > 0 ? activeFilePath.substring(0, last) : rootDir;
+    }
+    return rootDir;
+  })();
+
   const handleCloseTab = (filepath, force = false) => {
     const doc = openDocuments.find((d) => d.path === filepath);
     if (!doc) return;
@@ -310,7 +361,7 @@ export default function App() {
     // The CodeEditor UI already shows a Save/Discard/Cancel modal and calls
     // onCloseTab(path, true) after the user confirms — so this guard only
     // fires if handleCloseTab is ever called directly without force=true.
-    if (!force && doc.isModified) return;
+    if (!force && doc.isModified && !doc.virtual) return;
 
     const filtered = openDocuments.filter((d) => d.path !== filepath);
     setOpenDocuments(filtered);
@@ -495,6 +546,7 @@ export default function App() {
                   handleOpenFile(filepath);
                   setActiveMainTab('explorer');
                 }}
+                onInspectText={handleInspectText}
               />
             </div>
           ))}
@@ -529,7 +581,7 @@ export default function App() {
         </div>
 
         {explorerSubTab === 'tree' ? (
-          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} />
+          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
         ) : (
           <CodeEditor
             openDocuments={openDocuments}
@@ -539,6 +591,8 @@ export default function App() {
             onContentChange={handleContentChange}
             onSaveFile={handleSaveFile}
             onGitCommit={handleGitCommit}
+            onSaveAs={handleSaveAs}
+            suggestedSaveDir={suggestedSaveDir}
           />
         )}
       </div>

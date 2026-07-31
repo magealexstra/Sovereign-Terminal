@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, currentPath, setCurrentPath }) {
+export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -36,6 +36,11 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, 
   useEffect(() => {
     fetchDirectory(currentPath);
   }, [currentPath]);
+
+  // External refresh trigger — fires when CodeEditor completes a Save As
+  useEffect(() => {
+    if (refreshKey > 0) fetchDirectory(currentPath);
+  }, [refreshKey]);
 
   // Split path into interactive breadcrumbs
   const getBreadcrumbs = () => {

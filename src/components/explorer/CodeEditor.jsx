@@ -10,9 +10,11 @@ import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { xml } from '@codemirror/lang-xml';
 import { sql } from '@codemirror/lang-sql';
-import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2 } from 'lucide-react';
+import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
+import { openSearchPanel, searchKeymap } from '@codemirror/search';
+import { keymap as cmKeymap } from '@codemirror/view';
 
 // Lightweight Markdown HTML Preview Component
 function MarkdownPreview({ content }) {
@@ -72,17 +74,21 @@ function MarkdownPreview({ content }) {
   return <div className="markdown-preview-pane">{elements}</div>;
 }
 
-export default function CodeEditor({ activeSession, openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal }) {
+export default function CodeEditor({ activeSession, openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal, onSaveAs, suggestedSaveDir }) {
   const { theme, editorFontSizePx } = useApp();
   const { toast: editorToast, showToast: triggerToast } = useToast(2000);
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isWordWrap, setIsWordWrap] = useState(true);
   const pressTimer = useRef(null);
+  const editorViewRef = useRef(null);
+  const [saveAsModal, setSaveAsModal] = useState(false);
+  const [saveAsPath, setSaveAsPath]   = useState('');
 
   const activeDoc = openDocuments.find((doc) => doc.path === activeFilePath) || openDocuments[0];
 
-  const isMarkdown = activeDoc?.name?.toLowerCase().endsWith('.md');
+  const isMarkdown   = activeDoc?.name?.toLowerCase().endsWith('.md');
+  const isVirtualDoc = activeDoc?.virtual === true;
 
   const getLanguageExtension = (filename) => {
     if (!filename) return [markdown()];
@@ -181,6 +187,18 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
     });
   };
 
+  const handleOpenSaveAs = () => {
+    const defaultName = (activeDoc?.name || 'inspect').toLowerCase().replace(/\s+/g, '_') + '.txt';
+    setSaveAsPath(`${suggestedSaveDir || ''}/${defaultName}`);
+    setSaveAsModal(true);
+  };
+
+  const handleConfirmSaveAs = () => {
+    if (!saveAsPath.trim() || !activeDoc) return;
+    onSaveAs(activeDoc.path, saveAsPath.trim(), activeDoc.content || '');
+    setSaveAsModal(false);
+  };
+
   if (!activeDoc) {
     return (
       <div className="editor-empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', padding: '2rem' }}>
@@ -246,14 +264,17 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
                 isTouchDevice.current = false;
               }}
             >
-              <FileText size={13} color={brandColor} />
+              {doc.virtual
+                ? <Eye size={13} color="var(--text-muted)" />
+                : <FileText size={13} color={brandColor} />
+              }
               <span className="tab-filename">{doc.name}</span>
               {doc.isModified && <span className="modified-dot" style={{ backgroundColor: brandColor }} title="Unsaved Changes" />}
               <span
                 className="close-tab-icon"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (doc.isModified) {
+                  if (doc.isModified && !doc.virtual) {
                     setCloseConfirmModal(doc.path);
                   } else {
                     onCloseTab(doc.path, false);
@@ -289,6 +310,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
           <CodeMirror
             value={activeDoc.content || ''}
             height="100%"
+            onCreateEditor={(view) => { editorViewRef.current = view; }}
             theme={EditorView.theme({
               '&': {
                 height: '100%',
@@ -318,7 +340,8 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
             }, { dark: true })}
             extensions={[
               ...getLanguageExtension(activeDoc.path),
-              ...(isWordWrap ? [EditorView.lineWrapping] : [])
+              ...(isWordWrap ? [EditorView.lineWrapping] : []),
+              cmKeymap.of(searchKeymap),
             ]}
             onChange={(value) => onContentChange(activeDoc.path, value)}
           />
@@ -327,14 +350,24 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
 
       {/* Expanded Code Editor Touch Bar */}
       <div className="editor-touch-bar">
-        <button className="editor-touch-btn save" onClick={() => onSaveFile(activeDoc.path)}>
+        <button
+          className="editor-touch-btn save"
+          onClick={() => isVirtualDoc ? handleOpenSaveAs() : onSaveFile(activeDoc.path)}
+          title={isVirtualDoc ? 'Save buffer as a new file' : 'Save file'}
+        >
           <Save size={14} />
-          <span>SAVE</span>
+          <span>{isVirtualDoc ? 'SAVE AS' : 'SAVE'}</span>
         </button>
 
-        <button className="editor-touch-btn commit" onClick={() => onGitCommit(activeDoc.path)}>
+        <button
+          className="editor-touch-btn commit"
+          onClick={() => onGitCommit(activeDoc.path)}
+          disabled={isVirtualDoc}
+          style={{ opacity: isVirtualDoc ? 0.35 : 1 }}
+          title={isVirtualDoc ? 'Save the file first before committing' : 'Save and commit to git'}
+        >
           <GitCommit size={14} />
-          <span>SAVE & COMMIT</span>
+          <span>SAVE &amp; COMMIT</span>
         </button>
 
         {isMarkdown && (
@@ -355,6 +388,15 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
         >
           <WrapText size={14} />
           <span>WRAP</span>
+        </button>
+
+        <button
+          className="editor-touch-btn"
+          onClick={() => { if (editorViewRef.current) openSearchPanel(editorViewRef.current); }}
+          title="Search document (Ctrl+F)"
+        >
+          <Search size={14} />
+          <span>FIND</span>
         </button>
 
         <button className="editor-touch-btn" onClick={handleFormatContent} title="Auto-Format File / JSON">
@@ -400,6 +442,31 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
               </button>
 
               <button onClick={() => setCloseConfirmModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saveAsModal && (
+        <div className="explorer-modal-overlay" onClick={() => setSaveAsModal(false)}>
+          <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Save Inspect Buffer As</h3>
+            <p>Enter the full path for the new file.</p>
+            <input
+              type="text"
+              className="theme-name-field"
+              value={saveAsPath}
+              onChange={(e) => setSaveAsPath(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              placeholder={`${suggestedSaveDir || ''}/output.txt`}
+              autoFocus
+            />
+            <div className="modal-btn-row" style={{ marginTop: '0.75rem' }}>
+              <button className="submit" onClick={handleConfirmSaveAs}>
+                <Save size={13} />
+                <span>Save to Server</span>
+              </button>
+              <button onClick={() => setSaveAsModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
