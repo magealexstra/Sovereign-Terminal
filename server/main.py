@@ -116,7 +116,6 @@ if __name__ == "__main__":
             port=port,
             ssl_certfile=ssl_cert,
             ssl_keyfile=ssl_key,
-            reload=True
         )
     else:
-        uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+        uvicorn.run("main:app", host="0.0.0.0", port=port)

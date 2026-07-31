@@ -295,7 +295,7 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        alert(data.message);
+        showSessionToast(data.message);
       }
     } catch (e) {
       console.error('Git commit error:', e);

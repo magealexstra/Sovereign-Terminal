@@ -361,10 +361,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       if (parsed.includes(':')) {
         parsed = parsed.split(':').pop().trim();
       }
-      if (parsed.startsWith('~')) {
-        parsed = parsed.replace('~', '/home/magealexstra');
-      }
-      if (parsed.startsWith('/')) {
+      if (parsed.startsWith('/') || parsed.startsWith('~')) {
         onCwdChange(parsed);
       }
     });

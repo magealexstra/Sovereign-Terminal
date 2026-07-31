@@ -271,7 +271,7 @@ export default function ThemeSettings() {
 
             {/* Header */}
             <div className="modal-header-row">
-              <h3>🎨 Customize Theme</h3>
+              <h3>Customize Theme</h3>
               <button type="button" className="modal-close-x" onClick={closeModal}>
                 <X size={16} />
               </button>

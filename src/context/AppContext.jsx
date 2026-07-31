@@ -152,11 +152,14 @@ export function AppProvider({ children }) {
   };
 
   // ── Dynamic Device Baseline ───────────────────────────────────────────────
-  const getDeviceBaseline = () => 10;
+  const getDeviceBaseline = () => window.innerWidth >= 768 ? 13 : 10;
   const [deviceBaselinePx, setDeviceBaselinePx] = useState(getDeviceBaseline);
 
   useEffect(() => {
-    const handleResize = () => setDeviceBaselinePx(getDeviceBaseline());
+    const handleResize = () => {
+      const next = getDeviceBaseline();
+      setDeviceBaselinePx((prev) => (prev !== next ? next : prev));
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);

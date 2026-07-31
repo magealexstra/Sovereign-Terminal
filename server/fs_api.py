@@ -21,8 +21,8 @@ SAFE_TRASH_MODE = os.getenv("SAFE_TRASH_MODE", "true").lower() in ("true", "1", 
 ENABLE_PERMANENT_DELETE = os.getenv("ENABLE_PERMANENT_DELETE", "false").lower() in ("true", "1", "yes")
 
 def get_safe_path(target_path: str) -> Path:
-    """Ensure path is absolute and normalized."""
-    return Path(target_path).resolve()
+    """Ensure path is absolute and normalized, expanding ~ to the server user's home directory."""
+    return Path(target_path).expanduser().resolve()
 
 
 @router.get("/tree")
@@ -231,7 +231,7 @@ async def upload_files(target_dir: str, files: list[UploadFile] = File(...)):
 
     uploaded = []
     for file in files:
-        dest_file = p / file.filename
+        dest_file = p / Path(file.filename).name  # .name strips any directory traversal sequences
         with open(dest_file, "wb") as f:
             shutil.copyfileobj(file.file, f)
         uploaded.append(file.filename)
