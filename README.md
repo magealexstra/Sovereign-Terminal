@@ -288,9 +288,6 @@ Sovereign Terminal runs HTTP on port `2069` by default. To unlock Web Speech API
 * **Reverse Proxies & Tunnels**: Supports Nginx Proxy Manager, Caddy, Cloudflare Tunnels (`cloudflared`), and local `mkcert` SAN certificates.
 * **Security & Privacy**: Zero network scanning, zero background probing, and zero external telemetry. All session data remains 100% local.
 
-
-For full step-by-step setup guides, consult [`docs/HTTPS_AND_NETWORKING_GUIDE.md`](docs/HTTPS_AND_NETWORKING_GUIDE.md) in the repository.
-
 ---
 
 ## License & Copyright
