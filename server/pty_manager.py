@@ -50,6 +50,29 @@ def list_sessions(user: dict = Depends(require_auth)):
     return {"sessions": [], "detail": []}
 
 
+@router.get("/api/terminal/cwd")
+def get_session_cwd(session: str = "main", user: dict = Depends(require_auth)):
+    """Get real-time working directory of an active tmux session."""
+    target_user = user.get("username") if (AUTH_MODE == "pam" and ENABLE_AUTH and user) else None
+    if _tmux_bin:
+        try:
+            if target_user:
+                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} display-message -p -t '{session}' '#{{pane_current_path}}'"]
+            else:
+                cmd = [_tmux_bin, "display-message", "-p", "-t", session, "#{pane_current_path}"]
+
+            res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if res.returncode == 0 and res.stdout.strip():
+                cwd = res.stdout.strip()
+                if os.path.isdir(cwd):
+                    return {"status": "ok", "cwd": cwd}
+        except Exception:
+            pass
+
+    default_cwd = os.getenv("WORKSPACE_ROOT", str(Path(__file__).parent.parent))
+    return {"status": "ok", "cwd": default_cwd}
+
+
 @router.delete("/api/terminal/sessions")
 def kill_all_sessions(user: dict = Depends(require_auth)):
     """Kill ALL tmux sessions and immediately rewarm the server."""

@@ -74,7 +74,7 @@ export function useSessions(activeTerminalPath, showToast) {
     } catch {}
   }, [sessions]);
 
-  const handleAddSession = (inheritCwd = false) => {
+  const handleAddSession = async (inheritCwd = false) => {
     if (sessions.length >= 5) {
       // Use toast instead of browser alert() for non-blocking UX
       if (showToast) showToast('Max 5 sessions — close a tab to add another.');
@@ -83,7 +83,22 @@ export function useSessions(activeTerminalPath, showToast) {
     const newId = `session-${Date.now().toString(36).substring(4)}`;
     sessionCounterRef.current += 1;
     const sessionName = `term-${sessionCounterRef.current}`;
-    const targetCwd = inheritCwd ? (activeTerminalPath || '/workspace') : '/workspace';
+    let targetCwd = '/workspace';
+
+    if (inheritCwd && activeSession) {
+      try {
+        const res = await fetch(`/api/terminal/cwd?session=${encodeURIComponent(activeSession)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.cwd) {
+            targetCwd = data.cwd;
+          }
+        }
+      } catch (e) {
+        if (activeTerminalPath) targetCwd = activeTerminalPath;
+      }
+    }
+
     setSessions((prev) => [...prev, { id: newId, name: sessionName, initialCwd: targetCwd }]);
     setActiveSession(newId);
   };

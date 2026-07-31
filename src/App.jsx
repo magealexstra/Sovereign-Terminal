@@ -166,6 +166,16 @@ export default function App() {
   const [activeFilePath, setActiveFilePath] = useState('');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
 
+  // Dispatch layout reflow on return to Terminal tab to snap absolute footers/stagers to bottom: 3.5rem
+  useEffect(() => {
+    if (activeMainTab === 'terminal') {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeMainTab]);
+
   // One-Time Welcome Screen: Load OPERATION_MANUAL.md after login
   useEffect(() => {
     // Only run this logic if the user is successfully authenticated
@@ -425,6 +435,7 @@ export default function App() {
                 isActive={activeMainTab === 'terminal' && activeSession === sess.id}
                 isKeyboardOpen={isKeyboardOpen}
                 voiceInput={voiceInput}
+                onCwdChange={(cwd) => setActiveTerminalPath(cwd)}
                 onOpenFile={(filepath) => {
                   handleOpenFile(filepath);
                   setActiveMainTab('explorer');
@@ -473,7 +484,6 @@ export default function App() {
             onContentChange={handleContentChange}
             onSaveFile={handleSaveFile}
             onGitCommit={handleGitCommit}
-            onReturnToTerminal={() => setActiveMainTab('terminal')}
           />
         )}
       </div>

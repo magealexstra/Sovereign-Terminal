@@ -13,15 +13,16 @@ export const DEFAULT_BUTTONS = [
 // Built-in categorized command preset bundles
 export const PREBUILT_CATEGORIES = {
   AGY: { name: 'Anti-Gravity CLI - AGY', items: [
+    { label: 'agy',       value: 'agy\n' },
     { label: '/model',    value: '/model ' },
-    { label: '/clear',    value: '/clear\n' },
     { label: '/plan',     value: '/plan ' },
     { label: '/schedule', value: '/schedule ' },
     { label: '/goal',     value: '/goal ' },
     { label: '/grill-me', value: '/grill-me ' },
     { label: '/teamwork', value: '/teamwork-preview ' },
     { label: '/learn',    value: '/learn ' },
-    { label: 'Ctrl+O',   value: '\x0f' }
+    { label: '^O',        value: '\x0f' },
+    { label: 'update agy', value: 'npm update -g @google/antigravity\n' }
   ]},
   APT: { name: 'APT Package Manager - APT', items: [
     { label: 'upgrade -y', value: 'sudo apt update && sudo apt upgrade -y\n' },
@@ -34,15 +35,16 @@ export const PREBUILT_CATEGORIES = {
     { label: 'dpkg -l',     value: 'dpkg -l\n' }
   ]},
   CLD: { name: 'Claude CLI - CLD', items: [
+    { label: 'claude',   value: 'claude\n' },
     { label: '/compact', value: '/compact\n' },
     { label: '/cost',    value: '/cost\n' },
     { label: '/doctor',  value: '/doctor\n' },
-    { label: '/clear',   value: '/clear\n' },
     { label: '/help',    value: '/help\n' },
     { label: '/init',    value: '/init\n' },
     { label: '/bug',     value: '/bug ' },
     { label: '/review',  value: '/review ' },
-    { label: 'Ctrl+C',  value: '\x03' }
+    { label: '^C',       value: '\x03' },
+    { label: 'update cld', value: 'npm update -g @anthropic-ai/claude-code\n' }
   ]},
   DOC: { name: 'Docker Suite - DOC', items: [
     { label: 'docker ps',    value: 'docker ps\n' },
@@ -78,6 +80,7 @@ export const PREBUILT_CATEGORIES = {
     { label: 'git diff',     value: 'git diff\n' }
   ]},
   HMS: { name: 'Hermes Agent - HMS', items: [
+    { label: 'hermes',  value: 'hermes\n' },
     { label: '/status', value: '/status\n' },
     { label: '/reset',  value: '/reset\n' },
     { label: '/tools',  value: '/tools\n' },
@@ -85,7 +88,8 @@ export const PREBUILT_CATEGORIES = {
     { label: '/cancel', value: '/cancel\n' },
     { label: '/config', value: '/config ' },
     { label: '/memory', value: '/memory ' },
-    { label: '/mcp',    value: '/mcp ' }
+    { label: '/mcp',    value: '/mcp ' },
+    { label: 'update hms', value: 'pip install --upgrade hermes-agent\n' }
   ]},
   KEY: { name: 'Keyboard Shortcuts - KEY', items: [
     { label: '▲',           value: '\x1b[A' },
@@ -216,6 +220,19 @@ export const PREBUILT_CATEGORIES = {
     { label: 'cat',        value: 'cat ' },
     { label: 'head',       value: 'head -n 20 ' },
     { label: 'nano',       value: 'nano ' }
+  ]},
+  VIM: { name: 'Vim Text Editor - VIM', items: [
+    { label: ':w',       value: '\x1b:w\n' },
+    { label: ':q',       value: '\x1b:q\n' },
+    { label: ':wq',      value: '\x1b:wq\n' },
+    { label: ':q!',      value: '\x1b:q!\n' },
+    { label: ':w!',      value: '\x1b:w!\n' },
+    { label: ':x',       value: '\x1b:x\n' },
+    { label: '^R',       value: '\x12' },
+    { label: ':%s/',     value: '\x1b:%s/' },
+    { label: ':e!',      value: '\x1b:e!\n' },
+    { label: ':set nu',  value: '\x1b:set nu\n' },
+    { label: '\\x1b',    value: '\x1b' }
   ]},
   YUM: { name: 'Fedora/RHEL DNF - YUM', items: [
     { label: 'upgrade -y', value: 'sudo dnf upgrade --refresh -y\n' },

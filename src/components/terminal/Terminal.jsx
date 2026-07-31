@@ -10,7 +10,7 @@ import { writeToClipboard } from './terminal/writeToClipboard';
 import CopyCard from './CopyCard';
 import '@xterm/xterm/css/xterm.css';
 
-export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onInspectText }) {
+export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText }) {
   const { theme, fontSizeTerminal } = useApp();
   const { toast, showToast } = useToast();
   const terminalRef = useRef(null);
@@ -135,6 +135,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     term.open(terminalRef.current);
 
     if (term.textarea) {
+      // Non-disruptive attributes to disable auto-capitalization and spellcheck desync
+      term.textarea.setAttribute('autocorrect', 'off');
+      term.textarea.setAttribute('autocapitalize', 'none');
+      term.textarea.setAttribute('spellcheck', 'false');
+      term.textarea.setAttribute('autocomplete', 'off');
+
       term.textarea.addEventListener('blur', (e) => {
         const target = e.relatedTarget;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
@@ -347,6 +353,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }
     });
 
+    // Report shell title/CWD changes to parent App state
+    term.onTitleChange((title) => {
+      if (!title || !onCwdChange) return;
+      let parsed = title.trim();
+      if (parsed.includes(':')) {
+        parsed = parsed.split(':').pop().trim();
+      }
+      if (parsed.startsWith('~')) {
+        parsed = parsed.replace('~', '/home/magealexstra');
+      }
+      if (parsed.startsWith('/')) {
+        onCwdChange(parsed);
+      }
+    });
+
     // ── ResizeObserver ───────────────────────────────────────────────────────
     let resizeDebounce = null;
     const handleResize = () => {
@@ -401,10 +422,20 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   }, [isKeyboardOpen]);
 
   useEffect(() => {
+    if (isActive) {
+      const timer = setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
     if (voiceInput && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(voiceInput);
     }
-  }, [voiceInput]);
+  }, [voiceInput, isActive]);
 
   // Helper: extracts buffer lines and intelligently joins soft-wrapped lines
   const extractBufferRange = (buffer, startLine, endLine) => {

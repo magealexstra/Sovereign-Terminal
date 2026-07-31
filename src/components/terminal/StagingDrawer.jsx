@@ -57,8 +57,17 @@ export default function StagingDrawer({
   const handleSend = () => {
     if (!stagingText || stagingText.trim().length === 0) return;
     const cleanText = stagingText.trim();
-    const payload = isTwoStepMode ? cleanText : `${cleanText}\n`;
-    onSend(payload);
+    if (isTwoStepMode) {
+      onSend(cleanText);
+    } else {
+      // Two-pass transmission for CLI prompts (agy/claude/hermes):
+      // Pass 1: Inject text string payload
+      onSend(cleanText);
+      // Pass 2: 20ms micro-delay before sending Carriage Return \r to execute line
+      setTimeout(() => {
+        onSend('\r');
+      }, 20);
+    }
     setStagingText('');
     onClose();
   };
@@ -112,6 +121,9 @@ export default function StagingDrawer({
         onChange={(e) => setStagingText(e.target.value)}
         placeholder="Type, paste URLs, or dictate command text here..."
         rows={3}
+        autoCapitalize="none"
+        autoCorrect="on"
+        spellCheck="true"
         autoFocus
       />
 

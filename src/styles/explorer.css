@@ -245,7 +245,6 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
-  margin-bottom: calc(var(--visual-viewport-height) - 100vh);
 }
 
 /* CodeMirror Touch-Scrolling & Theme-Adapting Custom Scrollbars */

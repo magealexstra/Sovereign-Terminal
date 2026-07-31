@@ -3,7 +3,13 @@ import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload,
 import { useApp } from '../../context/AppContext';
 
 export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
-  const [currentPath, setCurrentPath] = useState(activeTerminalPath || '/workspace');
+  const [currentPath, setCurrentPath] = useState(() => {
+    try {
+      return localStorage.getItem('sovereign_explorer_last_path') || activeTerminalPath || '/workspace';
+    } catch {
+      return '/workspace';
+    }
+  });
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -21,6 +27,9 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
       if (res.ok) {
         const data = await res.json();
         setCurrentPath(data.currentPath);
+        try {
+          localStorage.setItem('sovereign_explorer_last_path', data.currentPath);
+        } catch {}
         setItems(data.items);
         setSelectedItems([]);
       }
@@ -34,13 +43,6 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath }) {
   useEffect(() => {
     fetchDirectory(currentPath);
   }, [currentPath]);
-
-  // Synchronize directory tree when terminal working directory changes
-  useEffect(() => {
-    if (activeTerminalPath && activeTerminalPath !== currentPath) {
-      fetchDirectory(activeTerminalPath);
-    }
-  }, [activeTerminalPath]);
 
   // Split path into interactive breadcrumbs
   const getBreadcrumbs = () => {

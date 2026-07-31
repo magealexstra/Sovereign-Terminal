@@ -10,17 +10,79 @@ import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { xml } from '@codemirror/lang-xml';
 import { sql } from '@codemirror/lang-sql';
-import { Save, GitCommit, Copy, Clipboard, X, Terminal as TermIcon, FileText, Image as ImageIcon } from 'lucide-react';
+import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
 
-export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal }) {
+// Lightweight Markdown HTML Preview Component
+function MarkdownPreview({ content }) {
+  if (!content) return <div className="markdown-preview-pane"><p className="preview-p">Empty document.</p></div>;
+  
+  const lines = content.split('\n');
+  const elements = [];
+  let inCodeBlock = false;
+  let codeBuffer = [];
+
+  lines.forEach((line, idx) => {
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        elements.push(
+          <pre key={`code-${idx}`} className="preview-code-block">
+            <code>{codeBuffer.join('\n')}</code>
+          </pre>
+        );
+        codeBuffer = [];
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+      }
+      return;
+    }
+
+    if (inCodeBlock) {
+      codeBuffer.push(line);
+      return;
+    }
+
+    if (line.startsWith('# ')) {
+      elements.push(<h1 key={idx}>{line.replace('# ', '')}</h1>);
+    } else if (line.startsWith('## ')) {
+      elements.push(<h2 key={idx}>{line.replace('## ', '')}</h2>);
+    } else if (line.startsWith('### ')) {
+      elements.push(<h3 key={idx}>{line.replace('### ', '')}</h3>);
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      elements.push(<li key={idx}>{line.replace(/^[-*]\s+/, '')}</li>);
+    } else if (line.startsWith('> ')) {
+      elements.push(<blockquote key={idx}>{line.replace('> ', '')}</blockquote>);
+    } else if (line.trim() === '---') {
+      elements.push(<hr key={idx} />);
+    } else if (line.trim().length > 0) {
+      elements.push(<p key={idx}>{line}</p>);
+    }
+  });
+
+  if (inCodeBlock && codeBuffer.length > 0) {
+    elements.push(
+      <pre key="code-end" className="preview-code-block">
+        <code>{codeBuffer.join('\n')}</code>
+      </pre>
+    );
+  }
+
+  return <div className="markdown-preview-pane">{elements}</div>;
+}
+
+export default function CodeEditor({ activeSession, openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal }) {
   const { theme, editorFontSizePx } = useApp();
   const { toast: editorToast, showToast: triggerToast } = useToast(2000);
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isWordWrap, setIsWordWrap] = useState(true);
   const pressTimer = useRef(null);
 
   const activeDoc = openDocuments.find((doc) => doc.path === activeFilePath) || openDocuments[0];
+
+  const isMarkdown = activeDoc?.name?.toLowerCase().endsWith('.md');
 
   const getLanguageExtension = (filename) => {
     if (!filename) return [markdown()];
@@ -43,6 +105,24 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     return /\.(png|jpe?g|webp|svg|gif)$/i.test(filename);
   };
 
+  // Touch Bar Action Handlers
+  const handleFormatContent = () => {
+    if (!activeDoc || !activeDoc.content) return;
+    try {
+      if (activeDoc.name.endsWith('.json')) {
+        const parsed = JSON.parse(activeDoc.content);
+        const formatted = JSON.stringify(parsed, null, 2);
+        onContentChange(activeDoc.path, formatted);
+        triggerToast('JSON Formatted');
+      } else {
+        const trimmed = activeDoc.content.split('\n').map(l => l.trimEnd()).join('\n');
+        onContentChange(activeDoc.path, trimmed);
+        triggerToast('Code Formatted');
+      }
+    } catch (e) {
+      triggerToast('Format Error: Invalid Data');
+    }
+  };
 
   // Single-Tap vs Long-Press Tab Close Safeguard
   const handleTabClosePress = (docPath) => {
@@ -103,14 +183,10 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
 
   if (!activeDoc) {
     return (
-      <div className="editor-empty-state">
-        <FileText size={48} color="#A3B1B8" />
-        <h3>No Open Documents</h3>
-        <p>Select a file from the File Explorer or tap a link in the Terminal to open a document.</p>
-        <button onClick={onReturnToTerminal} className="empty-return-btn">
-          <TermIcon size={14} />
-          <span>Return to Terminal</span>
-        </button>
+      <div className="editor-empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', padding: '2rem' }}>
+        <FileText size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+        <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-parchment)', fontSize: '1.1rem' }}>No Open Documents</h3>
+        <p style={{ margin: 0, fontSize: '0.9rem' }}>Select a file from the Files tab to open it in CodeMirror 6</p>
       </div>
     );
   }
@@ -130,6 +206,18 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     if (fn.includes('docker') || fn.endsWith('.dockerignore')) return '#2496ED'; // Docker Blue
     return '#A3B1B8'; // Default Muted
   };
+
+  if (!activeDoc) {
+    return (
+      <div className="code-editor-workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+          <FileText size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+          <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-parchment)', fontSize: '1.1rem' }}>No File Selected</h3>
+          <p style={{ margin: 0, fontSize: '0.9rem' }}>Select a file from the Files tab to open it in CodeMirror 6</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="code-editor-workspace">
@@ -195,6 +283,8 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
             <p>{activeDoc.path}</p>
             <span className="image-note">Binary asset preview generated by Sovereign system</span>
           </div>
+        ) : isMarkdown && isPreviewMode ? (
+          <MarkdownPreview content={activeDoc.content || ''} />
         ) : (
           <CodeMirror
             value={activeDoc.content || ''}
@@ -228,31 +318,56 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
             }, { dark: true })}
             extensions={[
               ...getLanguageExtension(activeDoc.path),
-              EditorView.lineWrapping // Word Wrap Enabled by Default
+              ...(isWordWrap ? [EditorView.lineWrapping] : [])
             ]}
             onChange={(value) => onContentChange(activeDoc.path, value)}
           />
         )}
       </div>
 
-      {/* Dedicated Editor Touch Bar */}
+      {/* Expanded Code Editor Touch Bar */}
       <div className="editor-touch-bar">
         <button className="editor-touch-btn save" onClick={() => onSaveFile(activeDoc.path)}>
           <Save size={14} />
           <span>SAVE</span>
         </button>
+
         <button className="editor-touch-btn commit" onClick={() => onGitCommit(activeDoc.path)}>
           <GitCommit size={14} />
           <span>SAVE & COMMIT</span>
         </button>
+
+        {isMarkdown && (
+          <button
+            className={`editor-touch-btn ${isPreviewMode ? 'active' : ''}`}
+            onClick={() => setIsPreviewMode(!isPreviewMode)}
+            title={isPreviewMode ? 'Switch to Source Code' : 'Switch to Markdown Preview'}
+          >
+            {isPreviewMode ? <Code size={14} /> : <Eye size={14} />}
+            <span>{isPreviewMode ? 'SOURCE' : 'PREVIEW'}</span>
+          </button>
+        )}
+
+        <button
+          className={`editor-touch-btn ${isWordWrap ? 'active' : ''}`}
+          onClick={() => setIsWordWrap(!isWordWrap)}
+          title="Toggle Line Word Wrap"
+        >
+          <WrapText size={14} />
+          <span>WRAP</span>
+        </button>
+
+        <button className="editor-touch-btn" onClick={handleFormatContent} title="Auto-Format File / JSON">
+          <Wand2 size={14} />
+          <span>FORMAT</span>
+        </button>
+
         <button className="editor-touch-btn" onClick={handleCopyContent} title="Copy All Content">
           <Copy size={14} />
         </button>
+
         <button className="editor-touch-btn" onClick={handlePasteContent} title="Paste Clipboard Content">
           <Clipboard size={14} />
-        </button>
-        <button className="editor-touch-btn" onClick={onReturnToTerminal} title="Return to Terminal">
-          <TermIcon size={14} />
         </button>
       </div>
 
@@ -260,7 +375,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
       {closeConfirmModal && (
         <div className="explorer-modal-overlay" onClick={() => setCloseConfirmModal(null)}>
           <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>⚠️ Unsaved Changes</h3>
+            <h3>Unsaved Changes</h3>
             <p>Save changes to <strong>{closeConfirmModal.split('/').pop()}</strong> before closing?</p>
             <div className="modal-btn-row">
               <button
