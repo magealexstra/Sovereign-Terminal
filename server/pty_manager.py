@@ -26,9 +26,9 @@ def list_sessions(user: dict = Depends(require_auth)):
         try:
             fmt = "#{session_name}|#{session_attached}|#{session_windows}"
             if use_pam and target_user:
-                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} list-sessions -F '{fmt}'"]
+                cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '{fmt}'"]
             else:
-                cmd = [_tmux_bin, "list-sessions", "-F", fmt]
+                cmd = _get_tmux_base() + ["list-sessions", "-F", fmt]
 
             res = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0 and res.stdout:
@@ -57,9 +57,9 @@ def get_session_cwd(session: str = "main", user: dict = Depends(require_auth)):
     if _tmux_bin:
         try:
             if target_user:
-                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} display-message -p -t '{session}' '#{{pane_current_path}}'"]
+                cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} display-message -p -t '{session}' '#{{pane_current_path}}'"]
             else:
-                cmd = [_tmux_bin, "display-message", "-p", "-t", session, "#{pane_current_path}"]
+                cmd = _get_tmux_base() + ["display-message", "-p", "-t", session, "#{pane_current_path}"]
 
             res = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0 and res.stdout.strip():
@@ -82,12 +82,12 @@ def kill_all_sessions(user: dict = Depends(require_auth)):
     target_user = user.get("username") if (use_pam and user) else None
     try:
         if use_pam and target_user:
-            cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} kill-server"]
+            cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} kill-server"]
         else:
-            cmd = [_tmux_bin, "kill-server"]
+            cmd = _get_tmux_base() + ["kill-server"]
         subprocess.run(cmd, capture_output=True, text=True, check=False)
         # Rewarm so the next connection finds a live server immediately
-        subprocess.run([_tmux_bin, "start-server"],
+        subprocess.run(_get_tmux_base() + ["start-server"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
         return {"status": "ok", "message": "All sessions killed"}
     except Exception as e:
@@ -103,9 +103,9 @@ def kill_session(session_id: str, user: dict = Depends(require_auth)):
     target_user = user.get("username") if (use_pam and user) else None
     try:
         if use_pam and target_user:
-            cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} kill-session -t '{session_id}'"]
+            cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} kill-session -t '{session_id}'"]
         else:
-            cmd = [_tmux_bin, "kill-session", "-t", session_id]
+            cmd = _get_tmux_base() + ["kill-session", "-t", session_id]
         res = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if res.returncode == 0:
             return {"status": "ok", "killed": session_id}
@@ -128,9 +128,9 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
     # Fetch the current live session list
     try:
         if use_pam and target_user:
-            cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} list-sessions -F '#S'"]
+            cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '#S'"]
         else:
-            cmd = [_tmux_bin, "list-sessions", "-F", "#S"]
+            cmd = _get_tmux_base() + ["list-sessions", "-F", "#S"]
         res = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if res.returncode != 0 or not res.stdout:
             return {"status": "ok", "swept": []}
@@ -143,9 +143,9 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
         if sess not in active_ids:
             try:
                 if use_pam and target_user:
-                    kill_cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} kill-session -t '{sess}'"]
+                    kill_cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} kill-session -t '{sess}'"]
                 else:
-                    kill_cmd = [_tmux_bin, "kill-session", "-t", sess]
+                    kill_cmd = _get_tmux_base() + ["kill-session", "-t", sess]
                 subprocess.run(kill_cmd, capture_output=True, text=True, check=False)
                 swept.append(sess)
             except Exception:
@@ -172,9 +172,9 @@ async def apply_tmux_config(request: Request, user: dict = Depends(require_auth)
     for opt, val in options.items():
         try:
             if use_pam and target_user:
-                cmd = ["su", "-", target_user, "-c", f"{_tmux_bin} set-option -g {opt} {val}"]
+                cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} set-option -g {opt} {val}"]
             else:
-                cmd = [_tmux_bin, "set-option", "-g", opt, val]
+                cmd = _get_tmux_base() + ["set-option", "-g", opt, val]
             res = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0:
                 applied.append(f"{opt}={val}")
@@ -187,10 +187,19 @@ SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
 _tmux_bin = shutil.which("tmux") or shutil.which("tmux", path="/usr/local/bin:/usr/bin:/bin")
 
+def _get_tmux_base():
+    socket_path = os.environ.get("TMUX_SOCKET_PATH")
+    return [_tmux_bin, "-S", socket_path] if socket_path else [_tmux_bin]
+
+def _get_tmux_base_str():
+    socket_path = os.environ.get("TMUX_SOCKET_PATH")
+    return f"{_tmux_bin} -S '{socket_path}'" if socket_path else _tmux_bin
+
+
 # Pre-warm the tmux server at module load time.
 # This ensures the server socket exists before any WebSocket session connects,
 # eliminating the "error connecting" race on first connection.
-if _tmux_bin:
+if _tmux_bin and os.environ.get("DEPLOYMENT_MODE") != "pass-through" and not os.environ.get("TMUX_SOCKET_PATH"):
     subprocess.run([_tmux_bin, "start-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
 
@@ -234,7 +243,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
 
     if tmux_bin:
         # Attach to existing session (-A) if available, or create new one if not.
-        cmd = [tmux_bin, "new-session", "-A", "-D", "-s", session, "-c", target_cwd]
+        cmd = _get_tmux_base() + ["new-session", "-A", "-D", "-s", session, "-c", target_cwd]
     else:
         cmd = [shutil.which("bash") or "/bin/sh"]
 
@@ -305,9 +314,9 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
             if proc.poll() is not None:
                 break
             if use_pam and target_user:
-                check_cmd = ["su", "-", target_user, "-c", f"{tmux_bin} has-session -t {session}"]
+                check_cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} has-session -t {session}"]
             else:
-                check_cmd = [tmux_bin, "has-session", "-t", session]
+                check_cmd = _get_tmux_base() + ["has-session", "-t", session]
             
             res = subprocess.run(check_cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0:

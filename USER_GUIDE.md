@@ -76,6 +76,9 @@ This option maps your host OS's filesystem and `tmux` environment into the conta
 
 **Target Audience:** Intermediate users familiar with Docker volumes.
 
+> **WARNING: Host Control**
+> In `pass-through` mode, Sovereign Terminal's UI actively controls the host's local tmux server. Creating, killing, or sweeping sessions in the web UI will affect your host machine directly!
+
 **Code:**
 ```yaml
 version: '3.8'
@@ -91,6 +94,8 @@ services:
     ports:
       - "2069:2069"
     environment:
+      - DEPLOYMENT_MODE=pass-through
+      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
       - AUTH_MODE=token
       - SERVER_AUTH_TOKEN=1234
       - PORT=2069
@@ -103,7 +108,7 @@ services:
 
 **Explanation:**
 1. Check your host machine's tmux version by running `tmux -V` and set the `TMUX_VERSION` arg in the compose file accordingly so the container's tmux client can talk to your host's tmux server.
-2. The `/tmp/tmux-1000` volume allows the container to attach to your host's native tmux socket.
+2. The `/tmp/tmux-1000` volume and `TMUX_SOCKET_PATH` environment variable allow the container to attach directly to your host's native tmux socket.
 3. Be sure to replace `1234` with a secure token before deploying! Then run `docker compose up -d --build`.
 
 ### Section 4: Option B (Host Passthrough) + PAM Mode ("The Pro Option")
@@ -111,6 +116,9 @@ services:
 The ultimate containerized sovereign workstation. Manages your host system and authenticates using your actual host Linux user account. (This is the option I use. -magealexstra)
 
 **Target Audience:** Advanced users managing a real Linux host.
+
+> **WARNING: Host Control**
+> As with Option B Token Mode, Sovereign Terminal's UI actively controls the host's local tmux server in `pass-through` mode. Modifying sessions in the UI will affect your host machine directly!
 
 **Code:**
 ```yaml
@@ -127,6 +135,8 @@ services:
     ports:
       - "2069:2069"
     environment:
+      - DEPLOYMENT_MODE=pass-through
+      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
       - AUTH_MODE=pam
       - PORT=2069
     volumes:

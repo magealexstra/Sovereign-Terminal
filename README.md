@@ -30,6 +30,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Touch Scrollback & Copy-on-Select:** Swiping up/down scrolls history smoothly; text selection automatically copies content to system clipboard.
 * **Port Decoupling & Host Auto-Resolution:** Fully decoupled REST and WebSocket architecture (`PORT=2069` by default) with relative `/api/fs/...` paths.
 * **Live Session Count Badge:** Displays the number of active tmux sessions on the terminal tab bar. The badge changes color automatically — green (1–10), amber (11–20), and red (21+) — so you always know how many background sessions are consuming resources.
+* **Host Pass-Through Mode:** Supports seamless integration and control of native host tmux sessions directly from the containerized UI.
 
 ### 2. GUI File Explorer & CodeMirror 6 Multi-Document Editor
 * **Terminal Directory Sync:** File tree automatically synchronizes with the active terminal working directory.
@@ -172,6 +173,9 @@ services:
 
 This option maps your host OS's filesystem and `tmux` environment into the container, giving you control over your real system while still protecting the web UI with a simple token login.
 
+> **WARNING: Host Control**
+> In `pass-through` mode, Sovereign Terminal's UI actively controls the host's local tmux server. Creating, killing, or sweeping sessions in the web UI will affect your host machine directly!
+
 **Code:**
 ```yaml
 version: '3.8'
@@ -187,6 +191,8 @@ services:
     ports:
       - "2069:2069"
     environment:
+      - DEPLOYMENT_MODE=pass-through
+      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
       - AUTH_MODE=token
       - SERVER_AUTH_TOKEN=1234
       - PORT=2069
@@ -205,6 +211,9 @@ services:
 
 The ultimate containerized sovereign workstation. Manages your host system and authenticates using your actual host Linux user account.
 
+> **WARNING: Host Control**
+> As with Option B Token Mode, Sovereign Terminal's UI actively controls the host's local tmux server in `pass-through` mode. Modifying sessions in the UI will affect your host machine directly!
+
 **Code:**
 ```yaml
 version: '3.8'
@@ -220,6 +229,8 @@ services:
     ports:
       - "2069:2069"
     environment:
+      - DEPLOYMENT_MODE=pass-through
+      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
       - AUTH_MODE=pam
       - PORT=2069
     volumes:
