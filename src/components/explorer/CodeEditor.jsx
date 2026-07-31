@@ -13,7 +13,7 @@ import { sql } from '@codemirror/lang-sql';
 import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
-import { openSearchPanel, searchKeymap } from '@codemirror/search';
+import { openSearchPanel, searchKeymap, search } from '@codemirror/search';
 import { keymap as cmKeymap } from '@codemirror/view';
 
 // Lightweight Markdown HTML Preview Component
@@ -341,6 +341,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
             extensions={[
               ...getLanguageExtension(activeDoc.path),
               ...(isWordWrap ? [EditorView.lineWrapping] : []),
+              search({ top: true }),
               cmKeymap.of(searchKeymap),
             ]}
             onChange={(value) => onContentChange(activeDoc.path, value)}
