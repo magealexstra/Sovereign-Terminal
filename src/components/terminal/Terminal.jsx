@@ -57,7 +57,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   // display:flex hasn't reflowed yet by the first animation frame.
   useEffect(() => {
     if (isActive && fitAddonInstance.current && xtermInstance.current) {
-      const activate = () => {
+      const runFit = () => {
         try {
           if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
           fitAddonInstance.current.fit();
@@ -73,10 +73,10 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         } catch (e) {}
       };
 
-      requestAnimationFrame(activate);
-      const t1 = setTimeout(activate, 50);
-      const t2 = setTimeout(activate, 200);
-      const t3 = setTimeout(activate, 500);
+      runFit();
+      const t1 = setTimeout(runFit, 150);
+      const t2 = setTimeout(runFit, 350);
+      const t3 = setTimeout(runFit, 900);
 
       return () => {
         clearTimeout(t1);
@@ -84,7 +84,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         clearTimeout(t3);
       };
     }
-  }, [isActive]);
+  }, [isActive, isKeyboardOpen]);
 
   useEffect(() => {
     const handleGlobalFocus = () => {
@@ -437,24 +437,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   // When keyboard state changes, pulse the resize logic to ensure we catch
   // the exact resting height after the mobile browser animation finishes.
-  useEffect(() => {
-    if (fitAddonInstance.current) {
-      const pulseFit = () => {
-        try {
-          fitAddonInstance.current.fit();
-          const { cols, rows } = fitAddonInstance.current;
-          if (cols && rows && socketRef.current?.readyState === WebSocket.OPEN) {
-            socketRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
-          }
-        } catch (e) {}
-      };
-      
-      pulseFit();
-      setTimeout(pulseFit, 150);
-      setTimeout(pulseFit, 350);
-      setTimeout(pulseFit, 650);
-    }
-  }, [isKeyboardOpen]);
+
 
 
   useEffect(() => {
