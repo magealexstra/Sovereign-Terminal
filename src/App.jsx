@@ -139,7 +139,7 @@ export default function App() {
         targetHeight = keyboardActive ? vvHeight : fullHeight;
       }
 
-      setIsKeyboardOpen(keyboardActive);
+      setIsKeyboardOpen(prev => prev === keyboardActive ? prev : keyboardActive);
 
       const newHeightStr = `${targetHeight}px`;
       if (document.documentElement.style.getPropertyValue('--visual-viewport-height') !== newHeightStr) {

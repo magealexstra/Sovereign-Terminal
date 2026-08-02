@@ -19,6 +19,10 @@ export default function StagingDrawer({
   onSend,
 }) {
   const textareaRef = useRef(null);
+  const noBlur = {
+    onPointerDown: (e) => e.preventDefault(),
+    onMouseDown:   (e) => e.preventDefault(),
+  };
   const [stagingText, setStagingText] = useState(initialText);
   const [isTwoStepMode, setIsTwoStepMode] = useState(() => {
     try {
@@ -57,17 +61,7 @@ export default function StagingDrawer({
   const handleSend = () => {
     if (!stagingText || stagingText.trim().length === 0) return;
     const cleanText = stagingText.trim();
-    if (isTwoStepMode) {
-      onSend(cleanText);
-    } else {
-      // Two-pass transmission for CLI prompts (agy/claude/hermes):
-      // Pass 1: Inject text string payload
-      onSend(cleanText);
-      // Pass 2: 20ms micro-delay before sending Carriage Return \r to execute line
-      setTimeout(() => {
-        onSend('\r');
-      }, 20);
-    }
+    onSend({ text: cleanText, executeImmediately: !isTwoStepMode });
     setStagingText('');
     onClose();
   };
@@ -91,6 +85,7 @@ export default function StagingDrawer({
           <button
             type="button"
             className={`stager-mode-toggle ${isTwoStepMode ? 'two-step' : 'direct'}`}
+            {...noBlur}
             onClick={(e) => {
               e.stopPropagation();
               toggleTwoStep();
@@ -131,6 +126,7 @@ export default function StagingDrawer({
         <button
           type="button"
           className="stager-action-btn clear-btn"
+          {...noBlur}
           onClick={() => setStagingText('')}
           disabled={!stagingText}
         >
@@ -141,6 +137,8 @@ export default function StagingDrawer({
         <button
           type="button"
           className="stager-action-btn send-btn"
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={handleSend}
           disabled={!stagingText || stagingText.trim().length === 0}
         >

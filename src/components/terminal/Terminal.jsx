@@ -20,6 +20,10 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const selectionTimer = useRef(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const injectingRef = useRef(false);
+  const outputStreamingRef = useRef(false);
+  const streamTimeoutRef = useRef(null);
+  const streamStartRef = useRef(0);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
@@ -76,6 +80,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   useEffect(() => {
     const handleGlobalFocus = () => {
+      if (injectingRef.current) return;
       if (isActive && xtermInstance.current) {
         xtermInstance.current.focus();
       }
@@ -143,6 +148,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       term.textarea.setAttribute('autocomplete', 'off');
 
       term.textarea.addEventListener('blur', (e) => {
+        if (injectingRef.current) return;
         const target = e.relatedTarget;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
           return; // Let the other input take focus
@@ -150,6 +156,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         if (isActiveRef.current) {
           // Reclaim focus aggressively to prevent keyboard dismissal
           setTimeout(() => {
+            if (injectingRef.current) return;
             if (term.textarea) term.focus();
           }, 10);
         }
@@ -324,6 +331,26 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             }
           } catch (e) {}
         }
+
+        if (!outputStreamingRef.current) {
+          outputStreamingRef.current = true;
+          streamStartRef.current = Date.now();
+        } else if (Date.now() - streamStartRef.current > 2000) {
+          performFit();
+          sendResizeHandshake();
+          streamStartRef.current = Date.now();
+        }
+
+        clearTimeout(streamTimeoutRef.current);
+        streamTimeoutRef.current = setTimeout(() => {
+          outputStreamingRef.current = false;
+          performFit();
+          sendResizeHandshake();
+          if (xtermInstance.current) {
+            xtermInstance.current.scrollToBottom();
+          }
+        }, 500);
+
         term.write(event.data);
       };
       sock.onerror = (err) => { console.error('WebSocket Error:', err); };
@@ -369,6 +396,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     // ── ResizeObserver ───────────────────────────────────────────────────────
     let resizeDebounce = null;
     const handleResize = () => {
+      if (outputStreamingRef.current) return;
       performFit();
       clearTimeout(resizeDebounce);
       resizeDebounce = setTimeout(() => {
@@ -383,6 +411,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       isMounted = false;
       clearTimeout(reconnectTimeout);
       clearTimeout(resizeDebounce);
+      if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
       resizeObserver.disconnect();
       containerEl.removeEventListener('touchstart', handleTouchStart);
@@ -430,8 +459,32 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   useEffect(() => {
     if (!isActive) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
-    if (voiceInput && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(voiceInput);
+    if (voiceInput) {
+      if (typeof voiceInput === 'object') {
+        const { text, executeImmediately } = voiceInput;
+        injectingRef.current = true;
+        try {
+          if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            socketRef.current.send(text);
+            if (executeImmediately) {
+              socketRef.current.send('\r');
+            }
+          }
+        } catch (e) {
+          console.error('Injection error:', e);
+        } finally {
+          if (xtermInstance.current) {
+            xtermInstance.current.focus();
+          }
+          setTimeout(() => {
+            injectingRef.current = false;
+          }, 100);
+        }
+      } else {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          socketRef.current.send(voiceInput);
+        }
+      }
     }
   }, [voiceInput, isActive]);
 
