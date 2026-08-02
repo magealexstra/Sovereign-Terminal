@@ -53,6 +53,10 @@ export default function CopyCard({
       try {
         const saved = localStorage.getItem('sovereign_cust_button');
         if (saved) setCustConfig(JSON.parse(saved));
+        
+        const d = localStorage.getItem('sovereign_copy_destination');
+        if (d === 'code') setDestinationMode('code');
+        else if (d === 'clip') setDestinationMode('clip');
       } catch {}
     };
     window.addEventListener('storage', handleStorageChange);
@@ -88,6 +92,7 @@ export default function CopyCard({
     setDestinationMode(nextMode);
     try {
       localStorage.setItem('sovereign_copy_destination', nextMode);
+      window.dispatchEvent(new Event('storage'));
     } catch {}
   };
 

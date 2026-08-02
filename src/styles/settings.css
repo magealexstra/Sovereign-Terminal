@@ -1084,6 +1084,32 @@
   color: var(--bg-earth);
 }
 
+.action-btn.reset-action-btn {
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+.action-btn.reset-action-btn:not(:disabled) {
+  background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+.action-btn.reset-action-btn:not(:disabled):active {
+  background: var(--status-warning);
+  color: var(--bg-earth);
+}
+
+/* Narrow screens: Move Left / Move Right collapse to icon-only to accommodate 5-button bar */
+@media (max-width: 480px) {
+  .move-action-btn span {
+    display: none;
+  }
+  .move-action-btn {
+    padding: 0.45rem 0.4rem;
+  }
+}
+
 
 /* Standardized 1:1 Perfect Square Grid Layout */
 .perfect-square-frame {

@@ -189,6 +189,10 @@
   min-height: 14px;
 }
 
+.touch-btn.square { border-radius: 2px; }
+.touch-btn.rounded { border-radius: 6px; }
+.touch-btn.pill { border-radius: 20px; }
+
 .touch-btn.sudo-btn {
   background: rgba(136, 192, 208, 0.15);
   border-color: var(--accent-highlight);
@@ -300,14 +304,32 @@
   cursor: pointer;
 }
 
+.focused-suite-title-reset {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 0.15s ease;
+}
+
+.focused-suite-title-reset:hover {
+  opacity: 0.8;
+}
+
+.focused-suite-title-reset:active {
+  opacity: 0.6;
+}
+
 .macro-grid-3x4 {
-  display: grid;
-  grid-template-rows: repeat(3, auto);
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(95px, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
   gap: 0.45rem;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 250px;
   padding: 0.25rem 0;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
@@ -329,6 +351,10 @@
   text-overflow: ellipsis;
   overflow: hidden;
 }
+
+.macro-grid-btn.square { border-radius: 2px; }
+.macro-grid-btn.rounded { border-radius: 6px; }
+.macro-grid-btn.pill { border-radius: 20px; }
 
 .macro-grid-btn:active, .macro-grid-btn:active {
   background: var(--status-active);

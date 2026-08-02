@@ -581,7 +581,7 @@ export default function App() {
         </div>
 
         {explorerSubTab === 'tree' ? (
-          <FileExplorer onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
+          <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
         ) : (
           <CodeEditor
             openDocuments={openDocuments}

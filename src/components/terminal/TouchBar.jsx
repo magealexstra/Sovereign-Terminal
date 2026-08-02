@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, KeyRound, Trash2, Zap, X, Edit3 } from 'lucide-react';
 import StagingDrawer from './StagingDrawer';
+import { PREBUILT_CATEGORIES } from '../settings/button-studio/buttonData';
 
 export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -22,6 +23,13 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
   const [primaryGroup, setPrimaryGroup] = useState('AI');
   const [selectedSuite, setSelectedSuite] = useState('AGY');
+  const [suiteOverrides, setSuiteOverrides] = useState({});
+  const [customSuiteData, setCustomSuiteData] = useState({});
+  const [customMacroSuites, setCustomMacroSuites] = useState([]);
+  const [customButtonStyles, setCustomButtonStyles] = useState({});
+  const [showFocusedSuiteModal, setShowFocusedSuiteModal] = useState(false);
+  const [focusedSuiteName, setFocusedSuiteName] = useState(null);
+  const [focusedSubSuite, setFocusedSubSuite] = useState(null);
 
   const GROUPS = {
     AI: { label: 'AI', suites: ['AGY', 'CLD', 'HMS'] },
@@ -108,6 +116,8 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'agy8', label: '/learn', value: '/learn ' },
       { id: 'agy9', label: '^O', value: '\x0f' },
       { id: 'agy10', label: 'update agy', value: 'npm update -g @google/antigravity\n' },
+      { id: 'agy11', label: '/clear', value: '/clear\n' },
+      { id: 'agy12', label: '^K', value: '\x0b' },
     ],
     CLD: [
       { id: 'cld0', label: 'claude', value: 'claude\n' },
@@ -120,6 +130,8 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'cld8', label: '/review', value: '/review ' },
       { id: 'cld9', label: '^C', value: '\x03' },
       { id: 'cld10', label: 'update cld', value: 'npm update -g @anthropic-ai/claude-code\n' },
+      { id: 'cld11', label: '/clear', value: '/clear\n' },
+      { id: 'cld12', label: 'mode', value: '\x1b[Z' },
     ],
     HMS: [
       { id: 'hms0', label: 'hermes', value: 'hermes\n' },
@@ -132,6 +144,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'hms7', label: '/memory', value: '/memory ' },
       { id: 'hms8', label: '/mcp', value: '/mcp ' },
       { id: 'hms9', label: 'update hms', value: 'pip install --upgrade hermes-agent\n' },
+      { id: 'hms10', label: '/clear', value: '/clear\n' },
     ],
     VIM: [
       { id: 'vim1', label: ':w', value: '\x1b:w\n' },
@@ -239,6 +252,9 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'py4', label: 'venv activate', value: 'source venv/bin/activate\n' },
       { id: 'py5', label: 'pip list', value: 'pip list\n' },
       { id: 'py6', label: 'pip freeze', value: 'pip freeze > requirements.txt\n' },
+      { id: 'py7', label: 'python3 REPL', value: 'python3\n' },
+      { id: 'py8', label: 'exit', value: 'exit()\n' },
+      { id: 'py9', label: '^D', value: '\x04' },
     ],
     NPM: [
       { id: 'npm1', label: 'npm install', value: 'npm install\n' },
@@ -257,10 +273,10 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'tmx6', label: 'split v', value: '\x02"' },
     ],
     KEY_NAV: [
-      { id: 'nav1', label: '▲ Up', value: '\x1b[A' },
-      { id: 'nav2', label: '▼ Down', value: '\x1b[B' },
-      { id: 'nav3', label: '◀ Left', value: '\x1b[D' },
-      { id: 'nav4', label: '► Right', value: '\x1b[C' },
+      { id: 'nav1', label: '▲', value: '\x1b[A', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+      { id: 'nav2', label: '▼', value: '\x1b[B', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+      { id: 'nav3', label: '◀', value: '\x1b[D', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+      { id: 'nav4', label: '▶', value: '\x1b[C', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
       { id: 'nav5', label: 'PgUp', value: '\x1b[5~' },
       { id: 'nav6', label: 'PgDn', value: '\x1b[6~' },
       { id: 'nav7', label: 'Home', value: '\x1b[H' },
@@ -318,6 +334,154 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       { id: 'line7', label: '^R (History)', value: '\x12' },
       { id: 'line8', label: '^L (Clear)', value: '\x0c' },
     ]
+  };
+
+  // --- A3: Label-to-value resolver ---
+  // Resolution order: sovereign_buttons (custom) → commandSuites → PREBUILT_CATEGORIES → fallback
+  const resolveLabel = (label, id) => {
+    // 1. Check custom buttons first (so customized built-ins override defaults)
+    try {
+      const raw = localStorage.getItem('sovereign_buttons');
+      if (raw) {
+        const btns = JSON.parse(raw);
+        const found = btns.find(b => b.label === label);
+        if (found) return {
+          id: id || found.id || `res-${label}`,
+          label: found.label || label,
+          value: found.value || `${label}\n`,
+          bg: found.bg || null,
+          text: found.text || null,
+          border: found.border || null,
+          width: found.width || null,
+          height: found.height || null,
+          shape: found.shape || null,
+        };
+      }
+    } catch {}
+
+    // 2. Check built-in command suites
+    for (const suite of Object.values(commandSuites)) {
+      const found = suite.find(btn => btn.label === label);
+      if (found) return { id: id || found.id, label: found.label, value: found.value };
+    }
+
+    // 3. Check prebuilt categories
+    for (const cat of Object.values(PREBUILT_CATEGORIES)) {
+      const found = (cat.items || []).find(item => item.label === label);
+      if (found) return { id: id || `res-${label}`, label: found.label, value: found.value };
+    }
+
+    // 4. Fallback
+    return { id: id || `res-${label}`, label, value: `${label}\n` };
+  };
+
+  // --- A1 + A2: Suite data loader ---
+  const loadSuiteData = () => {
+    // A1: Load persisted overrides for each built-in suite
+    const overrides = {};
+    Object.keys(commandSuites).forEach(suiteKey => {
+      try {
+        const raw = localStorage.getItem(`sovereign_macro_suite_${suiteKey}`);
+        if (raw) {
+          const labels = JSON.parse(raw);
+          if (Array.isArray(labels) && labels.length > 0) {
+            overrides[suiteKey] = labels.map((lbl, idx) =>
+              resolveLabel(lbl, `${suiteKey}-ov-${idx}`)
+            );
+          }
+        }
+      } catch {}
+    });
+    setSuiteOverrides(overrides);
+
+    // A2: Load custom macro suites (sovereign_buttons entries where value === 'macro')
+    try {
+      const raw = localStorage.getItem('sovereign_buttons');
+      const btns = raw ? JSON.parse(raw) : [];
+
+      // Build style lookup map for all custom button visual properties
+      const styleMap = {};
+      btns.forEach(b => {
+        const key = b.label || b.name || b.id;
+        if (key) styleMap[key] = { bg: b.bg, text: b.text, border: b.border, width: b.width, height: b.height, shape: b.shape };
+      });
+      setCustomButtonStyles(styleMap);
+
+      const macroNames = [...new Set(
+        btns
+          .filter(b => b && b.value && b.value.trim().toLowerCase() === 'macro')
+          .map(b => b.label || b.name || b.id)
+          .filter(Boolean)
+      )];
+      setCustomMacroSuites(macroNames);
+
+      const custData = {};
+      macroNames.forEach(name => {
+        try {
+          const suiteRaw = localStorage.getItem(`sovereign_macro_suite_${name}`);
+          if (suiteRaw) {
+            const labels = JSON.parse(suiteRaw);
+            if (Array.isArray(labels)) {
+              custData[name] = labels.map((lbl, idx) => ({
+                ...resolveLabel(lbl, `cust-${name}-${idx}`),
+                isSuiteLauncher: Object.keys(commandSuites).includes(lbl) || macroNames.includes(lbl),
+              }));
+            }
+          }
+        } catch {}
+      });
+      setCustomSuiteData(custData);
+    } catch {
+      setCustomMacroSuites([]);
+      setCustomSuiteData({});
+    }
+  };
+
+  // Load on mount and reload on any storage change
+  useEffect(() => {
+    loadSuiteData();
+    window.addEventListener('storage', loadSuiteData);
+    window.addEventListener('sovereign_custom_buttons_updated', loadSuiteData);
+    return () => {
+      window.removeEventListener('storage', loadSuiteData);
+      window.removeEventListener('sovereign_custom_buttons_updated', loadSuiteData);
+    };
+  }, []);
+
+  // CUST group prepended when custom suites exist; resolved active button array
+  const effectiveGroups = customMacroSuites.length > 0
+    ? { CUST: { label: 'CUST', suites: customMacroSuites }, ...GROUPS }
+    : GROUPS;
+
+  const activeSuiteButtons =
+    suiteOverrides[selectedSuite] ||
+    customSuiteData[selectedSuite] ||
+    (commandSuites[selectedSuite] ? commandSuites[selectedSuite].map((b, i) => resolveLabel(b.label, `cmd-${selectedSuite}-${i}`)) : []);
+
+  // Focused suite modal derived values (computed before return, used in JSX)
+  const focusedActiveDisplay = focusedSubSuite || focusedSuiteName;
+  const focusedDisplayButtons = focusedSuiteName ? (
+    suiteOverrides[focusedActiveDisplay] ||
+    customSuiteData[focusedActiveDisplay] ||
+    (commandSuites[focusedActiveDisplay] ? commandSuites[focusedActiveDisplay].map((b, i) => resolveLabel(b.label, `cmd-${focusedActiveDisplay}-${i}`)) : [])
+  ) : [];
+  const focusedChips = focusedDisplayButtons.filter(b =>
+    (b.isSuiteLauncher || customMacroSuites.includes(b.label) || Object.keys(commandSuites).includes(b.label)) && b.label !== focusedSuiteName
+  );
+  const focusedRegularButtons = focusedDisplayButtons.filter(b =>
+    !(b.isSuiteLauncher || customMacroSuites.includes(b.label) || Object.keys(commandSuites).includes(b.label))
+  );
+
+  // Opens MACROS modal: defaults to first custom suite when CUST exists, else AGY
+  const openMacrosModal = () => {
+    if (customMacroSuites.length > 0) {
+      setPrimaryGroup('CUST');
+      setSelectedSuite(customMacroSuites[0]);
+    } else {
+      setPrimaryGroup('AI');
+      setSelectedSuite('AGY');
+    }
+    setShowMacroModal(true);
   };
 
   // Gboard / Android-Style Continuous Voice Dictation Handler
@@ -559,7 +723,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
                 className="touch-btn macro-launcher-btn"
                 onPointerDown={(e) => e.preventDefault()}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
+                onClick={openMacrosModal}
                 title="Macro Master Catalog"
               >
                 <Zap size={14} color="var(--status-danger)" />
@@ -568,10 +732,45 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             );
           }
 
+          if (customMacroSuites.includes(item)) {
+            const btnStyle = customButtonStyles[item] || {};
+            return (
+              <button
+                key={`slot-${item}-${idx}`}
+                className={`touch-btn ${btnStyle.shape || ''}`}
+                style={{
+                  background: btnStyle.bg || undefined,
+                  color: btnStyle.text || undefined,
+                  borderColor: btnStyle.border || undefined,
+                  width: btnStyle.width ? `${btnStyle.width}rem` : undefined,
+                  height: btnStyle.height ? `${btnStyle.height}rem` : undefined,
+                }}
+                onPointerDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setFocusedSuiteName(item);
+                  setFocusedSubSuite(null);
+                  setShowFocusedSuiteModal(true);
+                }}
+                title={`Open ${item} suite`}
+              >
+                {item}
+              </button>
+            );
+          }
+
+          const btnStyle = customButtonStyles[item] || {};
           return (
             <button
               key={`slot-${item}-${idx}`}
-              className="touch-btn"
+              className={`touch-btn ${btnStyle.shape || ''}`}
+              style={{
+                background: btnStyle.bg || undefined,
+                color: btnStyle.text || undefined,
+                borderColor: btnStyle.border || undefined,
+                width: btnStyle.width ? `${btnStyle.width}rem` : undefined,
+                height: btnStyle.height ? `${btnStyle.height}rem` : undefined,
+              }}
               onPointerDown={(e) => e.preventDefault()}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => onKeyPress(getCommandPayload(item))}
@@ -586,7 +785,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           className="touch-btn macro-launcher-btn"
           onPointerDown={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => { setSelectedSuite('AGY'); setShowMacroModal(true); }}
+          onClick={openMacrosModal}
           title="Master Macro Catalog"
         >
           <Zap size={14} color="var(--status-danger)" />
@@ -620,7 +819,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
             {/* Primary Category Group Selector Bar */}
             <div className="suite-selector-scroll">
-              {Object.keys(GROUPS).map((groupKey) => {
+              {Object.keys(effectiveGroups).map((groupKey) => {
                 const isActive = primaryGroup === groupKey;
                 return (
                   <button
@@ -629,20 +828,20 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
                     className={`suite-tab-pill ${isActive ? 'active' : ''}`}
                     onClick={() => {
                       setPrimaryGroup(groupKey);
-                      const defaultSub = GROUPS[groupKey].suites[0];
+                      const defaultSub = effectiveGroups[groupKey].suites[0];
                       setSelectedSuite(defaultSub);
                     }}
                   >
-                    {GROUPS[groupKey].label}
+                    {effectiveGroups[groupKey].label}
                   </button>
                 );
               })}
             </div>
 
             {/* Sub-Suite Selector Bar for Active Group */}
-            {GROUPS[primaryGroup] && (
+            {effectiveGroups[primaryGroup] && (
               <div className="sub-suite-bar">
-                {GROUPS[primaryGroup].suites.map((subKey) => {
+                {effectiveGroups[primaryGroup].suites.map((subKey) => {
                   const isSubActive = selectedSuite === subKey;
                   return (
                     <button
@@ -660,18 +859,107 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
             {/* Selected Suite Macro Grid */}
             <div className="macro-grid-3x4" style={{ marginTop: '0.75rem' }}>
-              {(commandSuites[selectedSuite] || []).map((macro) => (
-                <button
-                  key={macro.id}
-                  className="macro-grid-btn"
-                  onClick={() => {
-                    onKeyPress(macro.value);
-                    setShowMacroModal(false);
-                  }}
-                >
-                  {macro.label}
-                </button>
-              ))}
+              {activeSuiteButtons.map((macro) => {
+                const isLauncher = macro.isSuiteLauncher || customMacroSuites.includes(macro.label) || Object.keys(commandSuites).includes(macro.label);
+
+                return (
+                  <button
+                    key={macro.id}
+                    className={`macro-grid-btn ${macro.shape || ''} ${isLauncher ? 'suite-launcher-grid-btn' : ''}`}
+                    style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
+                      background: macro.bg || undefined,
+                      color: macro.text || undefined,
+                      borderColor: macro.border || undefined,
+                      width: macro.width ? `${macro.width}rem` : undefined,
+                      height: macro.height ? `${macro.height}rem` : undefined,
+                    } : {}}
+                    onClick={() => {
+                      if (isLauncher) {
+                        const targetGroup = Object.keys(effectiveGroups).find(g =>
+                          effectiveGroups[g].suites.includes(macro.label)
+                        ) || 'AI';
+                        setPrimaryGroup(targetGroup);
+                        setSelectedSuite(macro.label);
+                      } else {
+                        onKeyPress(macro.value);
+                        setShowMacroModal(false);
+                      }
+                    }}
+                  >
+                    {macro.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Focused Suite Modal — opens when a custom suite bar button is tapped */}
+      {showFocusedSuiteModal && (
+        <div className="macro-modal-overlay" onClick={() => setShowFocusedSuiteModal(false)}>
+          <div
+            className="macro-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <div className="macro-modal-header">
+              <button
+                className="focused-suite-title-reset"
+                onClick={() => setFocusedSubSuite(null)}
+                title="Tap to return to root suite view"
+              >
+                <h3>{focusedSuiteName}</h3>
+              </button>
+              <button className="close-modal-btn" onClick={() => setShowFocusedSuiteModal(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Chip tabs for nested macro suites (self-filtered: root suite never shows in its own chips) */}
+            {focusedChips.length > 0 && (
+              <div className="sub-suite-bar">
+                {focusedChips.map(chip => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className={`sub-suite-pill ${focusedSubSuite === chip.label ? 'active' : ''}`}
+                    onClick={() => setFocusedSubSuite(chip.label)}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Command button grid */}
+            <div className="macro-grid-3x4" style={{ marginTop: '0.75rem' }}>
+              {focusedRegularButtons.length === 0 && focusedChips.length === 0 ? (
+                <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem', padding: '0.5rem', gridColumn: '1 / -1' }}>
+                  No buttons in this suite yet. Add some in the Layout tab.
+                </span>
+              ) : (
+                focusedRegularButtons.map(macro => (
+                  <button
+                    key={macro.id}
+                    className={`macro-grid-btn ${macro.shape || ''}`}
+                    style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
+                      background: macro.bg || undefined,
+                      color: macro.text || undefined,
+                      borderColor: macro.border || undefined,
+                      width: macro.width ? `${macro.width}rem` : undefined,
+                      height: macro.height ? `${macro.height}rem` : undefined,
+                    } : {}}
+                    onClick={() => {
+                      onKeyPress(macro.value);
+                      setShowFocusedSuiteModal(false);
+                    }}
+                  >
+                    {macro.label}
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>

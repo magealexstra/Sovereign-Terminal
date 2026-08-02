@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
+import { Search, Plus, Trash2, ArrowLeft, ArrowRight, Zap, RotateCcw } from 'lucide-react';
 import { PREBUILT_CATEGORIES } from './button-studio/buttonData';
 import { useToast } from '../../hooks/useToast';
 import { useApp } from '../../context/AppContext';
@@ -15,6 +15,7 @@ export default function LayoutBuilder() {
 
   // Custom user buttons from ButtonStudio (localStorage)
   const [customButtons, setCustomButtons] = useState([]);
+  const [customButtonStyles, setCustomButtonStyles] = useState({});
 
   // Macro Suite Selection State (PRIMARY, MASTER, built-in suites, or custom macro suites)
   const [selectedMacroSuite, setSelectedMacroSuite] = useState('PRIMARY');
@@ -66,6 +67,14 @@ export default function LayoutBuilder() {
       // Map ALL custom buttons (both macro and regular) for the Pool dropdown
       const allCustomNames = validList.map(b => b.label || b.name || b.id).filter(Boolean);
       setCustomButtons(Array.from(new Set(allCustomNames)));
+
+      // Map styles for all custom buttons
+      const styles = {};
+      validList.forEach(b => {
+        const label = b.label || b.name || b.id;
+        if (label) styles[label] = b;
+      });
+      setCustomButtonStyles(styles);
 
       // Find buttons where the exact function value is "macro" for the top Macro Suite selector
       const macroSuites = validList
@@ -180,6 +189,19 @@ export default function LayoutBuilder() {
     }
   };
 
+  // Reset active suite to factory defaults (PREBUILT_CATEGORIES only)
+  const handleReset = (e) => {
+    if (e) e.stopPropagation();
+    if (!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)) return;
+    try {
+      localStorage.removeItem(`sovereign_macro_suite_${selectedMacroSuite}`);
+      setTouchBarSlots(loadSlotsForSuite(selectedMacroSuite));
+      window.dispatchEvent(new Event('storage'));
+      setSelectedBarIndex(null);
+      showToast(`${selectedMacroSuite} suite reset to defaults`);
+    } catch {}
+  };
+
   // Deselect active selections when clicking any blank space
   const handleContainerClick = (e) => {
     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.closest('button')) {
@@ -196,7 +218,16 @@ export default function LayoutBuilder() {
       items = customButtons;
       if (items.length === 0) items = ['(No Custom Buttons Created Yet)'];
     } else if (PREBUILT_CATEGORIES[selectedCategory]) {
-      items = [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
+      // Show current saved state of this suite; fall back to factory defaults if no override exists
+      try {
+        const raw = localStorage.getItem(`sovereign_macro_suite_${selectedCategory}`);
+        const saved = raw ? JSON.parse(raw) : null;
+        items = (Array.isArray(saved) && saved.length > 0)
+          ? [selectedCategory, ...saved]
+          : [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
+      } catch {
+        items = [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
+      }
     } else {
       items = Object.entries(PREBUILT_CATEGORIES).flatMap(([key, cat]) => [key, ...cat.items.map((i) => i.label)]);
     }
@@ -307,11 +338,19 @@ export default function LayoutBuilder() {
               const isSelected = selectedPoolItem === item;
               const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
 
+              const customStyle = customButtonStyles[item];
               return (
                 <button
                   key={`pool-${item}-${idx}`}
                   type="button"
-                  className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''}`}
+                  className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''} ${customStyle?.shape || ''}`}
+                  style={customStyle ? {
+                    background: customStyle.bg || undefined,
+                    color: customStyle.text || undefined,
+                    borderColor: customStyle.border || undefined,
+                    width: customStyle.width ? `${customStyle.width}rem` : undefined,
+                    height: customStyle.height ? `${customStyle.height}rem` : undefined,
+                  } : {}}
                   onClick={(e) => handleSelectPoolItem(e, item)}
                   title="Click to select button"
                 >
@@ -335,11 +374,19 @@ export default function LayoutBuilder() {
                 const isSelected = selectedBarIndex === idx;
                 const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
 
+                const customStyle = customButtonStyles[item];
                 return (
                   <button
                     key={`bar-${item}-${idx}`}
                     type="button"
-                    className={`live-bar-tile ${isSelected ? 'selected-bar-tile' : ''} ${isLauncher ? 'launcher-tile' : ''}`}
+                    className={`live-bar-tile ${isSelected ? 'selected-bar-tile' : ''} ${isLauncher ? 'launcher-tile' : ''} ${customStyle?.shape || ''}`}
+                    style={customStyle ? {
+                      background: customStyle.bg || undefined,
+                      color: customStyle.text || undefined,
+                      borderColor: customStyle.border || undefined,
+                      width: customStyle.width ? `${customStyle.width}rem` : undefined,
+                      height: customStyle.height ? `${customStyle.height}rem` : undefined,
+                    } : {}}
                     onClick={(e) => handleSelectBarItem(e, idx)}
                   >
                     <span>{item}</span>
@@ -365,7 +412,7 @@ export default function LayoutBuilder() {
 
           <button
             type="button"
-            className="action-btn"
+            className="action-btn move-action-btn"
             disabled={selectedBarIndex === null || selectedBarIndex === 0}
             onClick={(e) => handleMoveBarItem(e, 'left')}
           >
@@ -375,12 +422,23 @@ export default function LayoutBuilder() {
 
           <button
             type="button"
-            className="action-btn"
+            className="action-btn move-action-btn"
             disabled={selectedBarIndex === null || selectedBarIndex === touchBarSlots.length - 1}
             onClick={(e) => handleMoveBarItem(e, 'right')}
           >
             <span>Move Right</span>
             <ArrowRight size={13} />
+          </button>
+
+          <button
+            type="button"
+            className="action-btn reset-action-btn"
+            disabled={!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)}
+            onClick={(e) => handleReset(e)}
+            title={`Reset ${selectedMacroSuite} suite to defaults`}
+          >
+            <RotateCcw size={13} />
+            <span>Reset</span>
           </button>
 
           <button

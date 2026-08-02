@@ -4,3 +4,8 @@
 @import './styles/explorer.css';
 @import './styles/settings.css';
 @import './styles/auth.css';
+
+/* Global Shape Overrides */
+.square { border-radius: 2px !important; }
+.rounded { border-radius: 6px !important; }
+.pill { border-radius: 20px !important; }

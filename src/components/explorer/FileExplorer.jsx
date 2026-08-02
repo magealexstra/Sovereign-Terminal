@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal } from 'lucide-react';
+import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, Clipboard, FileCode, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 
-export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
+export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -11,6 +12,21 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, 
   const [newFileModal, setNewFileModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemType, setNewItemType] = useState('file');
+  const [destinationMode, setDestinationMode] = useState('clip');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const loadDest = () => {
+      try {
+        const d = localStorage.getItem('sovereign_copy_destination');
+        if (d === 'code') setDestinationMode('code');
+        else setDestinationMode('clip');
+      } catch {}
+    };
+    loadDest();
+    window.addEventListener('storage', loadDest);
+    return () => window.removeEventListener('storage', loadDest);
+  }, []);
 
   // Fetch directory contents from Sovereign Gateway
   const fetchDirectory = async (targetPath) => {
@@ -138,15 +154,39 @@ export default function FileExplorer({ onOpenFile, activeTerminalPath, rootDir, 
     <div className="file-explorer-container">
       {/* Explorer Action Header */}
       <div className="explorer-toolbar">
-        <div className="breadcrumbs-row">
-          {getBreadcrumbs().map((crumb, idx) => (
-            <React.Fragment key={crumb.path}>
-              <span className="crumb-item" onClick={() => fetchDirectory(crumb.path)}>
-                {crumb.name}
-              </span>
-              {idx < getBreadcrumbs().length - 1 && <ChevronRight size={12} color="var(--text-muted)" />}
-            </React.Fragment>
-          ))}
+        <div className="breadcrumbs-row" style={{ overflowX: 'visible', overflowY: 'visible', flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', flex: 1, overflowX: 'auto', scrollbarWidth: 'none', minWidth: 0, gap: '0.35rem' }}>
+            {getBreadcrumbs().map((crumb, idx) => (
+              <React.Fragment key={crumb.path}>
+                <span className="crumb-item" onClick={() => fetchDirectory(crumb.path)}>
+                  {crumb.name}
+                </span>
+                {idx < getBreadcrumbs().length - 1 && <ChevronRight size={12} color="var(--text-muted)" />}
+              </React.Fragment>
+            ))}
+          </span>
+          <button
+            className="tb-btn"
+            style={{ flexShrink: 0, borderColor: 'var(--status-active)', marginLeft: '0.5rem' }}
+            title={destinationMode === 'clip' ? 'Copy Path to Clipboard' : 'Open Path in Code Editor'}
+            onClick={() => {
+              const crumbs = getBreadcrumbs();
+              const pathToCopy = crumbs[crumbs.length - 1]?.path || '/';
+              if (destinationMode === 'clip') {
+                writeToClipboard(pathToCopy).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }).catch(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                });
+              } else {
+                if (onCopyPath) onCopyPath(pathToCopy);
+              }
+            }}
+          >
+            {copied ? <Check size={14} color="var(--status-active)" /> : (destinationMode === 'clip' ? <Clipboard size={14} /> : <FileCode size={14} />)}
+          </button>
         </div>
 
         <div className="toolbar-actions">

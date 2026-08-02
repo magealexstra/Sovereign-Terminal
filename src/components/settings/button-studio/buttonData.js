@@ -3,11 +3,11 @@
 
 // Default buttons loaded when no localStorage save exists
 export const DEFAULT_BUTTONS = [
-  { id: 'b1', label: 'ESC',       value: '\x1b',      width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
-  { id: 'b2', label: 'TAB',       value: '\t',        width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
-  { id: 'b3', label: '^C',        value: '\x03',      width: 2.4, height: 2.0, shape: 'rounded', bg: '#141E26', text: '#E6EDF0', border: '#5E81AC' },
-  { id: 'b4', label: 'htop',      value: 'htop\n',    width: 3.2, height: 2.0, shape: 'pill',    bg: '#141E26', text: '#5E81AC', border: '#4C7864' },
-  { id: 'b5', label: 'docker ps', value: 'docker ps\n', width: 4.2, height: 2.0, shape: 'rounded', bg: '#21252b', text: '#88C0D0', border: '#fcee0a' },
+  { id: 'b1', label: 'ESC',       value: '\x1b',      width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'b2', label: 'TAB',       value: '\t',        width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'b3', label: '^C',        value: '\x03',      width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'b4', label: 'htop',      value: 'htop\n',    width: 3.2, height: 2.0, shape: 'pill',    bg: 'var(--bg-canopy)', text: 'var(--border-sage)',    border: 'var(--status-active)' },
+  { id: 'b5', label: 'docker ps', value: 'docker ps\n', width: 4.2, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--accent-highlight)', border: 'var(--status-warning)' },
 ];
 
 // Built-in categorized command preset bundles
@@ -22,7 +22,9 @@ export const PREBUILT_CATEGORIES = {
     { label: '/teamwork', value: '/teamwork-preview ' },
     { label: '/learn',    value: '/learn ' },
     { label: '^O',        value: '\x0f' },
-    { label: 'update agy', value: 'npm update -g @google/antigravity\n' }
+    { label: 'update agy', value: 'npm update -g @google/antigravity\n' },
+    { label: '/clear',     value: '/clear\n' },
+    { label: '^K',         value: '\x0b' }
   ]},
   APT: { name: 'APT Package Manager - APT', items: [
     { label: 'upgrade -y', value: 'sudo apt update && sudo apt upgrade -y\n' },
@@ -44,7 +46,9 @@ export const PREBUILT_CATEGORIES = {
     { label: '/bug',     value: '/bug ' },
     { label: '/review',  value: '/review ' },
     { label: '^C',       value: '\x03' },
-    { label: 'update cld', value: 'npm update -g @anthropic-ai/claude-code\n' }
+    { label: 'update cld', value: 'npm update -g @anthropic-ai/claude-code\n' },
+    { label: '/clear',      value: '/clear\n' },
+    { label: 'mode',        value: '\x1b[Z' }
   ]},
   DOC: { name: 'Docker Suite - DOC', items: [
     { label: 'docker ps',    value: 'docker ps\n' },
@@ -89,13 +93,10 @@ export const PREBUILT_CATEGORIES = {
     { label: '/config', value: '/config ' },
     { label: '/memory', value: '/memory ' },
     { label: '/mcp',    value: '/mcp ' },
-    { label: 'update hms', value: 'pip install --upgrade hermes-agent\n' }
+    { label: 'update hms', value: 'pip install --upgrade hermes-agent\n' },
+    { label: '/clear',  value: '/clear\n' }
   ]},
   KEY: { name: 'Keyboard Shortcuts - KEY', items: [
-    { label: '▲',           value: '\x1b[A' },
-    { label: '▼',           value: '\x1b[B' },
-    { label: '◀',           value: '\x1b[D' },
-    { label: '▶',           value: '\x1b[C' },
     { label: 'PgUp',        value: '\x1b[5~' },
     { label: 'PgDn',        value: '\x1b[6~' },
     { label: 'Home',        value: '\x1b[H' },
@@ -187,7 +188,10 @@ export const PREBUILT_CATEGORIES = {
     { label: 'venv create',  value: 'python3 -m venv venv\n' },
     { label: 'venv activate', value: 'source venv/bin/activate\n' },
     { label: 'pip list',     value: 'pip list\n' },
-    { label: 'pip freeze',   value: 'pip freeze > requirements.txt\n' }
+    { label: 'pip freeze',   value: 'pip freeze > requirements.txt\n' },
+    { label: 'python3 REPL', value: 'python3\n' },
+    { label: 'exit',         value: 'exit()\n' },
+    { label: '^D',           value: '\x04' }
   ]},
   SYS: { name: 'System Admin - SYS', items: [
     { label: 'systemctl',  value: 'sudo systemctl status ' },
