@@ -449,11 +449,34 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   }, [isKeyboardOpen]);
 
   useEffect(() => {
-    if (isActive) {
-      const timer = setTimeout(() => {
-        window.dispatchEvent(new Event('resize'));
-      }, 50);
-      return () => clearTimeout(timer);
+    if (isActive && xtermInstance.current) {
+      // Force canvas repaint to align cursor and clear blank screen artifacts
+      xtermInstance.current.write('');
+
+      const pulseFit = () => {
+        try {
+          if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
+          fitAddonInstance.current.fit();
+          xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
+          const { cols, rows } = fitAddonInstance.current;
+          if (cols && rows && socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
+          }
+        } catch (e) {}
+      };
+
+      pulseFit();
+      const t1 = setTimeout(pulseFit, 50);
+      const t2 = setTimeout(pulseFit, 200);
+      const t3 = setTimeout(pulseFit, 500);
+
+      xtermInstance.current.focus();
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
     }
   }, [isActive]);
 
