@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Terminal as TermIcon, X, Zap, Trash2, Play } from 'lucide-react';
+import { RefreshCw, Terminal as TermIcon, X, Zap, Link2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function TmuxManager() {
@@ -9,7 +9,6 @@ export default function TmuxManager() {
   const [sessionCount, setSessionCount] = useState(0);
   const [loading, setLoading]           = useState(true);
   const [serverOnline, setServerOnline] = useState(false);
-  const [killConfirm, setKillConfirm]   = useState(false);
   const [actionMsg, setActionMsg]       = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
 
@@ -57,21 +56,6 @@ export default function TmuxManager() {
         flash(`Session "${id}" killed`);
         fetchSessions();
       }
-    } catch {}
-  };
-
-  const killAll = async () => {
-    if (!killConfirm) {
-      setKillConfirm(true);
-      setTimeout(() => setKillConfirm(false), 4000);
-      return;
-    }
-    setKillConfirm(false);
-    try {
-      await fetch('/api/terminal/sessions', { method: 'DELETE' });
-      setSelectedSession(null);
-      flash('All sessions killed — server rewarmed');
-      fetchSessions();
     } catch {}
   };
 
@@ -148,26 +132,18 @@ export default function TmuxManager() {
         <div className="tmux-section-header">
           <span className="tmux-section-label">SESSIONS</span>
           <div className="tmux-bulk-actions">
+            <button className="tmux-sweep-btn" onClick={sweepZombies} title="Kill sessions not open as tabs">
+              <Zap size={11} />
+              Sweep Zombies
+            </button>
             <button
               className={`tmux-attach-btn${selectedSession ? ' active' : ''}`}
               onClick={handleAttach}
               disabled={!selectedSession}
               title={selectedSession ? `Attach session "${selectedSession}" as terminal tab` : 'Select a session row below to attach'}
             >
-              <Play size={11} />
+              <Link2 size={11} />
               Attach
-            </button>
-            <button className="tmux-sweep-btn" onClick={sweepZombies} title="Kill sessions not open as tabs">
-              <Zap size={11} />
-              Sweep Zombies
-            </button>
-            <button
-              className={`tmux-nuclear-btn${killConfirm ? ' confirm' : ''}`}
-              onClick={killAll}
-              title={killConfirm ? 'Click again to confirm' : 'Kill all tmux sessions'}
-            >
-              <Trash2 size={11} />
-              {killConfirm ? 'Confirm' : 'Kill All'}
             </button>
           </div>
         </div>
