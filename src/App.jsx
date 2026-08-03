@@ -179,7 +179,6 @@ export default function App() {
     sessions,
     activeSession,
     voiceInput,
-    tmuxSessionCount,
     setActiveSession,
     handleAddSession,
     handleCloseSession,
@@ -515,7 +514,6 @@ export default function App() {
           onSelectSession={setActiveSession}
           onAddSession={handleAddSession}
           onCloseSession={handleCloseSession}
-          tmuxSessionCount={tmuxSessionCount}
           rootDir={rootDir}
         />
 

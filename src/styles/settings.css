@@ -2031,37 +2031,7 @@
   font-weight: 700;
 }
 
-/* ==========================================================================
-   TMUX Session Count Badge — Session Tab Bar
-   ========================================================================== */
 
-.tmux-count-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.4rem;
-  height: 1.4rem;
-  padding: 0 0.35rem;
-  border-radius: 99px;
-  border: 1px solid currentColor;
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  flex-shrink: 0;
-  margin-right: 0.25rem;
-  padding-right: 0.4rem;
-  border-right: 1px solid var(--border-forest);
-  opacity: 0.9;
-  cursor: default;
-  user-select: none;
-  transition: color 0.3s ease, border-color 0.3s ease;
-}
-
-.tmux-count-badge.ok     { color: var(--status-active);  border-color: var(--status-active); }
-.tmux-count-badge.warn   { color: var(--status-warning); border-color: var(--status-warning); }
-.tmux-count-badge.danger { color: var(--status-danger);  border-color: var(--status-danger); }
 
 /* ==========================================================================
    TMUX MANAGER PANEL — settings/TmuxManager.jsx

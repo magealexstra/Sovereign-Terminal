@@ -28,7 +28,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
   const [sessions, setSessions] = useState([]);
   const [activeSession, setActiveSession] = useState('');
   const [voiceInput, setVoiceInput] = useState('');
-  const [tmuxSessionCount, setTmuxSessionCount] = useState(0);
 
   React.useEffect(() => {
     fetch('/api/terminal/sessions')
@@ -51,19 +50,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
         setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
         setActiveSession(initialSessionId.current);
       });
-  }, []);
-
-  // Poll the live tmux session count every 30 seconds independent of the tab list.
-  // This reflects background sessions that may exist even without an open UI tab.
-  useEffect(() => {
-    const poll = () =>
-      fetch('/api/terminal/sessions')
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.sessions) setTmuxSessionCount(d.sessions.length); })
-        .catch(() => {});
-    poll();
-    const id = setInterval(poll, 30_000);
-    return () => clearInterval(id);
   }, []);
 
   // Keep localStorage in sync with the current open tab IDs so TmuxManager
@@ -162,7 +148,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
     sessions,
     activeSession,
     voiceInput,
-    tmuxSessionCount,
     setActiveSession,
     handleAddSession,
     handleCloseSession,
