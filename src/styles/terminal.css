@@ -41,6 +41,16 @@
   user-select: none !important;
 }
 
+/* Override xterm.js internal helper textarea styling to prevent mobile viewport panning */
+.xterm .xterm-helper-textarea {
+  font-size: 16px !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Custom Scrollbar for xterm Viewport */
 .terminal-container .xterm-viewport {
   background-color: var(--bg-earth) !important;

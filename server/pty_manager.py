@@ -374,7 +374,13 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                     if msg_type == "resize":
                         cols = int(payload.get("cols", 80))
                         rows = int(payload.get("rows", 24))
+                        force_refresh = bool(payload.get("force_refresh", False))
                         set_pty_size(master_fd, rows, cols)
+                        if force_refresh:
+                            try:
+                                os.write(master_fd, b"\x0c")
+                            except Exception as e:
+                                print(f"Error writing PTY redraw command: {e}")
                         continue
 
                     elif msg_type == "sudo_macro":

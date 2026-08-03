@@ -198,7 +198,7 @@ export default function App() {
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, [activeMainTab]);
+  }, [activeMainTab, isKeyboardOpen]);
 
   // One-Time Welcome Screen: Load OPERATION_MANUAL.md after login
   useEffect(() => {
@@ -502,7 +502,19 @@ export default function App() {
       </header>
 
       {/* Tab 1: Multi-Tab WebGL Terminal */}
-      <div className="tab-content-panel" style={{ display: activeMainTab === 'terminal' ? 'flex' : 'none' }}>
+      <div
+        className="tab-content-panel"
+        style={{
+          position: activeMainTab === 'terminal' ? 'relative' : 'absolute',
+          left: activeMainTab === 'terminal' ? 0 : '-9999px',
+          top: activeMainTab === 'terminal' ? 0 : '-9999px',
+          visibility: activeMainTab === 'terminal' ? 'visible' : 'hidden',
+          opacity: activeMainTab === 'terminal' ? 1 : 0,
+          pointerEvents: activeMainTab === 'terminal' ? 'auto' : 'none',
+          width: '100%',
+          height: '100%'
+        }}
+      >
         {sessionToast && (
           <div className="copy-toast" style={{ top: '4rem', bottom: 'auto' }}>
             <span>{sessionToast}</span>
@@ -522,13 +534,17 @@ export default function App() {
             <div
               key={sess.id}
               style={{
-                display: activeSession === sess.id ? 'flex' : 'none',
+                position: activeSession === sess.id ? 'relative' : 'absolute',
+                left: activeSession === sess.id ? 0 : '-9999px',
+                top: activeSession === sess.id ? 0 : '-9999px',
+                visibility: activeSession === sess.id ? 'visible' : 'hidden',
+                opacity: activeSession === sess.id ? 1 : 0,
+                pointerEvents: activeSession === sess.id ? 'auto' : 'none',
                 flex: '1 1 100%',
                 alignSelf: 'stretch',
                 width: '100%',
                 height: '100%',
                 minHeight: 0,
-                position: 'relative',
                 flexDirection: 'column',
                 overflow: 'hidden'
               }}

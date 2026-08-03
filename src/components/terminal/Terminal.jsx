@@ -24,8 +24,50 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const outputStreamingRef = useRef(false);
   const streamTimeoutRef = useRef(null);
   const streamStartRef = useRef(0);
+  const lastColsRef = useRef(0);
+  const lastRowsRef = useRef(0);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+
+  // Single-Pipeline Guarded Resize Handshake
+  const sendResizeHandshake = (force = false) => {
+    const sock = socketRef.current;
+    const currentTerm = xtermInstance.current;
+    if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current && currentTerm) {
+      try {
+        if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
+        
+        fitAddonInstance.current.fit();
+        const cols = currentTerm.cols;
+        const rows = currentTerm.rows;
+        
+        if (cols && rows) {
+          if (!force && cols === lastColsRef.current && rows === lastRowsRef.current) return;
+          lastColsRef.current = cols;
+          lastRowsRef.current = rows;
+          sock.send(JSON.stringify({ type: 'resize', cols, rows, force_refresh: force }));
+        }
+      } catch (e) {}
+    }
+  };
+
+  // VisualViewport API listener — triggers fitAddon on viewport scaling
+  useEffect(() => {
+    if (!window.visualViewport) return;
+
+    const handleVisualResize = () => {
+      if (fitAddonInstance.current) {
+        try {
+          fitAddonInstance.current.fit();
+        } catch (e) {}
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleVisualResize);
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleVisualResize);
+    };
+  }, []);
 
   // Live font size updates: let fitAddon.fit() own the resize completely
   useEffect(() => {
@@ -33,13 +75,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
       if (fitAddonInstance.current && socketRef.current?.readyState === WebSocket.OPEN) {
         setTimeout(() => {
-          try {
-            fitAddonInstance.current.fit();
-            const { cols, rows } = fitAddonInstance.current;
-            if (cols && rows) {
-              socketRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
-            }
-          } catch (e) {}
+          sendResizeHandshake(true);
         }, 100);
       }
     }
@@ -57,34 +93,33 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   // display:flex hasn't reflowed yet by the first animation frame.
   useEffect(() => {
     if (isActive && fitAddonInstance.current && xtermInstance.current) {
-      const runFit = () => {
+      const runFit = (force = false) => {
         try {
           if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
+
+          if (xtermInstance.current) {
+            try {
+              xtermInstance.current.clearTextureAtlas();
+            } catch (e) {}
+          }
+
           fitAddonInstance.current.fit();
           xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
           xtermInstance.current.scrollToBottom();
           xtermInstance.current.focus();
 
-          const sock = socketRef.current;
-          if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current) {
-            const { cols, rows } = fitAddonInstance.current;
-            if (cols && rows) sock.send(JSON.stringify({ type: 'resize', cols, rows }));
-          }
+          sendResizeHandshake(force);
         } catch (e) {}
       };
 
-      runFit();
-      const t1 = setTimeout(runFit, 150);
-      const t2 = setTimeout(runFit, 350);
-      const t3 = setTimeout(runFit, 900);
+      runFit(true);
+      const timer = setTimeout(() => runFit(true), 150);
 
       return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
+        clearTimeout(timer);
       };
     }
-  }, [isActive, isKeyboardOpen]);
+  }, [isActive, session?.id, isKeyboardOpen]);
 
   useEffect(() => {
     const handleGlobalFocus = () => {
@@ -293,25 +328,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     let reconnectTimeout = null;
     let isMounted = true;
 
-    // sendResizeHandshake always reads socketRef.current so it works after reconnects
-    const sendResizeHandshake = () => {
-      const sock = socketRef.current;
-      const currentTerm = xtermInstance.current;
-      if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current && currentTerm) {
-        try {
-          if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
-          
-          fitAddonInstance.current.fit();
-          const cols = currentTerm.cols;
-          const rows = currentTerm.rows;
-          
-          if (cols && rows) {
-            sock.send(JSON.stringify({ type: 'resize', cols, rows }));
-          }
-        } catch (e) {}
-      }
-    };
-
     const connect = () => {
       if (!isMounted) return;
       const el = terminalRef.current;
@@ -339,25 +355,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             }
           } catch (e) {}
         }
-
-        if (!outputStreamingRef.current) {
-          outputStreamingRef.current = true;
-          streamStartRef.current = Date.now();
-        } else if (Date.now() - streamStartRef.current > 2000) {
-          performFit();
-          sendResizeHandshake();
-          streamStartRef.current = Date.now();
-        }
-
-        clearTimeout(streamTimeoutRef.current);
-        streamTimeoutRef.current = setTimeout(() => {
-          outputStreamingRef.current = false;
-          performFit();
-          sendResizeHandshake();
-          if (xtermInstance.current) {
-            xtermInstance.current.scrollToBottom();
-          }
-        }, 500);
 
         term.write(event.data);
       };
@@ -404,7 +401,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     // ── ResizeObserver ───────────────────────────────────────────────────────
     let resizeDebounce = null;
     const handleResize = () => {
-      if (outputStreamingRef.current) return;
       performFit();
       clearTimeout(resizeDebounce);
       resizeDebounce = setTimeout(() => {
@@ -540,7 +536,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   };
 
   return (
-    <div className="terminal-wrapper">
+    <div className="terminal-wrapper" onClick={() => xtermInstance.current?.focus()}>
       {toast && (
         <div className="copy-toast">
           <Copy size={13} />
