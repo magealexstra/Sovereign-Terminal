@@ -22,7 +22,7 @@ export const PREBUILT_CATEGORIES = {
     { label: '/teamwork', value: '/teamwork-preview ' },
     { label: '/learn',    value: '/learn ' },
     { label: '^O',        value: '\x0f' },
-    { label: 'update agy', value: 'npm update -g @google/antigravity\n' },
+    { label: 'update agy', value: 'agy update\n' },
     { label: '/clear',     value: '/clear\n' },
     { label: '^K',         value: '\x0b' }
   ]},
@@ -248,3 +248,70 @@ export const PREBUILT_CATEGORIES = {
     { label: 'dnf clean',   value: 'sudo dnf clean all\n' }
   ]}
 };
+
+export const KEY_NAV_PRESETS = [
+  { id: 'nav1', label: '▲', value: '\x1b[A', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'nav2', label: '▼', value: '\x1b[B', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'nav3', label: '◀', value: '\x1b[D', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'nav4', label: '▶', value: '\x1b[C', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'nav5', label: 'PgUp', value: '\x1b[5~' },
+  { id: 'nav6', label: 'PgDn', value: '\x1b[6~' },
+  { id: 'nav7', label: 'Home', value: '\x1b[H' },
+  { id: 'nav8', label: 'End', value: '\x1b[F' },
+  { id: 'nav9', label: 'Ctrl+Left', value: '\x1b[1;5D' },
+  { id: 'nav10', label: 'Ctrl+Right', value: '\x1b[1;5C' },
+  { id: 'nav11', label: 'Shift+Tab', value: '\x1b[Z' },
+  { id: 'nav12', label: 'Backspace', value: '\x7f' },
+  { id: 'nav13', label: 'Enter', value: '\r' },
+];
+
+export const KEY_FN_PRESETS = [
+  { id: 'fn1', label: 'F1', value: '\x1bOP' },
+  { id: 'fn2', label: 'F2', value: '\x1bOQ' },
+  { id: 'fn3', label: 'F3', value: '\x1bOR' },
+  { id: 'fn4', label: 'F4', value: '\x1bOS' },
+  { id: 'fn5', label: 'F5', value: '\x1b[15~' },
+  { id: 'fn6', label: 'F6', value: '\x1b[17~' },
+  { id: 'fn7', label: 'F7', value: '\x1b[18~' },
+  { id: 'fn8', label: 'F8', value: '\x1b[19~' },
+  { id: 'fn9', label: 'F9', value: '\x1b[20~' },
+  { id: 'fn10', label: 'F10', value: '\x1b[21~' },
+  { id: 'fn11', label: 'F11', value: '\x1b[23~' },
+  { id: 'fn12', label: 'F12', value: '\x1b[24~' },
+];
+
+export const KEY_SYM_PRESETS = [
+  { id: 'sym1', label: '|', value: '|' },
+  { id: 'sym2', label: '~', value: '~' },
+  { id: 'sym3', label: '>', value: '>' },
+  { id: 'sym4', label: '>>', value: '>>' },
+  { id: 'sym5', label: '<', value: '<' },
+  { id: 'sym6', label: '&&', value: '&& ' },
+  { id: 'sym7', label: '||', value: '|| ' },
+  { id: 'sym8', label: ';', value: '; ' },
+  { id: 'sym9', label: '`', value: '`' },
+  { id: 'sym10', label: '\\', value: '\\' },
+  { id: 'sym11', label: '/', value: '/' },
+  { id: 'sym12', label: '$', value: '$' },
+  { id: 'sym13', label: '#', value: '#' },
+];
+
+export const KEY_MODE_PRESETS = [
+  { id: 'mode1', label: 'ESC', value: '\x1b' },
+  { id: 'mode2', label: 'TAB', value: '\t' },
+  { id: 'mode3', label: 'DEL', value: '\x1b[3~' },
+  { id: 'mode4', label: '^C (cancel)', value: '\x03' },
+  { id: 'mode5', label: '^Z (suspend)', value: '\x1a' },
+  { id: 'mode6', label: '^D (exit)', value: '\x04' },
+];
+
+export const KEY_LINE_PRESETS = [
+  { id: 'line1', label: '^A (Home)', value: '\x01' },
+  { id: 'line2', label: '^E (End)', value: '\x05' },
+  { id: 'line3', label: '^K (Cut end)', value: '\x0b' },
+  { id: 'line4', label: '^U (Cut start)', value: '\x15' },
+  { id: 'line5', label: '^W (Del word)', value: '\x17' },
+  { id: 'line6', label: '^Y (Paste)', value: '\x19' },
+  { id: 'line7', label: '^R (History)', value: '\x12' },
+  { id: 'line8', label: '^L (Clear)', value: '\x0c' },
+];

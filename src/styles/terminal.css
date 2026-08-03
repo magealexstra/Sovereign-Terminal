@@ -228,8 +228,8 @@
 .sub-suite-pill {
   flex: 0 0 auto;
   padding: 0.25rem 0.6rem;
-  background: var(--bg-earth);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 12px;
   color: var(--text-muted);
   font-family: var(--font-mono);
@@ -273,7 +273,7 @@
   max-height: 42dvh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-canopy);
+  background: var(--bg-earth);
   border: 1px solid var(--border-sage);
   border-radius: 12px;
   padding: 1rem;
@@ -338,8 +338,8 @@
 
 .macro-grid-btn {
   padding: 0.65rem 0.25rem;
-  background: var(--bg-earth);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 6px;
   color: var(--text-parchment);
   font-family: var(--font-mono);
@@ -368,8 +368,8 @@
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--accent-mana);
-  background: rgba(136, 192, 208, 0.08);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 4px;
   padding: 0 0.4rem;
   height: 28px;
@@ -399,8 +399,8 @@
 .suite-tab-pill {
   flex: 0 0 auto;
   padding: 0.3rem 0.6rem;
-  background: var(--bg-earth);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 14px;
   color: var(--text-muted);
   font-family: var(--font-mono);
