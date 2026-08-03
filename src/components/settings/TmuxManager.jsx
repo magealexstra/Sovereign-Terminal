@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Terminal as TermIcon, X, Zap, Trash2 } from 'lucide-react';
+import { RefreshCw, Terminal as TermIcon, X, Zap, Trash2, Play } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function TmuxManager() {
-  const { tmuxSettings, setTmuxSettings, syncUserSettingsToServer } = useApp();
+  const { tmuxSettings, setTmuxSettings, syncUserSettingsToServer, setActiveMainTab } = useApp();
 
   const [detail, setDetail]             = useState([]);
   const [sessionCount, setSessionCount] = useState(0);
@@ -11,10 +11,21 @@ export default function TmuxManager() {
   const [serverOnline, setServerOnline] = useState(false);
   const [killConfirm, setKillConfirm]   = useState(false);
   const [actionMsg, setActionMsg]       = useState('');
+  const [selectedSession, setSelectedSession] = useState(null);
 
   const flash = (msg) => {
     setActionMsg(msg);
     setTimeout(() => setActionMsg(''), 3500);
+  };
+
+  const handleAttach = () => {
+    if (!selectedSession) return;
+    window.dispatchEvent(new CustomEvent('sovereign_attach_session', {
+      detail: { sessionName: selectedSession }
+    }));
+    if (setActiveMainTab) {
+      setActiveMainTab('terminal');
+    }
   };
 
   const fetchSessions = useCallback(async () => {
@@ -42,6 +53,7 @@ export default function TmuxManager() {
     try {
       const res = await fetch(`/api/terminal/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (res.ok) {
+        if (selectedSession === id) setSelectedSession(null);
         flash(`Session "${id}" killed`);
         fetchSessions();
       }
@@ -57,6 +69,7 @@ export default function TmuxManager() {
     setKillConfirm(false);
     try {
       await fetch('/api/terminal/sessions', { method: 'DELETE' });
+      setSelectedSession(null);
       flash('All sessions killed — server rewarmed');
       fetchSessions();
     } catch {}
@@ -135,6 +148,15 @@ export default function TmuxManager() {
         <div className="tmux-section-header">
           <span className="tmux-section-label">SESSIONS</span>
           <div className="tmux-bulk-actions">
+            <button
+              className={`tmux-attach-btn${selectedSession ? ' active' : ''}`}
+              onClick={handleAttach}
+              disabled={!selectedSession}
+              title={selectedSession ? `Attach session "${selectedSession}" as terminal tab` : 'Select a session row below to attach'}
+            >
+              <Play size={11} />
+              Attach
+            </button>
             <button className="tmux-sweep-btn" onClick={sweepZombies} title="Kill sessions not open as tabs">
               <Zap size={11} />
               Sweep Zombies
@@ -156,8 +178,12 @@ export default function TmuxManager() {
             <div className="tmux-empty-state">No active tmux sessions</div>
           )}
           {!loading && detail.map((sess) => (
-            <div key={sess.name} className="tmux-session-row">
-              <TermIcon size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <div
+              key={sess.name}
+              className={`tmux-session-row${selectedSession === sess.name ? ' selected' : ''}`}
+              onClick={() => setSelectedSession(selectedSession === sess.name ? null : sess.name)}
+            >
+              <TermIcon size={12} style={{ color: selectedSession === sess.name ? 'var(--accent-mana)' : 'var(--text-muted)', flexShrink: 0 }} />
               <span className="tmux-sess-name">{sess.name}</span>
               <span className={`tmux-badge${sess.attached ? ' attached' : ' detached'}`}>
                 {sess.attached ? 'attached' : 'detached'}
@@ -165,7 +191,14 @@ export default function TmuxManager() {
               <span className="tmux-sess-windows">
                 {sess.windows} {sess.windows === 1 ? 'win' : 'wins'}
               </span>
-              <button className="tmux-kill-btn" onClick={() => killSession(sess.name)} title={`Kill ${sess.name}`}>
+              <button
+                className="tmux-kill-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  killSession(sess.name);
+                }}
+                title={`Kill ${sess.name}`}
+              >
                 <X size={10} />
               </button>
             </div>

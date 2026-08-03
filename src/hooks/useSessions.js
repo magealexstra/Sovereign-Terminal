@@ -74,6 +74,34 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
     } catch {}
   }, [sessions]);
 
+  // Listen for 'sovereign_attach_session' events dispatched from TmuxManager
+  useEffect(() => {
+    const handleAttachEvent = (e) => {
+      const targetSession = e.detail?.sessionName;
+      if (!targetSession) return;
+
+      setSessions((prev) => {
+        const existing = prev.find((s) => s.id === targetSession || s.name === targetSession);
+        if (existing) {
+          setActiveSession(existing.id);
+          return prev;
+        }
+
+        if (prev.length >= 5) {
+          if (showToast) showToast('Max 5 sessions — close a tab to attach another.');
+          return prev;
+        }
+
+        const newSessionObj = { id: targetSession, name: targetSession, initialCwd: rootDir };
+        setActiveSession(targetSession);
+        return [...prev, newSessionObj];
+      });
+    };
+
+    window.addEventListener('sovereign_attach_session', handleAttachEvent);
+    return () => window.removeEventListener('sovereign_attach_session', handleAttachEvent);
+  }, [rootDir, showToast]);
+
   const handleAddSession = async (inheritCwd = false) => {
     if (sessions.length >= 5) {
       // Use toast instead of browser alert() for non-blocking UX
