@@ -10,6 +10,22 @@ import { writeToClipboard } from './terminal/writeToClipboard';
 import CopyCard from './CopyCard';
 import '@xterm/xterm/css/xterm.css';
 
+// Helper: extracts buffer lines and intelligently joins soft-wrapped lines
+const extractBufferRange = (buffer, startLine, endLine) => {
+  let result = '';
+  for (let i = startLine; i < endLine; i++) {
+    const line = buffer.getLine(i);
+    if (!line) continue;
+    const str = line.translateToString(true);
+    if (line.isWrapped && result.length > 0) {
+      result += str;
+    } else {
+      result += (result.length > 0 ? '\n' : '') + str;
+    }
+  }
+  return result.trim();
+};
+
 export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText, rootDir }) {
   const { theme, fontSizeTerminal, tmuxSettings } = useApp();
   const { toast, showToast } = useToast();
@@ -20,6 +36,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const selectionTimer = useRef(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const voiceInputRef = useRef(voiceInput);
+  voiceInputRef.current = voiceInput;
   const tmuxSettingsRef = useRef(tmuxSettings);
   tmuxSettingsRef.current = tmuxSettings;
   const lastSubagentSyncRef = useRef(0);
@@ -31,7 +49,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   // Single-Pipeline Guarded Resize Handshake
   const sendResizeHandshake = (force = false) => {
-    if (!isActive) return;
+    if (!isActiveRef.current) return;
     const sock = socketRef.current;
     const currentTerm = xtermInstance.current;
     if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current && currentTerm) {
@@ -132,22 +150,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     window.addEventListener('terminal-focus', handleGlobalFocus);
     return () => window.removeEventListener('terminal-focus', handleGlobalFocus);
   }, [isActive]);
-
-  // Helper: extracts buffer lines and intelligently joins soft-wrapped lines
-  const extractBufferRange = (buffer, startLine, endLine) => {
-    let result = '';
-    for (let i = startLine; i < endLine; i++) {
-      const line = buffer.getLine(i);
-      if (!line) continue;
-      const str = line.translateToString(true);
-      if (line.isWrapped && result.length > 0) {
-        result += str;
-      } else {
-        result += (result.length > 0 ? '\n' : '') + str;
-      }
-    }
-    return result.trim();
-  };
 
   // Main terminal lifecycle — runs once per mounted instance.
   // App.jsx uses key={sess.id} so each session gets its own component instance.
@@ -498,10 +500,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
 
   useEffect(() => {
-    if (!isActive) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
-    if (voiceInput) {
-      if (typeof voiceInput === 'object') {
-        const { text, executeImmediately } = voiceInput;
+    if (!isActiveRef.current) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
+    const input = voiceInputRef.current;
+    if (input) {
+      if (typeof input === 'object') {
+        const { text, executeImmediately } = input;
         injectingRef.current = true;
         try {
           if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -522,11 +525,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         }
       } else {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          socketRef.current.send(voiceInput);
+          socketRef.current.send(input);
         }
       }
     }
-  }, [voiceInput, isActive]);
+  }, [voiceInput]);
 
 
   // Buffer extraction handlers for CopyCard

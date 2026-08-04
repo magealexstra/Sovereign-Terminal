@@ -16,6 +16,10 @@ export const writeToClipboard = (text) => {
     ta.select();
     const ok = document.execCommand('copy');
     document.body.removeChild(ta);
-    ok ? resolve() : reject(new Error('execCommand copy failed'));
+    if (ok) {
+      resolve();
+    } else {
+      reject(new Error('execCommand copy failed'));
+    }
   });
 };

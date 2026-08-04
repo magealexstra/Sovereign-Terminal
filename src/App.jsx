@@ -9,9 +9,9 @@ import SessionTabs from './components/terminal/SessionTabs';
 import TouchBar from './components/terminal/TouchBar';
 
 import FileExplorer from './components/explorer/FileExplorer';
-import CodeEditor from './components/explorer/CodeEditor';
+const CodeEditor = React.lazy(() => import('./components/explorer/CodeEditor'));
 
-import SettingsManager from './components/settings/SettingsManager';
+const SettingsManager = React.lazy(() => import('./components/settings/SettingsManager'));
 import LoginModal from './components/auth/LoginModal';
 
 export default function App() {
@@ -599,26 +599,30 @@ export default function App() {
           </button>
         </div>
 
-        {explorerSubTab === 'tree' ? (
-          <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
-        ) : (
-          <CodeEditor
-            openDocuments={openDocuments}
-            activeFilePath={activeFilePath}
-            onSelectTab={setActiveFilePath}
-            onCloseTab={handleCloseTab}
-            onContentChange={handleContentChange}
-            onSaveFile={handleSaveFile}
-            onGitCommit={handleGitCommit}
-            onSaveAs={handleSaveAs}
-            suggestedSaveDir={suggestedSaveDir}
-          />
-        )}
+        <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading tab...</div>}>
+          {explorerSubTab === 'tree' ? (
+            <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
+          ) : (
+            <CodeEditor
+              openDocuments={openDocuments}
+              activeFilePath={activeFilePath}
+              onSelectTab={setActiveFilePath}
+              onCloseTab={handleCloseTab}
+              onContentChange={handleContentChange}
+              onSaveFile={handleSaveFile}
+              onGitCommit={handleGitCommit}
+              onSaveAs={handleSaveAs}
+              suggestedSaveDir={suggestedSaveDir}
+            />
+          )}
+        </React.Suspense>
       </div>
 
       {/* Tab 3: Settings, Themes & Button Studio */}
       <div className="tab-content-panel" style={{ display: activeMainTab === 'settings' ? 'flex' : 'none' }}>
-        <SettingsManager />
+        <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading tab...</div>}>
+          <SettingsManager />
+        </React.Suspense>
       </div>
     </div>
   );

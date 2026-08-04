@@ -27,5 +27,30 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      target: 'es2022',
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@xterm')) {
+                return 'vendor-xterm';
+              }
+              if (id.includes('@codemirror') || id.includes('@lezer')) {
+                return 'vendor-codemirror';
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-icons';
+              }
+              return 'vendor-utils';
+            }
+          },
+        },
+      },
+    },
   };
 });
