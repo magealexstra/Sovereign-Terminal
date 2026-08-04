@@ -1,5 +1,6 @@
 import os
 import uvicorn
+import asyncio
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -29,16 +30,18 @@ app = FastAPI(
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     log_dir = Path.home() / ".local" / "share" / "sovereign-terminal" / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
     
-    log_file = log_dir / "server_error.log"
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    try:
+    def sync_log_write():
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "server_error.log"
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         with open(log_file, "a") as f:
             f.write(f"[{timestamp}] Unhandled Exception on {request.method} {request.url}\n")
             traceback.print_exc(file=f)
             f.write("-" * 80 + "\n")
+
+    try:
+        await asyncio.to_thread(sync_log_write)
     except Exception:
         # Fallback to standard stdout if we can't write to the log file (e.g. permissions)
         traceback.print_exc()
@@ -49,9 +52,16 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 # CORS Middleware Configuration
+raw_allowed_origins = os.getenv("ALLOWED_ORIGINS")
+if raw_allowed_origins:
+    allowed_origins = [origin.strip() for origin in raw_allowed_origins.split(",") if origin.strip()]
+else:
+    allowed_origins = ["http://localhost:2065", "http://127.0.0.1:2065", "http://localhost:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https?://.*" if not raw_allowed_origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

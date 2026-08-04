@@ -9,9 +9,21 @@ import termios
 import asyncio
 import subprocess
 import json
+import re
+import signal
+import logging
 from pathlib import Path
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request
 from auth import AUTH_MODE, ENABLE_AUTH, SESSION_COOKIE_NAME, active_sessions, require_auth
+
+logger = logging.getLogger("pty_manager")
+
+SESSION_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+def validate_session_id(session_id: str) -> str:
+    if not session_id or not SESSION_REGEX.match(session_id):
+        raise HTTPException(status_code=400, detail="Invalid session identifier")
+    return session_id
 
 router = APIRouter(tags=["terminal"])
 
@@ -44,8 +56,8 @@ def list_sessions(user: dict = Depends(require_auth)):
                     sessions.append(name)
                     detail.append({"name": name, "attached": attached, "windows": windows})
                 return {"sessions": sessions, "detail": detail}
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to list tmux sessions: {e}")
 
     return {"sessions": [], "detail": []}
 
@@ -53,6 +65,7 @@ def list_sessions(user: dict = Depends(require_auth)):
 @router.get("/api/terminal/cwd")
 def get_session_cwd(session: str = "main", user: dict = Depends(require_auth)):
     """Get real-time working directory of an active tmux session."""
+    validate_session_id(session)
     target_user = user.get("username") if (AUTH_MODE == "pam" and ENABLE_AUTH and user) else None
     if _tmux_bin:
         try:
@@ -66,8 +79,8 @@ def get_session_cwd(session: str = "main", user: dict = Depends(require_auth)):
                 cwd = res.stdout.strip()
                 if os.path.isdir(cwd):
                     return {"status": "ok", "cwd": cwd}
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to get tmux session cwd for '{session}': {e}")
 
     default_cwd = os.getenv("SOVEREIGN_ROOT", str(Path.home()))
     return {"status": "ok", "cwd": default_cwd}
@@ -97,6 +110,7 @@ def kill_all_sessions(user: dict = Depends(require_auth)):
 @router.delete("/api/terminal/sessions/{session_id}")
 def kill_session(session_id: str, user: dict = Depends(require_auth)):
     """Kill a specific tmux session by name."""
+    validate_session_id(session_id)
     if not _tmux_bin:
         raise HTTPException(status_code=503, detail="tmux not available")
     use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
@@ -131,7 +145,7 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
             cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '#S'"]
         else:
             cmd = _get_tmux_base() + ["list-sessions", "-F", "#S"]
-        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        res = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, check=False)
         if res.returncode != 0 or not res.stdout:
             return {"status": "ok", "swept": []}
         live_sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
@@ -140,16 +154,19 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
 
     swept = []
     for sess in live_sessions:
+        if not SESSION_REGEX.match(sess):
+            logger.warning(f"Skipping invalid session name during sweep: {sess}")
+            continue
         if sess not in active_ids:
             try:
                 if use_pam and target_user:
                     kill_cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} kill-session -t '{sess}'"]
                 else:
                     kill_cmd = _get_tmux_base() + ["kill-session", "-t", sess]
-                subprocess.run(kill_cmd, capture_output=True, text=True, check=False)
+                await asyncio.to_thread(subprocess.run, kill_cmd, capture_output=True, text=True, check=False)
                 swept.append(sess)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to kill swept session '{sess}': {e}")
     return {"status": "ok", "swept": swept}
 
 
@@ -174,7 +191,7 @@ async def sync_subagent_sessions(request: Request, user: dict = Depends(require_
             cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '#S'"]
         else:
             cmd = _get_tmux_base() + ["list-sessions", "-F", "#S"]
-        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        res = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, check=False)
         if res.returncode != 0 or not res.stdout:
             return {"status": "ok", "new_sessions": []}
         live_sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
@@ -207,11 +224,11 @@ async def apply_tmux_config(request: Request, user: dict = Depends(require_auth)
                 cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} set-option -g {opt} {val}"]
             else:
                 cmd = _get_tmux_base() + ["set-option", "-g", opt, val]
-            res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            res = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0:
                 applied.append(f"{opt}={val}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to set tmux option '{opt}={val}': {e}")
 
     return {"status": "ok", "applied": applied}
 
@@ -245,11 +262,15 @@ def set_pty_size(fd, rows, cols):
         size = struct.pack("HHHH", rows, cols, 0, 0)
         fcntl.ioctl(fd, termios.TIOCSWINSZ, size)
     except Exception as e:
-        print(f"Error setting PTY size: {e}")
+        logger.warning(f"Error setting PTY size: {e}")
 
 
 @router.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = ""):
+    if not SESSION_REGEX.match(session):
+        await websocket.close(code=1008, reason="Invalid session name")
+        return
+
     use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
     target_user = None
 
@@ -275,7 +296,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                 os.chown(tmux_dir, uinfo.pw_uid, uinfo.pw_gid)
                 os.chmod(tmux_dir, 0o700)
         except Exception as e:
-            print(f"Warning: Failed to setup user context for {target_user}: {e}", flush=True)
+            logger.warning(f"Failed to setup user context for {target_user}: {e}")
 
     if tmux_bin:
         # THE GATEKEEPER: Prevent the Trapped Server Race Condition
@@ -312,8 +333,8 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
         os.setsid()
         try:
             fcntl.ioctl(slave_fd, termios.TIOCSCTTY, 0)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"TIOCSCTTY ioctl failed in preexec: {e}")
             
         if use_pam and target_user and uinfo:
             import sys
@@ -322,11 +343,11 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                 os.setgid(uinfo.pw_gid)
                 os.setuid(uinfo.pw_uid)
             except Exception as e:
-                print(f"FATAL: Could not drop privileges to {target_user}: {e}", file=sys.stderr)
+                sys.stderr.write(f"FATAL: Could not drop privileges to {target_user}: {e}\n")
                 os._exit(1)
 
     try:
-        print(f"Executing: {cmd}", flush=True)
+        logger.info(f"Executing PTY command: {cmd}")
         proc = subprocess.Popen(
             cmd,
             preexec_fn=preexec,
@@ -360,33 +381,33 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
             else:
                 check_cmd = _get_tmux_base() + ["has-session", "-t", session]
             
-            res = subprocess.run(check_cmd, capture_output=True, text=True, check=False)
+            res = await asyncio.to_thread(subprocess.run, check_cmd, capture_output=True, text=True, check=False)
             if res.returncode == 0:
                 break
             await asyncio.sleep(0.05)
 
     await websocket.send_text(json.dumps({"type": "ready"}))
 
-    loop = asyncio.get_event_loop()
-
     async def pty_read_loop():
         try:
             while True:
                 try:
-                    data = await loop.run_in_executor(
-                        None,
-                        lambda: os.read(master_fd, 1024) if select.select([master_fd], [], [], 0.1)[0] else None
-                    )
-                except OSError:
+                    if select.select([master_fd], [], [], 0)[0]:
+                        data = os.read(master_fd, 4096)
+                    else:
+                        data = None
+                except OSError as e:
+                    logger.debug(f"PTY master_fd read exception: {e}")
                     break
                     
                 if data:
                     await websocket.send_text(data.decode("utf-8", errors="replace"))
-                elif proc.poll() is not None:
-                    break
-                await asyncio.sleep(0.01)
+                else:
+                    if proc.poll() is not None:
+                        break
+                    await asyncio.sleep(0.01)
         except Exception as e:
-            print(f"PTY read loop ended: {e}")
+            logger.warning(f"PTY read loop ended with error: {e}")
 
     read_task = asyncio.create_task(pty_read_loop())
 
@@ -400,7 +421,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                     msg_type = payload.get("type")
 
                     if msg_type == "debug":
-                        print(f"DEBUG FROM FRONTEND: {payload.get('msg')}", flush=True)
+                        logger.debug(f"DEBUG FROM FRONTEND: {payload.get('msg')}")
                         continue
 
                     if msg_type == "resize":
@@ -412,7 +433,7 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                             try:
                                 os.write(master_fd, b"\x0c")
                             except Exception as e:
-                                print(f"Error writing PTY redraw command: {e}")
+                                logger.warning(f"Error writing PTY redraw command: {e}")
                         continue
 
                     elif msg_type == "sudo_macro":
@@ -421,15 +442,15 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                         continue
 
                 except Exception as e:
-                    print(f"ERROR in websocket JSON processing: {e}", flush=True)
-                    pass
+                    logger.warning(f"Error processing websocket JSON message: {e}")
+                    continue
 
             os.write(master_fd, msg.encode("utf-8"))
 
     except WebSocketDisconnect:
-        print("WebSocket client disconnected")
+        logger.info("WebSocket client disconnected")
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.warning(f"WebSocket error: {e}")
     finally:
         read_task.cancel()
         try:
@@ -438,9 +459,12 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
             pass
             
         try:
-            proc.terminate()
-            proc.wait(timeout=1.0)
+            pgid = os.getpgid(proc.pid)
+            os.killpg(pgid, signal.SIGKILL)
         except (ProcessLookupError, OSError):
             pass
-        except subprocess.TimeoutExpired:
-            proc.kill()
+
+        try:
+            proc.wait(timeout=1.0)
+        except (ProcessLookupError, OSError, subprocess.TimeoutExpired):
+            pass
