@@ -330,8 +330,10 @@
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
-  height: 100vh;
+  height: var(--visual-viewport-height, 100dvh);
   background: rgba(10, 17, 24, 0.82);
   backdrop-filter: blur(8px);
   display: flex;
@@ -344,10 +346,19 @@
 .explorer-modal-card {
   width: 100%;
   max-width: 420px;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
+  overflow-y: auto;
   background: var(--bg-canopy);
   border: 1px solid var(--border-sage);
   border-radius: 8px;
   padding: 1.25rem;
+}
+
+@media (max-height: 600px) {
+  .explorer-modal-overlay {
+    align-items: flex-start;
+    padding-top: clamp(0.75rem, 3vh, 2rem);
+  }
 }
 
 .modal-input {

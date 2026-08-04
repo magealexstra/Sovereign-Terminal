@@ -5,9 +5,13 @@ import zipfile
 import subprocess
 from io import BytesIO
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Depends
-from fastapi.responses import StreamingResponse
-from auth import require_auth
+from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Depends, Request
+from auth import require_auth, AUTH_MODE, is_user_sudoer, active_sessions, SESSION_COOKIE_NAME
+
+try:
+    import pwd
+except ImportError:
+    pwd = None
 
 router = APIRouter(prefix="/api/fs", tags=["filesystem"], dependencies=[Depends(require_auth)])
 
@@ -23,6 +27,50 @@ ENABLE_PERMANENT_DELETE = os.getenv("ENABLE_PERMANENT_DELETE", "false").lower() 
 def get_safe_path(target_path: str) -> Path:
     """Ensure path is absolute and normalized, expanding ~ to the server user's home directory."""
     return Path(target_path).expanduser().resolve()
+
+
+def get_local_trash_dir(target_path: Path) -> Path:
+    """Traverse parent directories to find workspace root or filesystem mount point."""
+    curr = target_path.resolve()
+    while curr != curr.parent:
+        if os.path.ismount(curr) or str(curr) == str(Path(SOVEREIGN_ROOT).resolve()):
+            trash_dir = curr / "_temp_trash"
+            trash_dir.mkdir(parents=True, exist_ok=True)
+            return trash_dir
+        curr = curr.parent
+    fallback = Path(SOVEREIGN_ROOT) / "_temp_trash"
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+def run_with_user_privileges(request: Request, func, *args, **kwargs):
+    """Run function with effective UID/GID dropped to active PAM user (if AUTH_MODE == 'pam')."""
+    if AUTH_MODE != "pam" or not pwd:
+        return func(*args, **kwargs)
+
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    session_info = active_sessions.get(cookie_token, {})
+    username = session_info.get("username")
+
+    if not username or username in ("root", "admin"):
+        return func(*args, **kwargs)
+
+    try:
+        pw_info = pwd.getpwnam(username)
+        target_uid = pw_info.pw_uid
+        target_gid = pw_info.pw_gid
+    except KeyError:
+        return func(*args, **kwargs)
+
+    orig_egid = os.getegid()
+    orig_euid = os.geteuid()
+    try:
+        os.setegid(target_gid)
+        os.seteuid(target_uid)
+        return func(*args, **kwargs)
+    finally:
+        os.seteuid(orig_euid)
+        os.setegid(orig_egid)
 
 
 @router.get("/tree")
@@ -123,14 +171,14 @@ def create_item(payload: dict):
         raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
 
 @router.post("/delete")
-def delete_item(payload: dict):
+def delete_item_permanently(payload: dict, request: Request):
     """
-    File Deletion Handler with Configurable Safety Mode.
-    
-    • Default (SAFE_TRASH_MODE=true): Moves deleted target to ./_temp_trash/
-    • Permanent Mode (ENABLE_PERMANENT_DELETE=true): Permanently removes target.
+    Explicit Permanent Deletion Endpoint.
+    Permanently removes target files (os.remove) or directories (shutil.rmtree).
+    Supports optional use_sudo: true for authenticated sudoers.
     """
     target_path = payload.get("path")
+    use_sudo = payload.get("use_sudo", False)
     if not target_path:
         raise HTTPException(status_code=400, detail="Missing path")
 
@@ -138,33 +186,70 @@ def delete_item(payload: dict):
     if not p.exists():
         raise HTTPException(status_code=404, detail="Item not found")
 
-    # If permanent deletion is explicitly enabled by administrator
-    if ENABLE_PERMANENT_DELETE or not SAFE_TRASH_MODE:
-        try:
-            if p.is_dir():
-                shutil.rmtree(p)
-            else:
-                os.remove(p)
-            return {"status": "deleted_permanently", "path": str(p)}
-        except PermissionError:
-            raise HTTPException(status_code=403, detail="Permission denied to delete item")
-        except OSError as e:
-            raise HTTPException(status_code=500, detail=f"Permanent deletion failed: {e}")
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    session_info = active_sessions.get(cookie_token, {})
+    username = session_info.get("username", "admin")
 
-    # Default Safe Mode: Move to _temp_trash
-    os.makedirs(TRASH_DIR, exist_ok=True)
-    dest_path = Path(TRASH_DIR) / p.name
-
-    if dest_path.exists():
-        dest_path = Path(TRASH_DIR) / f"{p.stem}_{int(time.time())}{p.suffix}"
+    def _do_delete():
+        if p.is_dir():
+            shutil.rmtree(p)
+        else:
+            os.remove(p)
 
     try:
+        if use_sudo:
+            if not is_user_sudoer(username):
+                raise HTTPException(status_code=403, detail="User is not authorized for sudo elevation")
+            _do_delete()
+        else:
+            run_with_user_privileges(request, _do_delete)
+        return {"status": "deleted_permanently", "path": str(p)}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to delete item")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Permanent deletion failed: {str(e)}")
+
+
+@router.post("/trash")
+def archive_to_local_trash(payload: dict, request: Request):
+    """
+    Archive to Dynamic Local Trash Endpoint.
+    Moves target item into the local _temp_trash directory on its active storage mount point.
+    Supports optional use_sudo: true for authenticated sudoers.
+    """
+    target_path = payload.get("path")
+    use_sudo = payload.get("use_sudo", False)
+    if not target_path:
+        raise HTTPException(status_code=400, detail="Missing path")
+
+    p = get_safe_path(target_path)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    session_info = active_sessions.get(cookie_token, {})
+    username = session_info.get("username", "admin")
+
+    trash_dir = get_local_trash_dir(p)
+    dest_path = trash_dir / p.name
+    if dest_path.exists():
+        dest_path = trash_dir / f"{p.stem}_{int(time.time())}{p.suffix}"
+
+    def _do_trash():
         shutil.move(str(p), str(dest_path))
-        return {"status": "trashed", "destination": str(dest_path), "mode": "safe_trash"}
+
+    try:
+        if use_sudo:
+            if not is_user_sudoer(username):
+                raise HTTPException(status_code=403, detail="User is not authorized for sudo elevation")
+            _do_trash()
+        else:
+            run_with_user_privileges(request, _do_trash)
+        return {"status": "trashed", "destination": str(dest_path), "mode": "local_trash"}
     except PermissionError:
         raise HTTPException(status_code=403, detail="Permission denied to move item to trash")
     except OSError as e:
-        raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Archive to trash failed: {str(e)}")
 
 @router.post("/git-commit")
 def git_commit_file(payload: dict):

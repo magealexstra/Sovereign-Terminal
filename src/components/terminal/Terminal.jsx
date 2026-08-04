@@ -31,6 +31,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
   // Single-Pipeline Guarded Resize Handshake
   const sendResizeHandshake = (force = false) => {
+    if (!isActive) return;
     const sock = socketRef.current;
     const currentTerm = xtermInstance.current;
     if (sock && sock.readyState === WebSocket.OPEN && fitAddonInstance.current && currentTerm) {
@@ -192,14 +193,17 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
       term.textarea.addEventListener('blur', (e) => {
         if (injectingRef.current) return;
+        // Do NOT reclaim focus if Master Macro Modal is active in DOM
+        if (document.body.querySelector('.macro-modal-overlay')) return;
         const target = e.relatedTarget;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-          return; // Let the other input take focus
+          return; // Let the Stager or other input take focus
         }
         if (isActiveRef.current) {
-          // Reclaim focus aggressively to prevent keyboard dismissal
+          // Reclaim focus aggressively to prevent keyboard dismissal ONLY while terminal tab is active and no macro modal is open
           setTimeout(() => {
-            if (injectingRef.current) return;
+            if (injectingRef.current || !isActiveRef.current) return;
+            if (document.body.querySelector('.macro-modal-overlay')) return;
             if (term.textarea) term.focus();
           }, 10);
         }

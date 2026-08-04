@@ -197,8 +197,13 @@ export default function App() {
         window.dispatchEvent(new Event('resize'));
       }, 50);
       return () => clearTimeout(timer);
+    } else {
+      // Dismiss soft keyboard when navigating away from Terminal tab to Files or Settings
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
     }
-  }, [activeMainTab, isKeyboardOpen]);
+  }, [activeMainTab]);
 
   // One-Time Welcome Screen: Load OPERATION_MANUAL.md after login
   useEffect(() => {

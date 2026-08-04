@@ -264,23 +264,27 @@
 
 /* 12-Macro Popup Grid Modal Layout */
 .macro-modal-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: var(--visual-viewport-height, 100dvh);
   background: rgba(10, 17, 24, 0.82);
   backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 100;
+  padding: 1rem;
 }
 
 .macro-modal-content {
-  position: absolute;
-  bottom: 3.5rem;
-  right: 0.5rem;
+  position: relative;
   width: 90vw;
-  max-width: 360px;
-  max-height: 42dvh;
+  max-width: 380px;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
   display: flex;
   flex-direction: column;
   background: var(--bg-earth);
@@ -288,7 +292,7 @@
   border-radius: 12px;
   padding: 1rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .macro-modal-header {

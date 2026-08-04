@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, Clipboard, FileCode, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, Clipboard, FileCode, Check, CheckSquare, Square, FolderMinus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 
@@ -14,6 +14,33 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
   const [newItemType, setNewItemType] = useState('file');
   const [destinationMode, setDestinationMode] = useState('clip');
   const [copied, setCopied] = useState(false);
+  const [permanentDeleteModal, setPermanentDeleteModal] = useState(false);
+  const [isSudoer, setIsSudoer] = useState(false);
+  const [sudoElevationModal, setSudoElevationModal] = useState(null);
+  const [accessDeniedModal, setAccessDeniedModal] = useState(null);
+  const newFileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/api/auth/verify')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.is_sudoer !== undefined) {
+          setIsSudoer(!!data.is_sudoer);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (newFileModal) {
+      const timer = setTimeout(() => {
+        if (newFileInputRef.current) {
+          newFileInputRef.current.focus();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [newFileModal]);
 
   useEffect(() => {
     const loadDest = () => {
@@ -76,21 +103,83 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
     );
   };
 
-  // Golden Rule of Deletion: Move to ./_temp_trash/
-  const handleDeleteSelected = async () => {
+  // Archive to Dynamic Local Trash
+  const handleArchiveSelected = async () => {
     if (selectedItems.length === 0) return;
-    if (!confirm(`Move ${selectedItems.length} item(s) to _temp_trash?`)) return;
 
     for (const itemPath of selectedItems) {
       try {
-        await fetch(`/api/fs/delete`, {
+        const res = await fetch(`/api/fs/trash`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: itemPath }),
         });
+        if (res.status === 403) {
+          if (isSudoer) {
+            setSudoElevationModal({ itemPath, action: 'trash' });
+            return;
+          } else {
+            setAccessDeniedModal({ itemPath });
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Archive error:', e);
+      }
+    }
+    setSelectedItems([]);
+    fetchDirectory(currentPath);
+  };
+
+  // Permanent Delete Trigger & Execution Handlers
+  const handleDeleteSelected = () => {
+    if (selectedItems.length === 0) return;
+    setPermanentDeleteModal(true);
+  };
+
+  const executePermanentDelete = async () => {
+    setPermanentDeleteModal(false);
+    if (selectedItems.length === 0) return;
+
+    for (const itemPath of selectedItems) {
+      try {
+        const res = await fetch(`/api/fs/delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: itemPath }),
+        });
+        if (res.status === 403) {
+          if (isSudoer) {
+            setSudoElevationModal({ itemPath, action: 'delete' });
+            return;
+          } else {
+            setAccessDeniedModal({ itemPath });
+            return;
+          }
+        }
       } catch (e) {
         console.error('Delete error:', e);
       }
+    }
+    setSelectedItems([]);
+    fetchDirectory(currentPath);
+  };
+
+  // Sudo Elevation Retry Handler
+  const handleSudoElevatedAction = async () => {
+    if (!sudoElevationModal) return;
+    const { itemPath, action } = sudoElevationModal;
+    setSudoElevationModal(null);
+
+    const endpoint = action === 'delete' ? '/api/fs/delete' : '/api/fs/trash';
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: itemPath, use_sudo: true }),
+      });
+    } catch (e) {
+      console.error('Sudo elevation error:', e);
     }
     setSelectedItems([]);
     fetchDirectory(currentPath);
@@ -150,6 +239,20 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const allVisibleSelected =
+    filteredItems.length > 0 &&
+    filteredItems.every((item) => selectedItems.includes(item.path));
+
+  const handleToggleSelectAll = () => {
+    if (allVisibleSelected) {
+      const visiblePathSet = new Set(filteredItems.map((i) => i.path));
+      setSelectedItems((prev) => prev.filter((path) => !visiblePathSet.has(path)));
+    } else {
+      const visiblePaths = filteredItems.map((i) => i.path);
+      setSelectedItems((prev) => Array.from(new Set([...prev, ...visiblePaths])));
+    }
+  };
+
   return (
     <div className="file-explorer-container">
       {/* Explorer Action Header */}
@@ -202,13 +305,29 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
           <button className="tb-btn" onClick={() => fetchDirectory(currentPath)} title="Refresh Directory">
             <RefreshCw size={14} className={loading ? 'spin' : ''} />
           </button>
+          <button
+            className={`tb-btn ${allVisibleSelected ? 'active' : ''}`}
+            onClick={handleToggleSelectAll}
+            title={allVisibleSelected ? 'Deselect All Visible Items' : 'Select All Visible Items'}
+          >
+            {allVisibleSelected ? (
+              <CheckSquare size={14} color="var(--status-active)" />
+            ) : (
+              <Square size={14} />
+            )}
+          </button>
           <button className="tb-btn" onClick={() => setNewFileModal(true)} title="New File/Folder">
             <Plus size={14} color="var(--status-active)" />
           </button>
           {selectedItems.length > 0 && (
-            <button className="tb-btn delete" onClick={handleDeleteSelected} title="Move to Trash">
-              <Trash2 size={14} color="var(--status-danger)" />
-            </button>
+            <>
+              <button className="tb-btn" onClick={handleArchiveSelected} title="Archive to Local _temp_trash">
+                <FolderMinus size={14} color="var(--accent-mana)" />
+              </button>
+              <button className="tb-btn delete" onClick={handleDeleteSelected} title="Delete Permanently">
+                <Trash2 size={14} color="var(--status-danger)" />
+              </button>
+            </>
           )}
           <button className="tb-btn" onClick={handleDownload} title="Download to Phone">
             <Download size={14} />
@@ -296,11 +415,13 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
               </label>
             </div>
             <input
+              ref={newFileInputRef}
               type="text"
               className="modal-input"
               placeholder="Filename (e.g. notes.md)"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
+              autoFocus
               required
             />
             <div className="modal-btn-row">
@@ -308,6 +429,59 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
               <button type="submit" className="submit">Create</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Permanent Delete Warning Modal */}
+      {permanentDeleteModal && (
+        <div className="explorer-modal-overlay" onClick={() => setPermanentDeleteModal(false)}>
+          <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--status-danger)', borderBottom: '1px solid var(--border-forest)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+              WARNING: Permanent Deletion
+            </h3>
+            <p style={{ color: 'var(--text-parchment)', fontSize: '0.88rem', lineHeight: '1.4', margin: '0.85rem 0' }}>
+              Are you sure you want to permanently delete <strong>{selectedItems.length} item(s)</strong>? This action CANNOT be undone.
+            </p>
+            <div className="modal-btn-row">
+              <button type="button" onClick={() => setPermanentDeleteModal(false)}>Cancel</button>
+              <button type="button" className="delete" onClick={executePermanentDelete}>Delete Permanently</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sudo Elevation Modal */}
+      {sudoElevationModal && (
+        <div className="explorer-modal-overlay" onClick={() => setSudoElevationModal(null)}>
+          <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--accent-mana)', borderBottom: '1px solid var(--border-forest)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+              Permission Denied: Administrator Required
+            </h3>
+            <p style={{ color: 'var(--text-parchment)', fontSize: '0.88rem', lineHeight: '1.4', margin: '0.85rem 0' }}>
+              System write permission was denied for <strong>{sudoElevationModal.itemPath.split('/').pop()}</strong>. Would you like to proceed as Administrator (sudo)?
+            </p>
+            <div className="modal-btn-row">
+              <button type="button" onClick={() => setSudoElevationModal(null)}>Cancel</button>
+              <button type="button" className="submit" onClick={handleSudoElevatedAction}>Proceed as Administrator</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Access Denied Modal */}
+      {accessDeniedModal && (
+        <div className="explorer-modal-overlay" onClick={() => setAccessDeniedModal(null)}>
+          <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ color: 'var(--status-danger)', borderBottom: '1px solid var(--border-forest)', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+              Access Denied: Permission Required
+            </h3>
+            <p style={{ color: 'var(--text-parchment)', fontSize: '0.88rem', lineHeight: '1.4', margin: '0.85rem 0' }}>
+              You do not have Linux system write permissions to delete or move <strong>{accessDeniedModal.itemPath.split('/').pop()}</strong>.
+            </p>
+            <div className="modal-btn-row">
+              <button type="button" onClick={() => setAccessDeniedModal(null)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

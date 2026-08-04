@@ -38,6 +38,8 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [focusedSuiteName, setFocusedSuiteName] = useState(null);
   const [focusedSubSuite, setFocusedSubSuite] = useState(null);
 
+
+
   const GROUPS = {
     AI: { label: 'AI', suites: ['AGY', 'CLD', 'HMS'] },
     EDIT: { label: 'EDIT', suites: ['VIM', 'TXT', 'FILE'] },
@@ -621,8 +623,20 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
       {/* Command Suite Modal with Categorized Sub-Tabs */}
       {showMacroModal && (
-        <div className="macro-modal-overlay" onClick={() => setShowMacroModal(false)}>
-          <div className="macro-modal-content" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
+        <div
+          className="macro-modal-overlay"
+          onTouchStart={(e) => e.preventDefault()}
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setShowMacroModal(false)}
+        >
+          <div
+            className="macro-modal-content"
+            onTouchStart={(e) => e.preventDefault()}
+            onPointerDown={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="macro-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Zap size={16} color="var(--status-active)" />
@@ -713,12 +727,19 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
       {/* Focused Suite Modal — opens when a custom suite bar button is tapped */}
       {showFocusedSuiteModal && (
-        <div className="macro-modal-overlay" onClick={() => setShowFocusedSuiteModal(false)}>
+        <div
+          className="macro-modal-overlay"
+          onTouchStart={(e) => e.preventDefault()}
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setShowFocusedSuiteModal(false)}
+        >
           <div
             className="macro-modal-content"
-            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.preventDefault()}
             onPointerDown={(e) => e.preventDefault()}
             onMouseDown={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="macro-modal-header">
               <button

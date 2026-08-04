@@ -29,8 +29,28 @@ try:
     import pamela
 except ImportError:
     pamela = None
+
+try:
+    import grp
+except ImportError:
+    grp = None
+
 # Active valid session tokens in memory mapping session_token -> metadata dict
 active_sessions = {}
+
+def is_user_sudoer(username: str) -> bool:
+    """Check if Linux username belongs to administrative groups (sudo, wheel, or root)."""
+    if not username or username == "root" or username == "admin":
+        return True
+    if grp:
+        for group_name in ("sudo", "wheel"):
+            try:
+                g = grp.getgrnam(group_name)
+                if username in g.gr_mem:
+                    return True
+            except KeyError:
+                continue
+    return False
 
 def authenticate_pam(username: str, password: str) -> bool:
     """Validate username & password against Linux system PAM module."""
@@ -139,11 +159,14 @@ def verify(request: Request):
     if is_authenticated(request):
         cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
         session_info = active_sessions.get(cookie_token, {})
+        username = session_info.get("username", "admin")
+        sudoer = is_user_sudoer(username) if AUTH_MODE == "pam" else True
         return {
             "status": "valid",
             "auth_mode": AUTH_MODE,
             "auth_enabled": AUTH_MODE != "disabled",
-            "username": session_info.get("username", "admin")
+            "username": username,
+            "is_sudoer": sudoer
         }
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
