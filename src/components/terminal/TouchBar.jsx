@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, MicOff, KeyRound, Trash2, Zap, X, Edit3, Terminal } from 'lucide-react';
 import StagingDrawer from './StagingDrawer';
 import { 
@@ -10,7 +10,52 @@ import {
   KEY_LINE_PRESETS
 } from '../settings/button-studio/buttonData';
 
-export default function TouchBar({ onKeyPress, onVoiceInput }) {
+const KEY_MAPPINGS = {
+  'ESC': '\x1b',
+  'TAB': '\t',
+  'DEL': '\x1b[3~',
+  '^C': '\x03',
+  '^Z': '\x1a',
+  '-': '-',
+  '|': '|',
+  '~': '~',
+  '/': '/',
+  'sudo': 'sudo ',
+  'exit': 'exit\n',
+  'ArrowUp': '\x1b[A',
+  'ArrowDown': '\x1b[B',
+  'ArrowLeft': '\x1b[D',
+  'ArrowRight': '\x1b[C',
+  '▲ Up': '\x1b[A',
+  '▼ Down': '\x1b[B',
+  '◀ Left': '\x1b[D',
+  '► Right': '\x1b[C',
+  '▶ Right': '\x1b[C',
+  '▲': '\x1b[A',
+  '▼': '\x1b[B',
+  '◀': '\x1b[D',
+  '►': '\x1b[C',
+  '▶': '\x1b[C',
+  'PgUp': '\x1b[5~',
+  'PgDn': '\x1b[6~',
+  'Home': '\x1b[H',
+  'End': '\x1b[F',
+  'Ctrl+Left': '\x1b[1;5D',
+  'Ctrl+Right': '\x1b[1;5C',
+  'Shift+Tab': '\x1b[Z',
+  'Backspace': '\x7f',
+  'Enter': '\r',
+  'F1': '\x1bOP', 'F2': '\x1bOQ', 'F3': '\x1bOR', 'F4': '\x1bOS',
+  'F5': '\x1b[15~', 'F6': '\x1b[17~', 'F7': '\x1b[18~', 'F8': '\x1b[19~',
+  'F9': '\x1b[20~', 'F10': '\x1b[21~', 'F11': '\x1b[23~', 'F12': '\x1b[24~'
+};
+
+const UNICODE_ARROWS = {
+  '\u2190': '\x1b[D', '\u2192': '\x1b[C', '\u2193': '\x1b[B', '\u2191': '\x1b[A',
+  '\u25c0': '\x1b[D', '\u25b6': '\x1b[C', '\u25bc': '\x1b[B', '\u25b2': '\x1b[A'
+};
+
+export default function TouchBar({ onKeyPress }) {
   const [isRecording, setIsRecording] = useState(false);
   const [showMacroModal, setShowMacroModal] = useState(false);
   const [showStager, setShowStager] = useState(false);
@@ -32,8 +77,25 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   };
   const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
-  const lastSpeechRef = useRef('');
   const micToastTimerRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  // Speech recognition cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      isRecordingRef.current = false;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
+      if (micToastTimerRef.current) {
+        clearTimeout(micToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const wasStagerOpen = useRef(false);
   useEffect(() => {
@@ -49,6 +111,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [customSuiteData, setCustomSuiteData] = useState({});
   const [customMacroSuites, setCustomMacroSuites] = useState([]);
   const [customButtonStyles, setCustomButtonStyles] = useState({});
+  const [customButtons, setCustomButtons] = useState([]);
   const [showFocusedSuiteModal, setShowFocusedSuiteModal] = useState(false);
   const [focusedSuiteName, setFocusedSuiteName] = useState(null);
   const [focusedSubSuite, setFocusedSubSuite] = useState(null);
@@ -90,9 +153,12 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   // Inline mic-error toast — replaces browser alert() for non-blocking UX
   const [micToast, setMicToast] = useState(null);
   const showMicToast = (msg) => {
+    if (!isMountedRef.current) return;
     setMicToast(msg);
-    clearTimeout(micToastTimerRef.current);
-    micToastTimerRef.current = setTimeout(() => setMicToast(null), 4000);
+    if (micToastTimerRef.current) clearTimeout(micToastTimerRef.current);
+    micToastTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current) setMicToast(null);
+    }, 4000);
   };
 
   const PURGED_LAUNCHERS = ['AGY', 'CLD', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX', 'clear'];
@@ -159,26 +225,23 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
   // --- A3: Label-to-value resolver ---
   // Resolution order: sovereign_buttons (custom) → commandSuites → PREBUILT_CATEGORIES → fallback
-  const resolveLabel = (label, id) => {
+  const resolveLabel = (label, id, customButtonsOverride) => {
+    const btns = customButtonsOverride || customButtons;
     // 1. Check custom buttons first (so customized built-ins override defaults)
-    try {
-      const raw = localStorage.getItem('sovereign_buttons');
-      if (raw) {
-        const btns = JSON.parse(raw);
-        const found = btns.find(b => b.label === label);
-        if (found) return {
-          id: id || found.id || `res-${label}`,
-          label: found.label || label,
-          value: found.value || `${label}\n`,
-          bg: found.bg || null,
-          text: found.text || null,
-          border: found.border || null,
-          width: found.width || null,
-          height: found.height || null,
-          shape: found.shape || null,
-        };
-      }
-    } catch {}
+    if (btns && btns.length > 0) {
+      const found = btns.find(b => b.label === label);
+      if (found) return {
+        id: id || found.id || `res-${label}`,
+        label: found.label || label,
+        value: found.value || `${label}\n`,
+        bg: found.bg || null,
+        text: found.text || null,
+        border: found.border || null,
+        width: found.width || null,
+        height: found.height || null,
+        shape: found.shape || null,
+      };
+    }
 
     // 2. Check built-in command suites
     for (const suite of Object.values(commandSuites)) {
@@ -210,6 +273,15 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
   // --- A1 + A2: Suite data loader ---
   const loadSuiteData = () => {
+    let btns = [];
+    try {
+      const raw = localStorage.getItem('sovereign_buttons');
+      btns = raw ? JSON.parse(raw) : [];
+      setCustomButtons(btns);
+    } catch {
+      setCustomButtons([]);
+    }
+
     // A1: Load persisted overrides for each built-in suite
     const overrides = {};
     Object.keys(commandSuites).forEach(suiteKey => {
@@ -219,7 +291,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           const labels = JSON.parse(raw);
           if (Array.isArray(labels) && labels.length > 0) {
             overrides[suiteKey] = labels.map((lbl, idx) =>
-              resolveLabel(lbl, `${suiteKey}-ov-${idx}`)
+              resolveLabel(lbl, `${suiteKey}-ov-${idx}`, btns)
             );
           }
         }
@@ -229,9 +301,6 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
 
     // A2: Load custom macro suites (sovereign_buttons entries where value === 'macro')
     try {
-      const raw = localStorage.getItem('sovereign_buttons');
-      const btns = raw ? JSON.parse(raw) : [];
-
       // Build style lookup map for all custom button visual properties
       const styleMap = {};
       btns.forEach(b => {
@@ -256,7 +325,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             const labels = JSON.parse(suiteRaw);
             if (Array.isArray(labels)) {
               custData[name] = labels.map((lbl, idx) => ({
-                ...resolveLabel(lbl, `cust-${name}-${idx}`),
+                ...resolveLabel(lbl, `cust-${name}-${idx}`, btns),
                 isSuiteLauncher: Object.keys(commandSuites).includes(lbl) || macroNames.includes(lbl),
               }));
             }
@@ -322,8 +391,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
     if (isRecordingRef.current) {
       // User explicitly tapped mic button to turn OFF
       isRecordingRef.current = false;
-      setIsRecording(false);
-      lastSpeechRef.current = '';
+      if (isMountedRef.current) setIsRecording(false);
       if (recognitionRef.current) {
         try { recognitionRef.current.abort(); } catch (e) {}
       }
@@ -337,11 +405,10 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
     }
 
     isRecordingRef.current = true;
-    setIsRecording(true);
-    lastSpeechRef.current = '';
+    if (isMountedRef.current) setIsRecording(true);
 
     const startListeningSession = () => {
-      if (!isRecordingRef.current) return;
+      if (!isRecordingRef.current || !isMountedRef.current) return;
 
       try {
         const recognition = new SpeechRecognition();
@@ -350,6 +417,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
         recognition.lang = 'en-US';
 
         recognition.onresult = (event) => {
+          if (!isMountedRef.current) return;
           let currentTranscript = '';
           for (let i = 0; i < event.results.length; i++) {
             currentTranscript += event.results[i][0].transcript;
@@ -366,27 +434,26 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
           // Do NOT stop recording on 'no-speech' or 'aborted' — ignore silence timeouts so mic stays ON
           if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
             isRecordingRef.current = false;
-            setIsRecording(false);
+            if (isMountedRef.current) setIsRecording(false);
             showMicToast('Mic access denied — HTTPS or localhost required.');
           } else if (e.error === 'network') {
             isRecordingRef.current = false;
-            setIsRecording(false);
+            if (isMountedRef.current) setIsRecording(false);
             showMicToast('Voice recognition requires a network connection.');
           }
         };
 
         recognition.onend = () => {
+          if (!isMountedRef.current) return;
           // Gboard mode: If user hasn't explicitly tapped mic OFF, automatically loop-restart!
           if (isRecordingRef.current) {
-            lastSpeechRef.current = ''; // reset buffer for next spoken phrase
             setTimeout(() => {
-              if (isRecordingRef.current) {
+              if (isRecordingRef.current && isMountedRef.current) {
                 startListeningSession();
               }
             }, 100);
           } else {
-            setIsRecording(false);
-            lastSpeechRef.current = '';
+            if (isMountedRef.current) setIsRecording(false);
           }
         };
 
@@ -395,7 +462,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       } catch (err) {
         console.error('Failed to start speech recognition session:', err);
         isRecordingRef.current = false;
-        setIsRecording(false);
+        if (isMountedRef.current) setIsRecording(false);
       }
     };
 
@@ -408,6 +475,23 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
       onKeyPress(`${savedSudo}\n`);
     }
   };
+
+  // Command Payload Resolver (supports special keys, custom buttons, & raw commands)
+  const getCommandPayload = useCallback((itemKey) => {
+    if (KEY_MAPPINGS[itemKey]) return KEY_MAPPINGS[itemKey];
+    if (UNICODE_ARROWS[itemKey]) return UNICODE_ARROWS[itemKey];
+
+    const match = customButtons.find(b => (b.label || b.name) === itemKey);
+    if (match && match.value) return match.value;
+
+    if (itemKey.toLowerCase().includes('sudo')) {
+      const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
+      if (!savedSudo) return null;
+      return `${savedSudo}\n`;
+    }
+
+    return itemKey.endsWith('\n') ? itemKey : `${itemKey}\n`;
+  }, [customButtons]);
 
   return (
     <>
@@ -476,74 +560,6 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               </button>
             );
           }
-
-          // Command Payload Resolver (supports special keys, custom buttons, & raw commands)
-          const getCommandPayload = (itemKey) => {
-            const keyMappings = {
-              'ESC': '\x1b',
-              'TAB': '\t',
-              'DEL': '\x1b[3~',
-              '^C': '\x03',
-              '^Z': '\x1a',
-              '-': '-',
-              '|': '|',
-              '~': '~',
-              '/': '/',
-              'sudo': 'sudo ',
-              'exit': 'exit\n',
-              'ArrowUp': '\x1b[A',
-              'ArrowDown': '\x1b[B',
-              'ArrowLeft': '\x1b[D',
-              'ArrowRight': '\x1b[C',
-              '▲ Up': '\x1b[A',
-              '▼ Down': '\x1b[B',
-              '◀ Left': '\x1b[D',
-              '► Right': '\x1b[C',
-              '▶ Right': '\x1b[C',
-              '▲': '\x1b[A',
-              '▼': '\x1b[B',
-              '◀': '\x1b[D',
-              '►': '\x1b[C',
-              '▶': '\x1b[C',
-              'PgUp': '\x1b[5~',
-              'PgDn': '\x1b[6~',
-              'Home': '\x1b[H',
-              'End': '\x1b[F',
-              'Ctrl+Left': '\x1b[1;5D',
-              'Ctrl+Right': '\x1b[1;5C',
-              'Shift+Tab': '\x1b[Z',
-              'Backspace': '\x7f',
-              'Enter': '\r',
-              'F1': '\x1bOP', 'F2': '\x1bOQ', 'F3': '\x1bOR', 'F4': '\x1bOS',
-              'F5': '\x1b[15~', 'F6': '\x1b[17~', 'F7': '\x1b[18~', 'F8': '\x1b[19~',
-              'F9': '\x1b[20~', 'F10': '\x1b[21~', 'F11': '\x1b[23~', 'F12': '\x1b[24~'
-            };
-            if (keyMappings[itemKey]) return keyMappings[itemKey];
-
-            // Unicode arrow character fallback (thin arrows ← → ↓ ↑ and bold triangles ◀ ▶ ▼ ▲)
-            const unicodeArrows = {
-              '\u2190': '\x1b[D', '\u2192': '\x1b[C', '\u2193': '\x1b[B', '\u2191': '\x1b[A',
-              '\u25c0': '\x1b[D', '\u25b6': '\x1b[C', '\u25bc': '\x1b[B', '\u25b2': '\x1b[A'
-            };
-            if (unicodeArrows[itemKey]) return unicodeArrows[itemKey];
-
-            try {
-              const saved = localStorage.getItem('sovereign_buttons');
-              if (saved) {
-                const btns = JSON.parse(saved);
-                const match = btns.find(b => (b.label || b.name) === itemKey);
-                if (match && match.value) return match.value;
-              }
-            } catch {}
-
-            if (item.toLowerCase().includes('sudo')) {
-              const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
-              if (!savedSudo) return null;
-              return `${savedSudo}\n`;
-            }
-
-            return itemKey.endsWith('\n') ? itemKey : `${itemKey}\n`;
-          };
 
           if (item.toLowerCase().includes('sudo') && !sessionStorage.getItem('sovereign_sudo_password')) {
             return null;

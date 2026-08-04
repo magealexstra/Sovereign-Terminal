@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Trash2, X, Sliders, Sparkles, Edit3 } from 'lucide-react';
+import { Send, Trash2, X, Edit3 } from 'lucide-react';
 
 /**
  * StagingDrawer — TouchBar-Anchored Decoupled Command & Dictation Staging Drawer
@@ -42,11 +42,12 @@ export default function StagingDrawer({
   // Focus Lock: Ensure textarea receives focus immediately upon opening
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
         }
       }, 50);
+      return () => clearTimeout(timerId);
     }
   }, [isOpen]);
 

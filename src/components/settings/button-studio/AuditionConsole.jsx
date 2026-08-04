@@ -98,6 +98,14 @@ export default function AuditionConsole({
             />
             <input
               type="text"
+              name="sovereign_audition_hex_input"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="characters"
+              spellCheck="false"
+              inputMode="text"
+              data-lpignore="true"
+              data-form-type="other"
               className="audition-hex-input"
               value={auditionHex}
               onChange={(e) => setAuditionHex(e.target.value)}

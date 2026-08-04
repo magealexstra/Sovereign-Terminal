@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Plus, Save } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 
 /**
  * ButtonHeader — Top search and dropdown selector navigation stack for Button Studio.

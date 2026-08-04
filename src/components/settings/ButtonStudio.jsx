@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sliders, Code, Save, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_BUTTONS, PREBUILT_CATEGORIES } from './button-studio/buttonData';
@@ -8,6 +8,16 @@ import AuditionConsole from './button-studio/AuditionConsole';
 
 export default function ButtonStudio() {
   const { theme, syncUserSettingsToServer } = useApp();
+
+  const saveToastTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveToastTimerRef.current) {
+        clearTimeout(saveToastTimerRef.current);
+      }
+    };
+  }, []);
 
   // Active Buttons List — persisted to localStorage
   const [buttons, setButtons] = useState(() => {
@@ -149,10 +159,13 @@ export default function ButtonStudio() {
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
       if (typeof syncUserSettingsToServer === 'function') {
-        syncUserSettingsToServer({ buttons, custButton });
+        syncUserSettingsToServer({ buttons, custButton }).catch(err => console.error('Server sync error:', err));
       }
       setSaveToast(true);
-      setTimeout(() => setSaveToast(false), 2000);
+      if (saveToastTimerRef.current) {
+        clearTimeout(saveToastTimerRef.current);
+      }
+      saveToastTimerRef.current = setTimeout(() => setSaveToast(false), 2000);
     } catch {}
   };
 
@@ -252,6 +265,13 @@ export default function ButtonStudio() {
             <label className="field-label">Name</label>
             <input
               type="text"
+              name="sovereign_button_name_field"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck="false"
+              data-lpignore="true"
+              data-form-type="other"
               className="micro-input"
               value={activeBtn?.label || ''}
               onChange={(e) => updateActiveBtn({ label: e.target.value })}

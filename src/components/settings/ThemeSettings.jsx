@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, Terminal as TermIcon, FileCode, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, CheckCircle2, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import TypographyPreviewSection from './TypographyPreviewSection';
 
 // Base-16 terminal color slots with display labels
 const TERMINAL_COLOR_KEYS = [
@@ -40,6 +41,7 @@ export default function ThemeSettings() {
     setTheme,
     themes,
     saveCustomTheme,
+    deleteCustomTheme,
     resetToDefault,
     syncUserSettingsToServer,
     deviceBaselinePx,
@@ -53,18 +55,24 @@ export default function ThemeSettings() {
   const [customName, setCustomName] = useState('My Sovereign Custom');
   const [selectedColorKey, setSelectedColorKey] = useState(null);
 
-  // Predefined editable preview text
-  const [terminalSampleText, setTerminalSampleText] = useState(
-    'mage@sovereign:~$ docker ps\nCONTAINER ID   IMAGE                STATUS\n896468d35eb4   sovereign-terminal   Up 30m (healthy)\nmage@sovereign:~$ echo "Theme Preview Active"'
-  );
-
-  const [editorSampleText, setEditorSampleText] = useState(
-    'def initialize_sovereign_node(hostname="192.168.2.100"):\n    """Sovereign Workstation Node Gateway."""\n    print(f"Connected to {hostname}:2069")\n    return True'
-  );
-
   const [localTerminalScale, setLocalTerminalScale] = useState(terminalScaleMultiplier || 1.0);
   const [localEditorScale, setLocalEditorScale] = useState(editorScaleMultiplier || 1.0);
   const [appliedToast, setAppliedToast] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const appliedToastTimerRef = useRef(null);
+  const confirmDeleteTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (appliedToastTimerRef.current) {
+        clearTimeout(appliedToastTimerRef.current);
+      }
+      if (confirmDeleteTimerRef.current) {
+        clearTimeout(confirmDeleteTimerRef.current);
+      }
+    };
+  }, []);
 
   const localTerminalPx = Math.round(deviceBaselinePx * localTerminalScale);
   const localEditorPx   = Math.round(deviceBaselinePx * localEditorScale);
@@ -77,9 +85,12 @@ export default function ThemeSettings() {
     syncUserSettingsToServer({
       terminalScaleMultiplier: localTerminalScale,
       editorScaleMultiplier:   localEditorScale
-    });
+    }).catch(err => console.error('Server sync error:', err));
     setAppliedToast(true);
-    setTimeout(() => setAppliedToast(false), 2500);
+    if (appliedToastTimerRef.current) {
+      clearTimeout(appliedToastTimerRef.current);
+    }
+    appliedToastTimerRef.current = setTimeout(() => setAppliedToast(false), 2500);
   };
 
   const handleResetFonts = () => {
@@ -93,6 +104,7 @@ export default function ThemeSettings() {
     setCustomName(t.name);
     setEditingTheme({ ...t });
     setSelectedColorKey('black');
+    setConfirmDelete(false);
   };
 
   const handleSaveModal = () => {
@@ -100,11 +112,31 @@ export default function ThemeSettings() {
     saveCustomTheme({ ...editingTheme, name: customName || 'My Custom Theme' });
     setEditingTheme(null);
     setSelectedColorKey(null);
+    setConfirmDelete(false);
   };
+
+  const handleDeleteModal = () => {
+    if (!editingTheme || !deleteCustomTheme) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
+      confirmDeleteTimerRef.current = setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    deleteCustomTheme(editingTheme.name);
+    setConfirmDelete(false);
+    setEditingTheme(null);
+    setSelectedColorKey(null);
+  };
+
+  const isCustomTheme = editingTheme && Object.entries(themes || {}).some(
+    ([k, v]) => v?.name === editingTheme?.name && (k.startsWith('Custom_') || v?.isCustom)
+  );
 
   const closeModal = () => {
     setEditingTheme(null);
     setSelectedColorKey(null);
+    setConfirmDelete(false);
   };
 
   const selectedLabel = selectedColorKey
@@ -212,45 +244,13 @@ export default function ThemeSettings() {
           </div>
         </div>
 
-        <div className="live-font-preview-grid">
-          <div className="preview-window-card">
-            <div className="preview-card-header">
-              <TermIcon size={12} color={theme.accentHighlight || '#88C0D0'} />
-              <span>Terminal ({Math.round(localTerminalScale * 100)}% — {localTerminalPx}px)</span>
-            </div>
-            <textarea
-              className="live-preview-textarea"
-              style={{
-                backgroundColor: theme.bgEarth || '#141E26',
-                color: theme.textParchment || '#E6EDF0',
-                borderColor: theme.accentMana || '#5E81AC',
-                fontSize: `${localTerminalPx}px`,
-                fontFamily: theme.fontMono || 'monospace'
-              }}
-              value={terminalSampleText}
-              onChange={(e) => setTerminalSampleText(e.target.value)}
-            />
-          </div>
-
-          <div className="preview-window-card">
-            <div className="preview-card-header">
-              <FileCode size={12} color={theme.accentMana || '#5E81AC'} />
-              <span>Editor ({Math.round(localEditorScale * 100)}% — {localEditorPx}px)</span>
-            </div>
-            <textarea
-              className="live-preview-textarea"
-              style={{
-                backgroundColor: theme.bgCanopy || '#1F2D3A',
-                color: theme.textParchment || '#E6EDF0',
-                borderColor: theme.accentHighlight || '#88C0D0',
-                fontSize: `${localEditorPx}px`,
-                fontFamily: theme.fontMono || 'monospace'
-              }}
-              value={editorSampleText}
-              onChange={(e) => setEditorSampleText(e.target.value)}
-            />
-          </div>
-        </div>
+        <TypographyPreviewSection
+          theme={theme}
+          localTerminalScale={localTerminalScale}
+          localTerminalPx={localTerminalPx}
+          localEditorScale={localEditorScale}
+          localEditorPx={localEditorPx}
+        />
 
         <div className="font-action-btn-row">
           <button type="button" className="font-reset-btn" onClick={handleResetFonts}>
@@ -270,8 +270,37 @@ export default function ThemeSettings() {
           <div className="theme-modal-card" onClick={(e) => e.stopPropagation()}>
 
             {/* Header */}
-            <div className="modal-header-row">
-              <h3>Customize Theme</h3>
+            <div className="modal-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }}>
+              <h3 style={{ margin: 0 }}>Customize Theme</h3>
+              {isCustomTheme ? (
+                <button
+                  type="button"
+                  className="delete-theme-btn"
+                  onClick={handleDeleteModal}
+                  title="Delete Custom Theme"
+                  style={{
+                    background: confirmDelete ? 'var(--status-danger)' : 'rgba(239, 68, 68, 0.15)',
+                    color: confirmDelete ? '#ffffff' : 'var(--status-danger)',
+                    border: '1px solid var(--status-danger)',
+                    borderRadius: '6px',
+                    padding: '0.28rem 0.65rem',
+                    fontWeight: '700',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontFamily: 'var(--font-mono)',
+                    margin: '0 auto',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Trash2 size={12} />
+                  <span>{confirmDelete ? 'Confirm Delete?' : 'Delete'}</span>
+                </button>
+              ) : (
+                <div style={{ flex: 1 }} />
+              )}
               <button type="button" className="modal-close-x" onClick={closeModal}>
                 <X size={16} />
               </button>
@@ -282,6 +311,13 @@ export default function ThemeSettings() {
               <label>Save As:</label>
               <input
                 type="text"
+                name="sovereign_theme_custom_name"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck="false"
+                data-lpignore="true"
+                data-form-type="other"
                 className="theme-name-field"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
@@ -352,8 +388,17 @@ export default function ThemeSettings() {
                   />
                   <input
                     type="text"
+                    name="sovereign_theme_hex_input"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="characters"
+                    spellCheck="false"
+                    inputMode="text"
+                    data-lpignore="true"
+                    data-form-type="other"
                     value={editingTheme[selectedColorKey] || '#000000'}
                     onChange={(e) => setEditingTheme(prev => ({ ...prev, [selectedColorKey]: e.target.value }))}
+                    onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                     className="audition-hex-input"
                     placeholder="#HEX"
                   />

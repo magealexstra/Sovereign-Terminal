@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, Terminal as TermIcon, X, Zap, Link2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -12,10 +12,23 @@ export default function TmuxManager() {
   const [actionMsg, setActionMsg]       = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
 
+  const flashTimerRef = useRef(null);
+
   const flash = (msg) => {
     setActionMsg(msg);
-    setTimeout(() => setActionMsg(''), 3500);
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current);
+    }
+    flashTimerRef.current = setTimeout(() => setActionMsg(''), 3500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) {
+        clearTimeout(flashTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleAttach = () => {
     if (!selectedSession) return;
@@ -55,8 +68,13 @@ export default function TmuxManager() {
         if (selectedSession === id) setSelectedSession(null);
         flash(`Session "${id}" killed`);
         fetchSessions();
+      } else {
+        flash(`Failed to kill session "${id}"`);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to kill session:', err);
+      flash(`Failed to kill session "${id}"`);
+    }
   };
 
   const sweepZombies = async () => {
@@ -64,7 +82,9 @@ export default function TmuxManager() {
     try {
       const raw = localStorage.getItem('sovereign_active_session_ids');
       activeIds = raw ? JSON.parse(raw) : [];
-    } catch {}
+    } catch (err) {
+      console.error('Error reading active session IDs:', err);
+    }
     try {
       const res = await fetch('/api/terminal/sessions/sweep', {
         method: 'POST',
@@ -76,28 +96,39 @@ export default function TmuxManager() {
         const n = data.swept?.length ?? 0;
         flash(n > 0 ? `Swept ${n} zombie session${n !== 1 ? 's' : ''}` : 'No zombie sessions found');
         fetchSessions();
+      } else {
+        flash('Failed to sweep zombie sessions');
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to sweep zombie sessions:', err);
+      flash('Failed to sweep zombie sessions');
+    }
   };
 
   const updateBehavior = (key, value) => {
     setTmuxSettings({ [key]: value });
-    syncUserSettingsToServer();
+    syncUserSettingsToServer().catch(err => console.error('Server sync error:', err));
   };
 
   const applyPerfConfig = async (key, value) => {
     setTmuxSettings({ [key]: value });
-    syncUserSettingsToServer();
+    syncUserSettingsToServer().catch(err => console.error('Server sync error:', err));
     const body = {};
     if (key === 'scrollbackLines') body.historyLimit = value;
     if (key === 'escapeTimeMs')    body.escapeTimeMs  = value;
     try {
-      await fetch('/api/terminal/config', {
+      const res = await fetch('/api/terminal/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-    } catch {}
+      if (!res.ok) {
+        flash('Failed to apply performance config');
+      }
+    } catch (err) {
+      console.error('Failed to apply performance config:', err);
+      flash('Failed to apply performance config');
+    }
   };
 
   const dotClass = !serverOnline

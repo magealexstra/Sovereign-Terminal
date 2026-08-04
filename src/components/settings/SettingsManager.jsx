@@ -58,6 +58,13 @@ class ErrorBoundary extends Component {
   }
 }
 
+const SUB_TABS = [
+  { id: 'themes', label: '1. Themes', Icon: Palette },
+  { id: 'studio', label: '2. Studio', Icon: Edit3 },
+  { id: 'layout', label: '3. Layout', Icon: Grid },
+  { id: 'tmux',   label: '4. TMUX',   Icon: TmuxTabIcon }
+];
+
 export default function SettingsManager() {
   const [activeSubTab, setActiveSubTab] = useState('themes');
   const [resetCount, setResetCount] = useState(0);
@@ -66,41 +73,17 @@ export default function SettingsManager() {
     <div className="settings-master-container">
       {/* Equal-Distribution Dynamic Sub-Tab Bar */}
       <div className="settings-subtabs-bar">
-        <button
-          type="button"
-          className={`subtab-btn ${activeSubTab === 'themes' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('themes')}
-        >
-          <Palette size={13} />
-          <span className="tab-auto-text">1. Themes</span>
-        </button>
-
-        <button
-          type="button"
-          className={`subtab-btn ${activeSubTab === 'studio' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('studio')}
-        >
-          <Edit3 size={13} />
-          <span className="tab-auto-text">2. Studio</span>
-        </button>
-
-        <button
-          type="button"
-          className={`subtab-btn ${activeSubTab === 'layout' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('layout')}
-        >
-          <Grid size={13} />
-          <span className="tab-auto-text">3. Layout</span>
-        </button>
-
-        <button
-          type="button"
-          className={`subtab-btn ${activeSubTab === 'tmux' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('tmux')}
-        >
-          <TmuxTabIcon size={13} />
-          <span className="tab-auto-text">4. TMUX</span>
-        </button>
+        {SUB_TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className={`subtab-btn ${activeSubTab === id ? 'active' : ''}`}
+            onClick={() => setActiveSubTab(id)}
+          >
+            <Icon size={13} />
+            <span className="tab-auto-text">{label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Active Sub-Tab Viewport protected by ErrorBoundary */}

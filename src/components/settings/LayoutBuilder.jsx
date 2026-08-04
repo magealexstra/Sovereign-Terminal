@@ -1,12 +1,293 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Trash2, ArrowLeft, ArrowRight, Zap, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, ArrowRight, Zap, RotateCcw } from 'lucide-react';
 import { PREBUILT_CATEGORIES } from './button-studio/buttonData';
 import { useToast } from '../../hooks/useToast';
 import { useApp } from '../../context/AppContext';
 
+// Helper to pre-load all macro suite overrides from localStorage into memory
+const loadMacroSuiteOverrides = () => {
+  const overrides = {};
+  if (PREBUILT_CATEGORIES && typeof PREBUILT_CATEGORIES === 'object') {
+    Object.keys(PREBUILT_CATEGORIES).forEach((key) => {
+      try {
+        const raw = localStorage.getItem(`sovereign_macro_suite_${key}`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            overrides[key] = parsed;
+          }
+        }
+      } catch {}
+    });
+  }
+  return overrides;
+};
+
+/* ==========================================================================
+   SUB-COMPONENTS FOR LAYOUT BUILDER
+   ========================================================================== */
+
+/** 1. MacroSuiteSelector — Top dropdown card for selecting active macro suite */
+function MacroSuiteSelector({
+  selectedMacroSuite,
+  setSelectedMacroSuite,
+  customMacroSuites,
+  handleContainerClick
+}) {
+  return (
+    <div className="layout-dropdown-card" onClick={handleContainerClick}>
+      <div className="macro-suite-select-wrapper">
+        <select
+          value={selectedMacroSuite}
+          onChange={(e) => {
+            e.stopPropagation();
+            setSelectedMacroSuite(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="category-dropdown"
+          style={{
+            width: '100%',
+            background: 'var(--bg-canopy)',
+            color: 'var(--text-parchment)',
+            border: '1.5px solid var(--status-active)',
+            borderRadius: '8px',
+            fontWeight: '700',
+            height: '36px',
+            padding: '0 0.5rem',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.78rem'
+          }}
+        >
+          <optgroup label="SYSTEM MACRO BARS">
+            <option value="PRIMARY">[PRIMARY] Main TouchBar</option>
+            <option value="MASTER">[MASTER] Master Red MACROS Catalog</option>
+          </optgroup>
+          <optgroup label="PRE-BUILT SUITES">
+            {Object.keys(PREBUILT_CATEGORIES).map((catKey) => (
+              <option key={catKey} value={catKey}>
+                [{catKey}] {PREBUILT_CATEGORIES[catKey].name}
+              </option>
+            ))}
+          </optgroup>
+          {customMacroSuites.length > 0 && (
+            <optgroup label="CUSTOM MACRO SUITES">
+              {customMacroSuites.map((suiteName) => (
+                <option key={suiteName} value={suiteName}>
+                  [CUSTOM] {suiteName} (macro)
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+/** 2. CategorySelector — Dropdown card for filtering available button pool by category */
+function CategorySelector({
+  selectedCategory,
+  setSelectedCategory,
+  customButtonsCount,
+  handleContainerClick
+}) {
+  return (
+    <div className="layout-dropdown-card" onClick={handleContainerClick}>
+      <div className="category-select-wrapper">
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="category-dropdown"
+        >
+          {/* SECTION 1: CUSTOM BUTTONS (TOP PRIORITY) */}
+          <optgroup label="CUSTOM CREATIONS">
+            <option value="CUSTOM">[CUSTOM] Custom Buttons ({customButtonsCount})</option>
+          </optgroup>
+
+          {/* SECTION 2: ALPHABETICAL PRE-BUILT TOOLKITS */}
+          <optgroup label="PRE-BUILT TOOLKITS">
+            {Object.entries(PREBUILT_CATEGORIES)
+              .sort((a, b) => a[1].name.localeCompare(b[1].name))
+              .map(([key, cat]) => (
+                <option key={key} value={key}>
+                  {cat.name}
+                </option>
+              ))}
+          </optgroup>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+/** 3. ButtonPoolGrid — Grid displaying buttons available to pick in current category */
+function ButtonPoolGrid({
+  poolItems,
+  selectedPoolItem,
+  customButtonStyles,
+  handleSelectPoolItem,
+  handleContainerClick
+}) {
+  return (
+    <div className="available-pool-section" onClick={handleContainerClick}>
+      <div className="pool-section-label" onClick={handleContainerClick}>
+        <span>AVAILABLE BUTTONS POOL ({poolItems.length})</span>
+      </div>
+
+      <div className="available-chips-grid" onClick={handleContainerClick}>
+        {poolItems.map((item, idx) => {
+          const isSelected = selectedPoolItem === item;
+          const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
+
+          const customStyle = customButtonStyles[item];
+          return (
+            <button
+              key={`pool-${item}-${idx}`}
+              type="button"
+              className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''} ${customStyle?.shape || ''}`}
+              style={customStyle ? {
+                background: customStyle.bg || undefined,
+                color: customStyle.text || undefined,
+                borderColor: customStyle.border || undefined,
+                width: customStyle.width ? `${customStyle.width}rem` : undefined,
+                height: customStyle.height ? `${customStyle.height}rem` : undefined,
+              } : {}}
+              onClick={(e) => handleSelectPoolItem(e, item)}
+              title="Click to select button"
+            >
+              {isLauncher && <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />}
+              <span>{item}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** 4. TouchBarPreviewStrip — Horizontal preview strip showing active TouchBar layout slots */
+function TouchBarPreviewStrip({
+  touchBarSlots,
+  selectedBarIndex,
+  customButtonStyles,
+  handleSelectBarItem,
+  handleContainerClick
+}) {
+  return (
+    <div className="live-bar-preview-section" onClick={handleContainerClick}>
+      <div className="bar-preview-label" onClick={handleContainerClick}>
+        <span>LIVE TOUCHBAR PREVIEW ({touchBarSlots.length} SLOTS)</span>
+      </div>
+
+      <div className="live-bar-strip-wrapper" onClick={handleContainerClick}>
+        <div className="live-bar-strip" onClick={handleContainerClick}>
+          {touchBarSlots.map((item, idx) => {
+            const isSelected = selectedBarIndex === idx;
+            const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
+
+            const customStyle = customButtonStyles[item];
+            return (
+              <button
+                key={`bar-${item}-${idx}`}
+                type="button"
+                className={`live-bar-tile ${isSelected ? 'selected-bar-tile' : ''} ${isLauncher ? 'launcher-tile' : ''} ${customStyle?.shape || ''}`}
+                style={customStyle ? {
+                  background: customStyle.bg || undefined,
+                  color: customStyle.text || undefined,
+                  borderColor: customStyle.border || undefined,
+                  width: customStyle.width ? `${customStyle.width}rem` : undefined,
+                  height: customStyle.height ? `${customStyle.height}rem` : undefined,
+                } : {}}
+                onClick={(e) => handleSelectBarItem(e, idx)}
+              >
+                <span>{item}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 5. LayoutActionConsole — Action controls for adding, moving, resetting, and removing buttons */
+function LayoutActionConsole({
+  selectedPoolItem,
+  selectedBarIndex,
+  selectedMacroSuite,
+  touchBarSlotsCount,
+  customButtons,
+  handleAddSelectedToBar,
+  handleMoveBarItem,
+  handleReset,
+  handleRemove,
+  handleContainerClick
+}) {
+  return (
+    <div className="single-bar-control-console" onClick={handleContainerClick}>
+      <button
+        type="button"
+        className="action-btn add-action-btn"
+        disabled={!selectedPoolItem}
+        onClick={(e) => handleAddSelectedToBar(e)}
+        title="Add Selected Pool Button to TouchBar"
+      >
+        <Plus size={13} />
+        <span>Add</span>
+      </button>
+
+      <button
+        type="button"
+        className="action-btn move-action-btn"
+        disabled={selectedBarIndex === null || selectedBarIndex === 0}
+        onClick={(e) => handleMoveBarItem(e, 'left')}
+      >
+        <ArrowLeft size={13} />
+        <span>Move Left</span>
+      </button>
+
+      <button
+        type="button"
+        className="action-btn move-action-btn"
+        disabled={selectedBarIndex === null || selectedBarIndex === touchBarSlotsCount - 1}
+        onClick={(e) => handleMoveBarItem(e, 'right')}
+      >
+        <span>Move Right</span>
+        <ArrowRight size={13} />
+      </button>
+
+      <button
+        type="button"
+        className="action-btn reset-action-btn"
+        disabled={!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)}
+        onClick={(e) => handleReset(e)}
+        title={`Reset ${selectedMacroSuite} suite to defaults`}
+      >
+        <RotateCcw size={13} />
+        <span>Reset</span>
+      </button>
+
+      <button
+        type="button"
+        className="action-btn delete-action-btn"
+        disabled={selectedBarIndex === null && !(selectedPoolItem !== null && customButtons.includes(selectedPoolItem))}
+        onClick={(e) => handleRemove(e)}
+        title={selectedBarIndex !== null ? "Remove selected button from TouchBar" : "Permanently delete custom button"}
+      >
+        <Trash2 size={13} />
+        <span>{selectedBarIndex !== null ? 'Remove' : 'Delete'}</span>
+      </button>
+    </div>
+  );
+}
+
+/* ==========================================================================
+   MAIN LAYOUT BUILDER COMPONENT
+   ========================================================================== */
+
 export default function LayoutBuilder() {
-  // Search query & category dropdown filter
-  const [searchQuery, setSearchQuery] = useState('');
+  // Category dropdown filter
   const [selectedCategory, setSelectedCategory] = useState('CUSTOM');
 
   // Toast feedback
@@ -16,6 +297,9 @@ export default function LayoutBuilder() {
   // Custom user buttons from ButtonStudio (localStorage)
   const [customButtons, setCustomButtons] = useState([]);
   const [customButtonStyles, setCustomButtonStyles] = useState({});
+
+  // In-memory cache for macro suite overrides to avoid synchronous localStorage calls in render loop
+  const [macroSuiteOverrides, setMacroSuiteOverrides] = useState(loadMacroSuiteOverrides);
 
   // Macro Suite Selection State (PRIMARY, MASTER, built-in suites, or custom macro suites)
   const [selectedMacroSuite, setSelectedMacroSuite] = useState('PRIMARY');
@@ -54,7 +338,7 @@ export default function LayoutBuilder() {
     setSelectedBarIndex(null);
   }, [selectedMacroSuite]);
 
-  // Synchronize custom buttons and custom macro suites from localStorage
+  // Synchronize custom buttons, custom macro suites, and macro suite overrides from localStorage
   const loadCustomButtons = () => {
     try {
       const saved = localStorage.getItem('sovereign_buttons');
@@ -82,6 +366,9 @@ export default function LayoutBuilder() {
         .map(b => b.label || b.name || b.id)
         .filter(Boolean);
       setCustomMacroSuites(Array.from(new Set(macroSuites)));
+
+      // Refresh in-memory macro suite overrides cache
+      setMacroSuiteOverrides(loadMacroSuiteOverrides());
     } catch {}
   };
 
@@ -101,10 +388,16 @@ export default function LayoutBuilder() {
     try {
       const storageKey = selectedMacroSuite === 'PRIMARY' ? 'sovereign_layout_slots' : `sovereign_macro_suite_${selectedMacroSuite}`;
       localStorage.setItem(storageKey, JSON.stringify(newSlots));
+      if (selectedMacroSuite !== 'PRIMARY') {
+        setMacroSuiteOverrides(prev => ({
+          ...prev,
+          [selectedMacroSuite]: newSlots
+        }));
+      }
       window.dispatchEvent(new Event('storage'));
       // Persist primary hotbar layout to server profile so it survives storage clears
       if (selectedMacroSuite === 'PRIMARY') {
-        syncUserSettingsToServer({ layoutSlots: newSlots });
+        syncUserSettingsToServer({ layoutSlots: newSlots }).catch(err => console.error('Server sync error:', err));
       }
     } catch {}
   };
@@ -179,7 +472,7 @@ export default function LayoutBuilder() {
           window.dispatchEvent(new Event('storage'));
           window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
           if (typeof syncUserSettingsToServer === 'function') {
-            syncUserSettingsToServer({ buttons });
+            syncUserSettingsToServer({ buttons }).catch(err => console.error('Server sync error:', err));
           }
           showToast(`Deleted custom button '${selectedPoolItem}'`);
           setSelectedPoolItem(null);
@@ -195,6 +488,11 @@ export default function LayoutBuilder() {
     if (!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)) return;
     try {
       localStorage.removeItem(`sovereign_macro_suite_${selectedMacroSuite}`);
+      setMacroSuiteOverrides(prev => {
+        const next = { ...prev };
+        delete next[selectedMacroSuite];
+        return next;
+      });
       setTouchBarSlots(loadSlotsForSuite(selectedMacroSuite));
       window.dispatchEvent(new Event('storage'));
       setSelectedBarIndex(null);
@@ -211,30 +509,20 @@ export default function LayoutBuilder() {
     setSelectedBarIndex(null);
   };
 
-  // Compute available pool items based on category & search query
+  // Compute available pool items based on category (reading from in-memory state)
   const getPoolItems = () => {
     let items = [];
     if (selectedCategory === 'CUSTOM') {
       items = customButtons;
       if (items.length === 0) items = ['(No Custom Buttons Created Yet)'];
     } else if (PREBUILT_CATEGORIES[selectedCategory]) {
-      // Show current saved state of this suite; fall back to factory defaults if no override exists
-      try {
-        const raw = localStorage.getItem(`sovereign_macro_suite_${selectedCategory}`);
-        const saved = raw ? JSON.parse(raw) : null;
-        items = (Array.isArray(saved) && saved.length > 0)
-          ? [selectedCategory, ...saved]
-          : [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
-      } catch {
-        items = [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
-      }
+      // Show current saved state of this suite from state cache; fall back to factory defaults if no override exists
+      const saved = macroSuiteOverrides[selectedCategory];
+      items = (Array.isArray(saved) && saved.length > 0)
+        ? [selectedCategory, ...saved]
+        : [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
     } else {
       items = Object.entries(PREBUILT_CATEGORIES).flatMap(([key, cat]) => [key, ...cat.items.map((i) => i.label)]);
-    }
-
-    if (searchQuery && searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      items = items.filter((item) => item.toLowerCase().includes(q));
     }
 
     return items;
@@ -251,208 +539,55 @@ export default function LayoutBuilder() {
       )}
 
       {/* 1. TOP CARD SECTION: MACRO SUITE DROPDOWN */}
-      <div className="layout-dropdown-card" onClick={handleContainerClick}>
-        <div className="macro-suite-select-wrapper">
-          <select
-            value={selectedMacroSuite}
-            onChange={(e) => {
-              e.stopPropagation();
-              setSelectedMacroSuite(e.target.value);
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className="category-dropdown"
-            style={{
-              width: '100%',
-              background: 'var(--bg-canopy)',
-              color: 'var(--text-parchment)',
-              border: '1.5px solid var(--status-active)',
-              borderRadius: '8px',
-              fontWeight: '700',
-              height: '36px',
-              padding: '0 0.5rem',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.78rem'
-            }}
-          >
-            <optgroup label="SYSTEM MACRO BARS">
-              <option value="PRIMARY">[PRIMARY] Main TouchBar</option>
-              <option value="MASTER">[MASTER] Master Red MACROS Catalog</option>
-            </optgroup>
-            <optgroup label="PRE-BUILT SUITES">
-              {Object.keys(PREBUILT_CATEGORIES).map((catKey) => (
-                <option key={catKey} value={catKey}>
-                  [{catKey}] {PREBUILT_CATEGORIES[catKey].name}
-                </option>
-              ))}
-            </optgroup>
-            {customMacroSuites.length > 0 && (
-              <optgroup label="CUSTOM MACRO SUITES">
-                {customMacroSuites.map((suiteName) => (
-                  <option key={suiteName} value={suiteName}>
-                    [CUSTOM] {suiteName} (macro)
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </div>
-      </div>
+      <MacroSuiteSelector
+        selectedMacroSuite={selectedMacroSuite}
+        setSelectedMacroSuite={setSelectedMacroSuite}
+        customMacroSuites={customMacroSuites}
+        handleContainerClick={handleContainerClick}
+      />
 
       {/* 2. MIDDLE TOP CARD: CATEGORY DROPDOWN */}
-      <div className="layout-dropdown-card" onClick={handleContainerClick}>
-        <div className="category-select-wrapper">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            className="category-dropdown"
-          >
-            {/* SECTION 1: CUSTOM BUTTONS (TOP PRIORITY) */}
-            <optgroup label="CUSTOM CREATIONS">
-              <option value="CUSTOM">[CUSTOM] Custom Buttons ({customButtons.length})</option>
-            </optgroup>
-
-            {/* SECTION 2: ALPHABETICAL PRE-BUILT TOOLKITS */}
-            <optgroup label="PRE-BUILT TOOLKITS">
-              {Object.entries(PREBUILT_CATEGORIES)
-                .sort((a, b) => a[1].name.localeCompare(b[1].name))
-                .map(([key, cat]) => (
-                  <option key={key} value={key}>
-                    {cat.name}
-                  </option>
-                ))}
-            </optgroup>
-          </select>
-        </div>
-      </div>
+      <CategorySelector
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        customButtonsCount={customButtons.length}
+        handleContainerClick={handleContainerClick}
+      />
 
       {/* 3. MAIN WORKSPACE CARD: AVAILABLE BUTTONS POOL, PREVIEW, CONTROLS */}
       <div className="layout-editor-card" onClick={handleContainerClick}>
-        <div className="available-pool-section" onClick={handleContainerClick}>
-          <div className="pool-section-label" onClick={handleContainerClick}>
-            <span>AVAILABLE BUTTONS POOL ({poolItems.length})</span>
-          </div>
-
-          <div className="available-chips-grid" onClick={handleContainerClick}>
-            {poolItems.map((item, idx) => {
-              const isSelected = selectedPoolItem === item;
-              const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
-
-              const customStyle = customButtonStyles[item];
-              return (
-                <button
-                  key={`pool-${item}-${idx}`}
-                  type="button"
-                  className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''} ${customStyle?.shape || ''}`}
-                  style={customStyle ? {
-                    background: customStyle.bg || undefined,
-                    color: customStyle.text || undefined,
-                    borderColor: customStyle.border || undefined,
-                    width: customStyle.width ? `${customStyle.width}rem` : undefined,
-                    height: customStyle.height ? `${customStyle.height}rem` : undefined,
-                  } : {}}
-                  onClick={(e) => handleSelectPoolItem(e, item)}
-                  title="Click to select button"
-                >
-                  {isLauncher && <Zap size={10} color="var(--accent-mana)" style={{ marginRight: '3px' }} />}
-                  <span>{item}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ButtonPoolGrid
+          poolItems={poolItems}
+          selectedPoolItem={selectedPoolItem}
+          customButtonStyles={customButtonStyles}
+          handleSelectPoolItem={handleSelectPoolItem}
+          handleContainerClick={handleContainerClick}
+        />
 
         {/* 3. MIDDLE LOWER SECTION: LIVE TOUCHBAR PREVIEW ROW */}
-        <div className="live-bar-preview-section" onClick={handleContainerClick}>
-          <div className="bar-preview-label" onClick={handleContainerClick}>
-            <span>LIVE TOUCHBAR PREVIEW ({touchBarSlots.length} SLOTS)</span>
-          </div>
-
-          <div className="live-bar-strip-wrapper" onClick={handleContainerClick}>
-            <div className="live-bar-strip" onClick={handleContainerClick}>
-              {touchBarSlots.map((item, idx) => {
-                const isSelected = selectedBarIndex === idx;
-                const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
-
-                const customStyle = customButtonStyles[item];
-                return (
-                  <button
-                    key={`bar-${item}-${idx}`}
-                    type="button"
-                    className={`live-bar-tile ${isSelected ? 'selected-bar-tile' : ''} ${isLauncher ? 'launcher-tile' : ''} ${customStyle?.shape || ''}`}
-                    style={customStyle ? {
-                      background: customStyle.bg || undefined,
-                      color: customStyle.text || undefined,
-                      borderColor: customStyle.border || undefined,
-                      width: customStyle.width ? `${customStyle.width}rem` : undefined,
-                      height: customStyle.height ? `${customStyle.height}rem` : undefined,
-                    } : {}}
-                    onClick={(e) => handleSelectBarItem(e, idx)}
-                  >
-                    <span>{item}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <TouchBarPreviewStrip
+          touchBarSlots={touchBarSlots}
+          selectedBarIndex={selectedBarIndex}
+          customButtonStyles={customButtonStyles}
+          handleSelectBarItem={handleSelectBarItem}
+          handleContainerClick={handleContainerClick}
+        />
 
         {/* 4. BOTTOM SECTION: STREAMLINED ACTION CONTROLLER (4 EQUAL BUTTONS) */}
-        <div className="single-bar-control-console" onClick={handleContainerClick}>
-          <button
-            type="button"
-            className="action-btn add-action-btn"
-            disabled={!selectedPoolItem}
-            onClick={(e) => handleAddSelectedToBar(e)}
-            title="Add Selected Pool Button to TouchBar"
-          >
-            <Plus size={13} />
-            <span>Add</span>
-          </button>
-
-          <button
-            type="button"
-            className="action-btn move-action-btn"
-            disabled={selectedBarIndex === null || selectedBarIndex === 0}
-            onClick={(e) => handleMoveBarItem(e, 'left')}
-          >
-            <ArrowLeft size={13} />
-            <span>Move Left</span>
-          </button>
-
-          <button
-            type="button"
-            className="action-btn move-action-btn"
-            disabled={selectedBarIndex === null || selectedBarIndex === touchBarSlots.length - 1}
-            onClick={(e) => handleMoveBarItem(e, 'right')}
-          >
-            <span>Move Right</span>
-            <ArrowRight size={13} />
-          </button>
-
-          <button
-            type="button"
-            className="action-btn reset-action-btn"
-            disabled={!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)}
-            onClick={(e) => handleReset(e)}
-            title={`Reset ${selectedMacroSuite} suite to defaults`}
-          >
-            <RotateCcw size={13} />
-            <span>Reset</span>
-          </button>
-
-          <button
-            type="button"
-            className="action-btn delete-action-btn"
-            disabled={selectedBarIndex === null && !(selectedPoolItem !== null && customButtons.includes(selectedPoolItem))}
-            onClick={(e) => handleRemove(e)}
-            title={selectedBarIndex !== null ? "Remove selected button from TouchBar" : "Permanently delete custom button"}
-          >
-            <Trash2 size={13} />
-            <span>{selectedBarIndex !== null ? 'Remove' : 'Delete'}</span>
-          </button>
-        </div>
+        <LayoutActionConsole
+          selectedPoolItem={selectedPoolItem}
+          selectedBarIndex={selectedBarIndex}
+          selectedMacroSuite={selectedMacroSuite}
+          touchBarSlotsCount={touchBarSlots.length}
+          customButtons={customButtons}
+          handleAddSelectedToBar={handleAddSelectedToBar}
+          handleMoveBarItem={handleMoveBarItem}
+          handleReset={handleReset}
+          handleRemove={handleRemove}
+          handleContainerClick={handleContainerClick}
+        />
       </div>
     </div>
   );
 }
+

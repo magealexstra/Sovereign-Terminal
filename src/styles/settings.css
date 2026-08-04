@@ -1546,6 +1546,8 @@
   padding: 1rem;
   width: 92%;
   max-width: 420px;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
+  overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
   display: flex;
   flex-direction: column;

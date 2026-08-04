@@ -135,20 +135,49 @@ export function AppProvider({ children }) {
     });
   };
 
-  // ── Custom Theme Saver ────────────────────────────────────────────────────
+  // ── Custom Theme Saver & Deleter ──────────────────────────────────────────
   const saveCustomTheme = (customThemeObject) => {
     const themeKey = `Custom_${Date.now()}`;
-    const updatedThemes = { ...themes, [themeKey]: customThemeObject };
+    const formattedTheme = { ...customThemeObject, isCustom: true };
+    const updatedThemes = { ...themes, [themeKey]: formattedTheme };
     setThemes(updatedThemes);
-    setTheme(customThemeObject);
+    setTheme(formattedTheme);
     try {
       const userCustomOnly = Object.fromEntries(
-        Object.entries(updatedThemes).filter(([k]) => k.startsWith('Custom_'))
+        Object.entries(updatedThemes).filter(([k, v]) => k.startsWith('Custom_') || v?.isCustom)
       );
       localStorage.setItem('sovereign_custom_themes', JSON.stringify(userCustomOnly));
     } catch (e) {
       console.error('Failed to save theme to localStorage:', e);
     }
+  };
+
+  const deleteCustomTheme = (themeKeyOrName) => {
+    const matchingEntry = Object.entries(themes).find(
+      ([k, v]) => (k === themeKeyOrName || v?.name === themeKeyOrName) && (k.startsWith('Custom_') || v?.isCustom)
+    );
+    if (!matchingEntry) return false;
+
+    const [targetKey, targetTheme] = matchingEntry;
+    const updatedThemes = { ...themes };
+    delete updatedThemes[targetKey];
+    setThemes(updatedThemes);
+
+    if (theme?.name === targetTheme?.name) {
+      const fallback = updatedThemes.nord || updatedThemes.sovereign || Object.values(updatedThemes)[0];
+      if (fallback) setThemeState(fallback);
+    }
+
+    try {
+      const userCustomOnly = Object.fromEntries(
+        Object.entries(updatedThemes).filter(([k, v]) => k.startsWith('Custom_') || v?.isCustom)
+      );
+      localStorage.setItem('sovereign_custom_themes', JSON.stringify(userCustomOnly));
+    } catch (e) {
+      console.error('Failed to update custom themes in localStorage:', e);
+    }
+
+    return true;
   };
 
   // ── Dynamic Device Baseline ───────────────────────────────────────────────
@@ -295,6 +324,11 @@ export function AppProvider({ children }) {
         saveCustomTheme: (customThemeObject) => {
           saveCustomTheme(customThemeObject);
           syncUserSettingsToServer();
+        },
+        deleteCustomTheme: (themeKeyOrName) => {
+          const res = deleteCustomTheme(themeKeyOrName);
+          syncUserSettingsToServer();
+          return res;
         },
         fetchUserSettings,
         syncUserSettingsToServer,

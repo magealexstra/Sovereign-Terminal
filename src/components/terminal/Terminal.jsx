@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -10,7 +10,7 @@ import { writeToClipboard } from './terminal/writeToClipboard';
 import CopyCard from './CopyCard';
 import '@xterm/xterm/css/xterm.css';
 
-export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText }) {
+export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText, rootDir }) {
   const { theme, fontSizeTerminal, tmuxSettings } = useApp();
   const { toast, showToast } = useToast();
   const terminalRef = useRef(null);
@@ -24,9 +24,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   tmuxSettingsRef.current = tmuxSettings;
   const lastSubagentSyncRef = useRef(0);
   const injectingRef = useRef(false);
-  const outputStreamingRef = useRef(false);
-  const streamTimeoutRef = useRef(null);
-  const streamStartRef = useRef(0);
   const lastColsRef = useRef(0);
   const lastRowsRef = useRef(0);
 
@@ -156,6 +153,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   // App.jsx uses key={sess.id} so each session gets its own component instance.
   useEffect(() => {
     if (!terminalRef.current) return;
+    let isMounted = true;
 
     const term = new XTerm({
       cursorBlink: true,
@@ -252,9 +250,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     setTimeout(performFit, 200);
 
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => {
-        performFit();
-      });
+      document.fonts.ready
+        .then(() => {
+          if (isMounted) performFit();
+        })
+        .catch(() => {});
     }
 
     // Debounced Copy-on-Select Clipboard Handler
@@ -351,7 +351,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     let reconnectAttempts = 0;
     const maxReconnects = 10;
     let reconnectTimeout = null;
-    let isMounted = true;
 
     const connect = () => {
       if (!isMounted) return;
@@ -485,7 +484,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       clearTimeout(reconnectTimeout);
       clearTimeout(resizeDebounce);
       if (parseDebounceTimer) clearTimeout(parseDebounceTimer);
-      if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
       try { parseDisposable.dispose(); } catch (e) {}
       resizeObserver.disconnect();
@@ -496,14 +494,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       try { term.dispose(); } catch (e) {}
     };
   }, []);
-
-  // isKeyboardOpen is a prop that changes over time, but the ResizeObserver closure
-  // captures the initial value. Use a ref so the closure always reads the latest.
-  const isKeyboardOpenRef = useRef(isKeyboardOpen);
-  isKeyboardOpenRef.current = isKeyboardOpen;
-
-  // When keyboard state changes, pulse the resize logic to ensure we catch
-  // the exact resting height after the mobile browser animation finishes.
 
 
 
@@ -540,7 +530,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
 
   // Buffer extraction handlers for CopyCard
-  const handleCopyLastOutput = (mode) => {
+  const handleCopyLastOutput = useCallback((mode) => {
     if (!xtermInstance.current) return;
     const term = xtermInstance.current;
     const buffer = term.buffer.active;
@@ -548,13 +538,13 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const startLine = Math.max(0, buffer.length - maxLines);
     const text = extractBufferRange(buffer, startLine, buffer.length);
     if (mode === 'clip') {
-      writeToClipboard(text).then(() => showToast('Copied Last Output to Clipboard')).catch(() => showToast('Copied Last Output'));
+      writeToClipboard(text).then(() => showToast('Copied Last Output to Clipboard')).catch(() => showToast('Failed to copy to clipboard'));
     } else if (onInspectText) {
       onInspectText(text, 'Last Command Output');
     }
-  };
+  }, [onInspectText, showToast]);
 
-  const handleCopyScreenBuffer = (mode) => {
+  const handleCopyScreenBuffer = useCallback((mode) => {
     if (!xtermInstance.current) return;
     const term = xtermInstance.current;
     const buffer = term.buffer.active;
@@ -562,13 +552,13 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const endLine = Math.min(buffer.length, startLine + term.rows);
     const text = extractBufferRange(buffer, startLine, endLine);
     if (mode === 'clip') {
-      writeToClipboard(text).then(() => showToast('Copied Screen Buffer to Clipboard')).catch(() => showToast('Copied Screen Buffer'));
+      writeToClipboard(text).then(() => showToast('Copied Screen Buffer to Clipboard')).catch(() => showToast('Failed to copy to clipboard'));
     } else if (onInspectText) {
       onInspectText(text, 'Screen Buffer');
     }
-  };
+  }, [onInspectText, showToast]);
 
-  const handleCopyCustomLines = (mode, linesOverride) => {
+  const handleCopyCustomLines = useCallback((mode, linesOverride) => {
     if (!xtermInstance.current) return;
     let customCount = typeof linesOverride === 'number' ? linesOverride : 50;
 
@@ -578,11 +568,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const startLine = Math.max(0, buffer.length - lineCount);
     const text = extractBufferRange(buffer, startLine, buffer.length);
     if (mode === 'clip') {
-      writeToClipboard(text).then(() => showToast(`Copied ${lineCount} Lines to Clipboard`)).catch(() => showToast(`Copied ${lineCount} Lines`));
+      writeToClipboard(text).then(() => showToast(`Copied ${lineCount} Lines to Clipboard`)).catch(() => showToast('Failed to copy to clipboard'));
     } else if (onInspectText) {
       onInspectText(text, `Custom ${lineCount} Lines`);
     }
-  };
+  }, [onInspectText, showToast]);
 
   const scrollToBottom = () => {
     if (xtermInstance.current) {
