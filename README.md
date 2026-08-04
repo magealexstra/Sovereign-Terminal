@@ -54,7 +54,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Mobile Operator Keys**: Stacked keys for shell operators (`|`, `~`, `>`, `&&`), signals (`ESC`, `TAB`, `^C`, `^Z`), and cursor navigation (`^A`, `^E`, `^K`).
 * **Dynamic Customization**: Full visual button studio for customizing labels, colors, shapes, and shell strings stored in [buttonData.js](src/components/settings/button-studio/buttonData.js).
 
-*For the complete command reference, key injection guide, and source files, see [COMMAND_TOOLKITS_AND_MACROS.md](COMMAND_TOOLKITS_AND_MACROS.md) and [CUSTOM_BUTTON_GUIDE.md](CUSTOM_BUTTON_GUIDE.md).*
+*For the complete command reference, key injection guide, and source files, see [COMMAND_TOOLKITS_AND_MACROS.md](docs/COMMAND_TOOLKITS_AND_MACROS.md) and [CUSTOM_BUTTON_GUIDE.md](docs/CUSTOM_BUTTON_GUIDE.md).*
 
 
 
@@ -102,7 +102,7 @@ The repository includes a version-controlled configuration template named `.env.
 cp .env.example .env
 ```
 
-`docker-compose.yml` uses environment variable substitution with fallbacks (`${VARIABLE:-fallback}`), automatically loading settings defined in `.env`. For detailed deployment matrix specifications, see [USER_GUIDE.md](USER_GUIDE.md).
+`docker-compose.yml` uses environment variable substitution with fallbacks (`${VARIABLE:-fallback}`), automatically loading settings defined in `.env`. For detailed deployment matrix specifications, see [USER_GUIDE.md](docs/USER_GUIDE.md).
 
 #### Section 1: Option A (Sandbox) + Token Mode (The Default)
 
@@ -146,7 +146,7 @@ volumes:
 3. Launch container: `docker compose up -d`
 4. Access `http://localhost:2069` and log in with your configured token.
 
-For PAM modes, Host Passthrough, external drive mounting (`/mnt`, `/media`), and True Baremetal installation steps, consult the complete [USER_GUIDE.md](USER_GUIDE.md).
+For PAM modes, Host Passthrough, external drive mounting (`/mnt`, `/media`), and True Baremetal installation steps, consult the complete [USER_GUIDE.md](docs/USER_GUIDE.md).
 
 ---
 

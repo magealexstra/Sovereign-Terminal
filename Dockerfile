@@ -51,7 +51,7 @@ COPY server ./server
 # Copy manuals into the container's default workspace
 RUN mkdir -p /workspace
 COPY README.md /workspace/
-COPY OPERATION_MANUAL.md /workspace/
+COPY docs/OPERATION_MANUAL.md /workspace/
 # Install global tmux config so options are set once at server start (not per-session)
 RUN cp /app/server/tmux.conf /etc/tmux.conf
 

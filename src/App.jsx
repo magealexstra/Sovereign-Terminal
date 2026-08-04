@@ -214,18 +214,18 @@ export default function App() {
     const hasSeenManual = localStorage.getItem('hasSeenManual');
     if (!hasSeenManual) {
       // Fetch the live manual from the container's hard drive
-      fetch(`/api/fs/read?path=${rootDir}/OPERATION_MANUAL.md`)
+      fetch(`/api/fs/read?path=${rootDir}/docs/OPERATION_MANUAL.md`)
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data && data.content) {
             // Open the manual as a new tab
             setOpenDocuments([{
               name: 'OPERATION_MANUAL.md',
-              path: `${rootDir}/OPERATION_MANUAL.md`,
+              path: `${rootDir}/docs/OPERATION_MANUAL.md`,
               isModified: false,
               content: data.content
             }]);
-            setActiveFilePath(`${rootDir}/OPERATION_MANUAL.md`);
+            setActiveFilePath(`${rootDir}/docs/OPERATION_MANUAL.md`);
             
             // Mark it as seen so it never auto-opens again
             localStorage.setItem('hasSeenManual', 'true');
