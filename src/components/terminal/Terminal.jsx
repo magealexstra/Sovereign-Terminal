@@ -11,7 +11,7 @@ import CopyCard from './CopyCard';
 import '@xterm/xterm/css/xterm.css';
 
 export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText }) {
-  const { theme, fontSizeTerminal } = useApp();
+  const { theme, fontSizeTerminal, tmuxSettings } = useApp();
   const { toast, showToast } = useToast();
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
@@ -20,6 +20,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const selectionTimer = useRef(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  const tmuxSettingsRef = useRef(tmuxSettings);
+  tmuxSettingsRef.current = tmuxSettings;
+  const lastSubagentSyncRef = useRef(0);
   const injectingRef = useRef(false);
   const outputStreamingRef = useRef(false);
   const streamTimeoutRef = useRef(null);
@@ -133,6 +136,22 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     return () => window.removeEventListener('terminal-focus', handleGlobalFocus);
   }, [isActive]);
 
+  // Helper: extracts buffer lines and intelligently joins soft-wrapped lines
+  const extractBufferRange = (buffer, startLine, endLine) => {
+    let result = '';
+    for (let i = startLine; i < endLine; i++) {
+      const line = buffer.getLine(i);
+      if (!line) continue;
+      const str = line.translateToString(true);
+      if (line.isWrapped && result.length > 0) {
+        result += str;
+      } else {
+        result += (result.length > 0 ? '\n' : '') + str;
+      }
+    }
+    return result.trim();
+  };
+
   // Main terminal lifecycle — runs once per mounted instance.
   // App.jsx uses key={sess.id} so each session gets its own component instance.
   useEffect(() => {
@@ -190,6 +209,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       term.textarea.setAttribute('autocapitalize', 'none');
       term.textarea.setAttribute('spellcheck', 'false');
       term.textarea.setAttribute('autocomplete', 'off');
+      // Force Gboard to drop composition buffer and predictive text ribbon
+      term.textarea.setAttribute('inputmode', 'email');
 
       term.textarea.addEventListener('blur', (e) => {
         if (injectingRef.current) return;
@@ -383,6 +404,50 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
     connect();
 
+    // ── Stream parsing for auto-spawning subagents check ────────────────────
+    let parseDebounceTimer = null;
+    const parseDisposable = term.onWriteParsed(() => {
+      if (parseDebounceTimer) clearTimeout(parseDebounceTimer);
+      parseDebounceTimer = setTimeout(() => {
+        if (tmuxSettingsRef.current?.autoSpawnSubagents) {
+          const buffer = term.buffer.active;
+          if (buffer) {
+            const startLine = Math.max(0, buffer.length - 4);
+            const text = extractBufferRange(buffer, startLine, buffer.length);
+            if (/Agent\([^)]+\)/.test(text) || /\d+\s+subagent\(s\)/.test(text)) {
+              const now = Date.now();
+              if (now - lastSubagentSyncRef.current >= 20000) {
+                lastSubagentSyncRef.current = now;
+                let activeIds = [];
+                try {
+                  const raw = localStorage.getItem('sovereign_active_session_ids');
+                  activeIds = raw ? JSON.parse(raw) : [];
+                } catch {}
+                fetch('/api/terminal/sessions/sync-subagents', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ active: activeIds }),
+                })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    if (data && Array.isArray(data.new_sessions)) {
+                      data.new_sessions.forEach((sess) => {
+                        window.dispatchEvent(
+                          new CustomEvent('sovereign_attach_session', {
+                            detail: { sessionName: sess },
+                          })
+                        );
+                      });
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }
+          }
+        }
+      }, 1000);
+    });
+
     // term.onData uses socketRef.current so it targets the live socket after any reconnect
     term.onData((data) => {
       if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -419,8 +484,10 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       isMounted = false;
       clearTimeout(reconnectTimeout);
       clearTimeout(resizeDebounce);
+      if (parseDebounceTimer) clearTimeout(parseDebounceTimer);
       if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
+      try { parseDisposable.dispose(); } catch (e) {}
       resizeObserver.disconnect();
       containerEl.removeEventListener('touchstart', handleTouchStart);
       containerEl.removeEventListener('touchmove', handleTouchMove);
@@ -471,21 +538,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
   }, [voiceInput, isActive]);
 
-  // Helper: extracts buffer lines and intelligently joins soft-wrapped lines
-  const extractBufferRange = (buffer, startLine, endLine) => {
-    let result = '';
-    for (let i = startLine; i < endLine; i++) {
-      const line = buffer.getLine(i);
-      if (!line) continue;
-      const str = line.translateToString(true);
-      if (line.isWrapped && result.length > 0) {
-        result += str;
-      } else {
-        result += (result.length > 0 ? '\n' : '') + str;
-      }
-    }
-    return result.trim();
-  };
 
   // Buffer extraction handlers for CopyCard
   const handleCopyLastOutput = (mode) => {

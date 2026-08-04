@@ -207,16 +207,16 @@ export default function TmuxManager() {
 
           <div className="tmux-setting-row">
             <div className="tmux-setting-info">
-              <span className="tmux-setting-label">Auto-sweep on Startup</span>
+              <span className="tmux-setting-label">Auto-Attach AGY Subagents</span>
               <span className="tmux-setting-desc">
-                Kill orphaned sessions when the server restarts.
+                Automatically spawn new terminal tabs when a background subagent is detected.
               </span>
             </div>
             <label className="pill-toggle">
               <input
                 type="checkbox"
-                checked={!!tmuxSettings?.autoSweepOnStartup}
-                onChange={(e) => updateBehavior('autoSweepOnStartup', e.target.checked)}
+                checked={!!tmuxSettings?.autoSpawnSubagents}
+                onChange={(e) => updateBehavior('autoSpawnSubagents', e.target.checked)}
               />
               <span className="pill-track"><span className="pill-thumb" /></span>
             </label>

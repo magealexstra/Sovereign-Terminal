@@ -319,16 +319,24 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
           <button className="tb-btn" onClick={() => setNewFileModal(true)} title="New File/Folder">
             <Plus size={14} color="var(--status-active)" />
           </button>
-          {selectedItems.length > 0 && (
-            <>
-              <button className="tb-btn" onClick={handleArchiveSelected} title="Archive to Local _temp_trash">
-                <FolderMinus size={14} color="var(--accent-mana)" />
-              </button>
-              <button className="tb-btn delete" onClick={handleDeleteSelected} title="Delete Permanently">
-                <Trash2 size={14} color="var(--status-danger)" />
-              </button>
-            </>
-          )}
+          <button 
+            className="tb-btn" 
+            onClick={handleArchiveSelected} 
+            title="Archive to Local _temp_trash"
+            disabled={selectedItems.length === 0}
+            style={{ opacity: selectedItems.length === 0 ? 0.4 : 1, cursor: selectedItems.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            <FolderMinus size={14} color={selectedItems.length === 0 ? 'var(--text-muted)' : 'var(--accent-mana)'} />
+          </button>
+          <button 
+            className="tb-btn delete" 
+            onClick={handleDeleteSelected} 
+            title="Delete Permanently"
+            disabled={selectedItems.length === 0}
+            style={{ opacity: selectedItems.length === 0 ? 0.4 : 1, cursor: selectedItems.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            <Trash2 size={14} color={selectedItems.length === 0 ? 'var(--text-muted)' : 'var(--status-danger)'} />
+          </button>
           <button className="tb-btn" onClick={handleDownload} title="Download to Phone">
             <Download size={14} />
           </button>
@@ -376,8 +384,11 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
       {/* File Search Modal */}
       {showSearchModal && (
         <div className="explorer-modal-overlay" onClick={() => setShowSearchModal(false)}>
-          <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>🔍 Search Directory Files</h3>
+          <div className="explorer-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <Search size={18} color="var(--accent-mana)" />
+              <h3>Search Directory Files</h3>
+            </div>
             <input
               type="text"
               className="modal-input"
@@ -386,7 +397,9 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
             />
-            <button className="modal-close-btn" onClick={() => setShowSearchModal(false)}>Done</button>
+            <div className="modal-btn-row">
+              <button type="button" onClick={() => setShowSearchModal(false)}>Done</button>
+            </div>
           </div>
         </div>
       )}

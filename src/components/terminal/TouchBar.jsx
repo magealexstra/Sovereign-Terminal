@@ -534,7 +534,7 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
             return null;
           }
 
-          if (item === '⚡ MACROS' || item === 'MACROS') {
+          if (item === 'MACROS') {
             return (
               <button
                 key={`slot-${item}-${idx}`}

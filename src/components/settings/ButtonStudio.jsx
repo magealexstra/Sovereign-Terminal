@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, Code, Save } from 'lucide-react';
+import { Sliders, Code, Save, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_BUTTONS, PREBUILT_CATEGORIES } from './button-studio/buttonData';
 import ButtonHeader from './button-studio/ButtonHeader';
@@ -367,7 +367,9 @@ export default function ButtonStudio() {
           <div className="pinned-save-wrapper">
             <button type="button" className={`studio-save-btn ${saveToast ? 'saved' : ''}`} onClick={handleSaveButtons}>
               <Save size={12} />
-              <span>{saveToast ? '✓ Saved!' : 'Save Custom Button'}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {saveToast ? <><Check size={14} /> Saved!</> : 'Save Custom Button'}
+              </span>
             </button>
           </div>
         </div>

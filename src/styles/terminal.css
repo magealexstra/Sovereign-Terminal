@@ -49,6 +49,7 @@
   margin: 0 !important;
   outline: none !important;
   box-shadow: none !important;
+  -webkit-text-security: disc !important;
 }
 
 /* Custom Scrollbar for xterm Viewport */

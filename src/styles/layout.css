@@ -206,7 +206,7 @@
   /* Fluid Sizing */
   gap: clamp(0.2rem, 1vw, 0.45rem);
   padding: clamp(0.25rem, 1vw, 0.45rem) clamp(0.3rem, 1.5vw, 0.8rem);
-  font-size: clamp(0.6rem, 2.5vw, 0.82rem);
+  font-size: clamp(0.7rem, 2.5vw, 0.82rem);
 
   font-family: var(--font-sans);
   font-weight: 600;

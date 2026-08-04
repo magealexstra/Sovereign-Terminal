@@ -47,8 +47,8 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
         title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : 'New Session in Current Working Directory'}
         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', opacity: sessions.length >= 5 ? 0.4 : 1, cursor: sessions.length >= 5 ? 'not-allowed' : 'pointer' }}
       >
-        <Plus size={12} />
-        <FolderDown size={12} color={sessions.length >= 5 ? 'var(--text-muted)' : 'var(--accent-mana)'} />
+        <Plus size={14} />
+        <FolderDown size={14} color={sessions.length >= 5 ? 'var(--text-muted)' : 'var(--accent-mana)'} />
       </button>
     </div>
   );

@@ -2455,9 +2455,23 @@
   outline: none;
   border-color: var(--accent-highlight);
 }
-.tmux-num-input::-webkit-inner-spin-button,
 .tmux-num-input::-webkit-outer-spin-button { opacity: 0.4; }
 
+/* ── Global Input Focus Glow Sync ────────────────────────────────────────── */
+.micro-input:focus,
+.micro-textarea:focus,
+.live-preview-textarea:focus,
+.hex-input:focus,
+.search-input-box input:focus,
+.color-input-group input[type="text"]:focus,
+.custom-color-row input[type="text"]:focus,
+.audition-hex-input:focus,
+.theme-name-input-group input:focus,
+.tmux-num-input:focus {
+  outline: none;
+  border-color: var(--accent-highlight) !important;
+  box-shadow: 0 0 5px var(--accent-glow) !important;
+}
 .tmux-unit {
   font-size: 0.72rem;
   color: var(--text-dim);

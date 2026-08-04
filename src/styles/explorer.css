@@ -52,19 +52,22 @@
 .toolbar-actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .tb-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem 0.5rem;
+  padding: 0.35rem 0.4rem;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
   border-radius: 4px;
   color: var(--text-parchment);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .tb-btn:active {
@@ -348,8 +351,8 @@
   max-width: 420px;
   max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
   overflow-y: auto;
-  background: var(--bg-canopy);
-  border: 1px solid var(--border-sage);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
   border-radius: 8px;
   padding: 1.25rem;
 }
@@ -372,6 +375,25 @@
   margin: 0.75rem 0;
 }
 
+.modal-input:focus {
+  outline: none;
+  border-color: var(--accent-highlight);
+  box-shadow: 0 0 5px var(--accent-glow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.modal-header h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--text-parchment);
+  font-size: 1.05rem;
+}
+
 .modal-btn-row {
   display: flex;
   justify-content: flex-end;
@@ -386,6 +408,13 @@
   border: 1px solid var(--border-forest);
   color: var(--text-parchment);
   cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+.modal-btn-row button:hover,
+.modal-btn-row button:active {
+  border-color: var(--accent-highlight);
+  background: var(--bg-panel-hover);
 }
 
 .modal-btn-row button.submit {
@@ -396,4 +425,75 @@
 .modal-btn-row button.delete {
   background: var(--status-danger);
   color: white;
+}
+
+/* ==========================================================================
+   CODEMIRROR 6 SEARCH PANEL OVERRIDES
+   ========================================================================== */
+.cm-panel.cm-search {
+  background: var(--bg-canopy) !important;
+  color: var(--text-parchment) !important;
+  border-top: 1px solid var(--border-forest) !important;
+  font-family: var(--font-sans) !important;
+  padding: 0.5rem 0.75rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+}
+
+.cm-search input.cm-textfield {
+  background: var(--bg-earth) !important;
+  border: 1px solid var(--border-forest) !important;
+  border-radius: 4px !important;
+  color: var(--text-parchment) !important;
+  padding: 0.3rem 0.5rem !important;
+  font-family: var(--font-mono) !important;
+  outline: none !important;
+}
+
+.cm-search input.cm-textfield:focus {
+  border-color: var(--accent-highlight) !important;
+  box-shadow: 0 0 5px var(--accent-glow) !important;
+}
+
+.cm-search button.cm-button {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-forest) !important;
+  border-radius: 4px !important;
+  color: var(--text-parchment) !important;
+  padding: 0.3rem 0.6rem !important;
+  cursor: pointer !important;
+  text-transform: capitalize !important;
+  font-family: var(--font-sans) !important;
+}
+
+.cm-search button.cm-button:active,
+.cm-search button.cm-button:hover {
+  background: var(--accent-highlight) !important;
+  color: var(--bg-earth) !important;
+  border-color: var(--accent-highlight) !important;
+}
+
+.cm-search label {
+  color: var(--text-muted) !important;
+  font-size: 0.85rem !important;
+  font-family: var(--font-sans) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+}
+
+.cm-search input[type="checkbox"] {
+  accent-color: var(--accent-mana) !important;
+}
+
+.cm-editor .cm-searchMatch {
+  background: var(--accent-glow) !important;
+  border: 1px solid var(--accent-mana) !important;
+  border-radius: 2px;
+}
+.cm-editor .cm-searchMatch-selected {
+  background: var(--accent-highlight) !important;
+  color: var(--bg-earth) !important;
 }

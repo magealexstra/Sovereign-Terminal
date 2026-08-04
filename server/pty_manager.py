@@ -153,6 +153,38 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
     return {"status": "ok", "swept": swept}
 
 
+@router.post("/api/terminal/sessions/sync-subagents")
+async def sync_subagent_sessions(request: Request, user: dict = Depends(require_auth)):
+    """Return live tmux sessions that are not in the provided active UI-tab list."""
+    if not _tmux_bin:
+        raise HTTPException(status_code=503, detail="tmux not available")
+    use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
+    target_user = user.get("username") if (use_pam and user) else None
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    raw_active = body.get("active", [])
+    active_ids = set(raw_active) if isinstance(raw_active, list) else set()
+
+    # Fetch the current live session list
+    try:
+        if use_pam and target_user:
+            cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '#S'"]
+        else:
+            cmd = _get_tmux_base() + ["list-sessions", "-F", "#S"]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if res.returncode != 0 or not res.stdout:
+            return {"status": "ok", "new_sessions": []}
+        live_sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    new_sessions = [sess for sess in live_sessions if sess not in active_ids]
+    return {"status": "ok", "new_sessions": new_sessions}
+
+
 @router.post("/api/terminal/config")
 async def apply_tmux_config(request: Request, user: dict = Depends(require_auth)):
     """Apply tmux runtime configuration options (history-limit, escape-time)."""
