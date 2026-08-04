@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, KeyRound, Trash2, Zap, X, Edit3 } from 'lucide-react';
+import { Mic, MicOff, KeyRound, Trash2, Zap, X, Edit3, Terminal } from 'lucide-react';
 import StagingDrawer from './StagingDrawer';
 import { 
   PREBUILT_CATEGORIES,
@@ -15,6 +15,21 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
   const [showMacroModal, setShowMacroModal] = useState(false);
   const [showStager, setShowStager] = useState(false);
   const [stagerText, setStagerText] = useState('');
+
+  const [macroTarget, setMacroTarget] = useState(() => {
+    try {
+      return localStorage.getItem('sovereign_macro_target') || 'stager';
+    } catch {
+      return 'stager';
+    }
+  });
+
+  const handleMacroTargetToggle = (target) => {
+    setMacroTarget(target);
+    try {
+      localStorage.setItem('sovereign_macro_target', target);
+    } catch {}
+  };
   const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastSpeechRef = useRef('');
@@ -642,6 +657,34 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
                 <Zap size={16} color="var(--status-active)" />
                 <h3>{selectedSuite.replace('KEY_', '')} TOOLKIT</h3>
               </div>
+
+              <div className="macro-target-toggle">
+                <button
+                  type="button"
+                  className={`target-pill ${macroTarget === 'stager' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMacroTargetToggle('stager');
+                  }}
+                  title="Route macro selection to Command Stager"
+                >
+                  <Edit3 size={11} />
+                  <span>STAGER</span>
+                </button>
+                <button
+                  type="button"
+                  className={`target-pill ${macroTarget === 'terminal' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMacroTargetToggle('terminal');
+                  }}
+                  title="Route macro selection directly to Terminal PTY"
+                >
+                  <Terminal size={11} />
+                  <span>PTY</span>
+                </button>
+              </div>
+
               <button className="close-modal-btn" onClick={() => setShowMacroModal(false)}>
                 <X size={16} />
               </button>
@@ -711,7 +754,13 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
                         setPrimaryGroup(targetGroup);
                         setSelectedSuite(macro.label);
                       } else {
-                        onKeyPress(macro.value);
+                        if (macroTarget === 'stager') {
+                          const valToAppend = macro.value ? macro.value.replace(/\n$/, '') : macro.label;
+                          setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
+                          setShowStager(true);
+                        } else {
+                          onKeyPress(macro.value);
+                        }
                         setShowMacroModal(false);
                       }
                     }}
@@ -749,6 +798,34 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
               >
                 <h3>{focusedSuiteName}</h3>
               </button>
+
+              <div className="macro-target-toggle">
+                <button
+                  type="button"
+                  className={`target-pill ${macroTarget === 'stager' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMacroTargetToggle('stager');
+                  }}
+                  title="Route macro selection to Command Stager"
+                >
+                  <Edit3 size={11} />
+                  <span>STAGER</span>
+                </button>
+                <button
+                  type="button"
+                  className={`target-pill ${macroTarget === 'terminal' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMacroTargetToggle('terminal');
+                  }}
+                  title="Route macro selection directly to Terminal PTY"
+                >
+                  <Terminal size={11} />
+                  <span>PTY</span>
+                </button>
+              </div>
+
               <button className="close-modal-btn" onClick={() => setShowFocusedSuiteModal(false)}>
                 <X size={16} />
               </button>
@@ -789,7 +866,13 @@ export default function TouchBar({ onKeyPress, onVoiceInput }) {
                       height: macro.height ? `${macro.height}rem` : undefined,
                     } : {}}
                     onClick={() => {
-                      onKeyPress(macro.value);
+                      if (macroTarget === 'stager') {
+                        const valToAppend = macro.value ? macro.value.replace(/\n$/, '') : macro.label;
+                        setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
+                        setShowStager(true);
+                      } else {
+                        onKeyPress(macro.value);
+                      }
                       setShowFocusedSuiteModal(false);
                     }}
                   >

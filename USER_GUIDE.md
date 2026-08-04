@@ -2,190 +2,354 @@
 
 ## Overview of Deployment Matrices
 
-Sovereign Terminal offers two primary Authentication Modes (Token vs. PAM) combined with three primary Deployment Architectures (Option A: Sandbox, Option B: Host Passthrough, Option C: True Baremetal). This results in 5 possible installation matrices.
+Sovereign Terminal offers two primary Authentication Modes (**Token** vs. **PAM**) combined with three primary Deployment Architectures (**Option A: Sandbox**, **Option B: Host Passthrough**, **Option C: True Baremetal**). This results in 5 possible installation matrices:
 
-* **Token Mode:** The simple default. Log in with a single `SERVER_AUTH_TOKEN`.
-* **PAM Mode:** The advanced mode. Log in with your Linux OS user. Enables true multi-device resume via persistent background `tmux` sessions.
+1. **Option A (Sandbox) + Token Mode:** Containerized isolation with token login (Out-of-the-box Default).
+2. **Option A (Sandbox) + PAM Mode:** Containerized isolation with PAM authentication against internal test users.
+3. **Option B (Host Passthrough) + Token Mode:** Containerized backend controlling host system and native `tmux`, authenticated via token.
+4. **Option C (Host Passthrough) + PAM Mode:** Containerized backend controlling host system and native `tmux`, authenticated via host OS user credentials ("The Pro Option").
+5. **Option C (True Baremetal Execution):** Direct native execution on host OS bypassing Docker completely.
 
-### Section 1: Option A (Sandbox) + Token Mode (The Default)
+---
+
+### Configuration Workflow (`.env` vs `docker-compose.yml`)
+
+The repository includes a version-controlled configuration template named `.env.example`. Environment configuration is managed via a local `.env` file created from this template:
+
+```bash
+cp .env.example .env
+```
+
+`docker-compose.yml` uses environment variable substitution with fallbacks (`${VARIABLE:-fallback}`), automatically loading settings defined in `.env`.
+
+#### Custom Workspaces & External Storage Drives (`/mnt`, `/media`)
+- **Default Workspace Path**: By default, Docker mounts the current project directory `./` into `/workspace`. You can change your primary container workspace to any directory or external mount on your host machine by setting `HOST_WORKSPACE_PATH` in `.env`:
+  ```env
+  HOST_WORKSPACE_PATH=/mnt/storage_array/projects
+  ```
+- **Accessing Host Storage & External Media**: If you need access to secondary drives or removable media inside the container, add their mountpoints to the `volumes:` block in `docker-compose.yml`:
+  ```yaml
+  volumes:
+    - /mnt:/mnt        # Expose all host /mnt drives (SATA / NVMe storage arrays)
+    - /media:/media    # Expose host removable media (USB drives / SD cards)
+  ```
+
+---
+
+## Section 1: Option A (Sandbox) + Token Mode (The Default)
 
 This is the simplest method for getting started immediately. The terminal runs in a fully isolated container and authenticates with a simple token.
 
-**Target Audience:** Absolute beginners.
+**Target Audience:** Absolute beginners looking for a rapid, isolated setup.
 
-**Code:**
+**Relevant Environment Variables (`.env`):**
+* `PORT`: Server web port (Default: `2069`).
+* `AUTH_MODE`: Set to `token`.
+* `SERVER_AUTH_TOKEN`: Secret token used for authentication (Default demo token: `1234`).
+* `TZ`: System timezone (e.g. `America/Chicago`).
+* `SAFE_TRASH_MODE`: Enables soft file deletion to `./_temp_trash/` (Default: `true`).
+
+**Compose Specification (`docker-compose.yml`):**
 ```yaml
 version: '3.8'
+
 services:
   sovereign-terminal:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sovereign-terminal
+    container_name: ${CONTAINER_NAME:-sovereign-terminal}
     restart: unless-stopped
     ports:
-      - "2069:2069"
+      - "${PORT:-2069}:${PORT:-2069}"
     environment:
-      - AUTH_MODE=token
-      - SERVER_AUTH_TOKEN=1234
-      - PORT=2069
+      - PORT=${PORT:-2069}
+      - AUTH_MODE=${AUTH_MODE:-token}
+      - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN:-1234}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
+      - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
+      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
+      - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
+      - TZ=${TZ:-America/Chicago}
     volumes:
-      - ./:/workspace
+      - ${HOST_WORKSPACE_PATH:-./}:/workspace
+      - /etc/localtime:/etc/localtime:ro
+      - sovereign-terminal-data:/root/.local/share/sovereign-terminal
+
+volumes:
+  sovereign-terminal-data:
 ```
 
-**Explanation:**
-1. Open your terminal and run `docker compose up -d`. This will automatically download and start the Sovereign Terminal server in the background.
-2. Open your web browser and navigate to `http://localhost:2069` (or your server's IP address on port 2069).
-3. Log in with the default token: `1234`.
-4. **IMPORTANT:** For prolonged usage, you should change `SERVER_AUTH_TOKEN` in the `docker-compose.yml` (and `.env`) to a strong cryptographic string. After editing the file, run `docker compose up -d` again to apply the changes securely.
+**Setup Steps:**
+1. Create your local `.env` file by copying the tracked template:
+   ```bash
+   cp .env.example .env
+   ```
+2. Open `.env` and configure `SERVER_AUTH_TOKEN` with a strong cryptographic secret:
+   ```env
+   AUTH_MODE=token
+   SERVER_AUTH_TOKEN=your_secure_random_token_here
+   PORT=2069
+   ```
+   > **SECURITY WARNING:** The default token `1234` is intended strictly for initial demonstration. Always change `SERVER_AUTH_TOKEN` prior to exposing the web interface to network traffic.
+3. Launch the application container:
+   ```bash
+   docker compose up -d
+   ```
+4. Open your web browser, navigate to `http://localhost:2069` (or `http://<SERVER_IP>:2069`), and log in using your configured token.
 
-### Section 2: Option A (Sandbox) + PAM Mode (Internal Users)
+---
 
-This runs the isolated sandbox, but uses PAM authentication against test users *inside* the container for testing multi-device persistence without touching your host machine.
+## Section 2: Option A (Sandbox) + PAM Mode (Internal Test User)
 
-**Target Audience:** Beginners wanting to test multi-device resume.
+Runs an isolated container sandbox while enabling Linux PAM authentication against internal test accounts created inside the container. This allows testing multi-device session persistence without granting container access to host OS credentials.
 
-**Code:**
-```yaml
-version: '3.8'
-services:
-  sovereign-terminal:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sovereign-terminal
-    restart: unless-stopped
-    ports:
-      - "2069:2069"
-    environment:
-      - AUTH_MODE=pam
-      - PORT=2069
-      - SOVEREIGN_ROOT=/workspace
-    volumes:
-      - ./:/workspace
-```
+**Target Audience:** Users evaluating PAM authentication and multi-device persistence in a safe sandbox.
 
-**Explanation:**
-1. First, open the `Dockerfile` in the project directory. Find the line that says `# RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd` and remove the `#` at the beginning to uncomment it. This creates a test user inside the container.
-2. Update your `docker-compose.yml` file to match the exact block above. Notice that we changed `AUTH_MODE` to `pam`.
-3. Build the new container image and launch it by running: `docker compose up -d --build`.
-4. Navigate to the web UI and log in with the username `testuser` and password `password`. You can now test how sessions persist!
+**Relevant Environment Variables (`.env`):**
+* `AUTH_MODE`: Set to `pam`.
+* `PORT`: Server web port (Default: `2069`).
 
-### Section 3: Option B (Host Passthrough) + Token Mode
+**Setup Steps:**
+1. Update your `.env` file to set `AUTH_MODE=pam`:
+   ```env
+   AUTH_MODE=pam
+   PORT=2069
+   ```
+2. Open `Dockerfile` in the project root and locate line 60. Uncomment the test user creation directive:
+   ```dockerfile
+   RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd
+   ```
+3. Rebuild and launch the container image:
+   ```bash
+   docker compose up -d --build
+   ```
+4. Access the web interface at `http://localhost:2069` and log in with username `testuser` and password `password`.
 
-This option maps your host OS's filesystem and `tmux` environment into the container, giving you control over your real system while still protecting the web UI with a simple token login.
+---
 
-**Target Audience:** Intermediate users familiar with Docker volumes.
+## Section 3: Option B (Host Passthrough) + Token Mode
+
+Maps the host OS filesystem and native `tmux` socket into the container environment. The web interface directly controls host `tmux` sessions while protecting access via a simple token authentication layer.
+
+**Target Audience:** Intermediate users wanting full host system management from a containerized gateway.
+
+**Relevant Environment Variables (`.env`):**
+* `DEPLOYMENT_MODE`: Set to `pass-through`.
+* `TMUX_SOCKET_PATH`: Path to host socket (Default: `/tmp/tmux-1000/default`).
+* `TMUX_VERSION`: Host `tmux` binary version string (e.g. `3.6`).
+* `AUTH_MODE`: Set to `token`.
+* `SERVER_AUTH_TOKEN`: Secret token used for authentication.
 
 > **WARNING: Host Control**
-> In `pass-through` mode, Sovereign Terminal's UI actively controls the host's local tmux server. Creating, killing, or sweeping sessions in the web UI will affect your host machine directly!
+> In `pass-through` mode, Sovereign Terminal actively controls the host's local `tmux` server. Creating, stopping, or clearing sessions in the web UI directly modifies active sessions on your host machine.
 
-**Code:**
+**Compose Specification (`docker-compose.yml`):**
 ```yaml
 version: '3.8'
+
 services:
   sovereign-terminal:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - TMUX_VERSION=3.6 # MUST MATCH YOUR HOST tmux -V
-    container_name: sovereign-terminal
+        - TMUX_VERSION=${TMUX_VERSION:-3.6}
+    container_name: ${CONTAINER_NAME:-sovereign-terminal}
     restart: unless-stopped
     ports:
-      - "2069:2069"
+      - "${PORT:-2069}:${PORT:-2069}"
     environment:
+      - PORT=${PORT:-2069}
+      - AUTH_MODE=${AUTH_MODE:-token}
+      - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN:-1234}
       - DEPLOYMENT_MODE=pass-through
-      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
-      - AUTH_MODE=token
-      - SERVER_AUTH_TOKEN=1234
-      - PORT=2069
+      - TMUX_SOCKET_PATH=${TMUX_SOCKET_PATH:-/tmp/tmux-1000/default}
+      - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
+      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
+      - TZ=${TZ:-America/Chicago}
     volumes:
-      - ./:/workspace
+      - ${HOST_WORKSPACE_PATH:-./}:/workspace
       - /etc/localtime:/etc/localtime:ro
       - /tmp/tmux-1000:/tmp/tmux-1000
       - /home:/home
+      - sovereign-terminal-data:/root/.local/share/sovereign-terminal
+
+volumes:
+  sovereign-terminal-data:
 ```
 
-**Explanation:**
-1. Check your host machine's tmux version by running `tmux -V` and set the `TMUX_VERSION` arg in the compose file accordingly so the container's tmux client can talk to your host's tmux server.
-2. The `/tmp/tmux-1000` volume and `TMUX_SOCKET_PATH` environment variable allow the container to attach directly to your host's native tmux socket.
-3. Be sure to replace `1234` with a secure token before deploying! Then run `docker compose up -d --build`.
+**Setup Steps:**
+1. Check the host system `tmux` version:
+   ```bash
+   tmux -V
+   ```
+2. Update `.env` with passthrough settings and your host `tmux` version:
+   ```env
+   DEPLOYMENT_MODE=pass-through
+   TMUX_SOCKET_PATH=/tmp/tmux-1000/default
+   TMUX_VERSION=3.6
+   AUTH_MODE=token
+   SERVER_AUTH_TOKEN=your_secure_token
+   ```
+3. Ensure `/tmp/tmux-1000:/tmp/tmux-1000` (read-write for `tmux` sockets) and `/home:/home` (read-write for user files) volume mounts are present in `docker-compose.yml`. Optionally add `- /mnt:/mnt` or `- /media:/media` to grant container access to secondary host storage arrays or external drives.
+4. Build and deploy:
+   ```bash
+   docker compose up -d --build
+   ```
 
-### Section 4: Option B (Host Passthrough) + PAM Mode ("The Pro Option")
+---
 
-The ultimate containerized sovereign workstation. Manages your host system and authenticates using your actual host Linux user account. (This is the option I use. -magealexstra)
+## Section 4: Option B (Host Passthrough) + PAM Mode ("The Pro Option")
 
-**Target Audience:** Advanced users managing a real Linux host.
+Integrates containerized execution with host system controls and host PAM user authentication. Authenticates web interface users against actual host Linux OS accounts (`/etc/passwd`, `/etc/shadow`, `/etc/group`), attaching terminal sessions directly to host user `tmux` sockets.
+
+**Target Audience:** Advanced system administrators managing a host Linux workstation.
+
+**Relevant Environment Variables (`.env`):**
+* `DEPLOYMENT_MODE`: Set to `pass-through`.
+* `AUTH_MODE`: Set to `pam`.
+* `TMUX_SOCKET_PATH`: Path to host socket (Default: `/tmp/tmux-1000/default`).
+* `TMUX_VERSION`: Host `tmux` binary version string (e.g. `3.6`).
 
 > **WARNING: Host Control**
-> As with Option B Token Mode, Sovereign Terminal's UI actively controls the host's local tmux server in `pass-through` mode. Modifying sessions in the UI will affect your host machine directly!
+> Operations in the UI modify native host `tmux` sessions directly.
 
-**Code:**
+**Compose Specification (`docker-compose.yml`):**
 ```yaml
 version: '3.8'
+
 services:
   sovereign-terminal:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - TMUX_VERSION=3.6
-    container_name: sovereign-terminal
+        - TMUX_VERSION=${TMUX_VERSION:-3.6}
+    container_name: ${CONTAINER_NAME:-sovereign-terminal}
     restart: unless-stopped
     ports:
-      - "2069:2069"
+      - "${PORT:-2069}:${PORT:-2069}"
     environment:
-      - DEPLOYMENT_MODE=pass-through
-      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
+      - PORT=${PORT:-2069}
       - AUTH_MODE=pam
-      - PORT=2069
+      - DEPLOYMENT_MODE=pass-through
+      - TMUX_SOCKET_PATH=${TMUX_SOCKET_PATH:-/tmp/tmux-1000/default}
+      - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
+      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
+      - TZ=${TZ:-America/Chicago}
     volumes:
-      - ./:/workspace
+      - ${HOST_WORKSPACE_PATH:-./}:/workspace
       - /etc/localtime:/etc/localtime:ro
       - /tmp/tmux-1000:/tmp/tmux-1000
       - /etc/passwd:/etc/passwd:ro
       - /etc/shadow:/etc/shadow:ro
       - /etc/group:/etc/group:ro
       - /home:/home
+      - sovereign-terminal-data:/root/.local/share/sovereign-terminal
+
+volumes:
+  sovereign-terminal-data:
 ```
 
-**Explanation:**
-We mount `/etc/passwd`, `/etc/shadow`, and `/etc/group` in read-only mode so the container can authenticate against your host Linux users directly via PAM. Match `TMUX_VERSION` to your host, build, and deploy.
+**Setup Steps:**
+1. Verify host `tmux` version (`tmux -V`) and match `TMUX_VERSION` in `.env`.
+2. Configure `.env`:
+   ```env
+   DEPLOYMENT_MODE=pass-through
+   AUTH_MODE=pam
+   TMUX_SOCKET_PATH=/tmp/tmux-1000/default
+   TMUX_VERSION=3.6
+   ```
+3. Verify `docker-compose.yml` includes read-only PAM credential mounts (`/etc/passwd:ro`, `/etc/shadow:ro`, `/etc/group:ro`) alongside read-write mounts for your workspace and sockets (`/home`, `/tmp/tmux-1000`). Optionally add host storage paths like `- /mnt:/mnt` or `- /media:/media`.
+4. Ensure an active host `tmux` server instance is running on the designated socket prior to initial user login:
+   ```bash
+   tmux -S /tmp/tmux-1000/default new -d -s host-session
+   ```
+   > **HOST SOCKET REQUIREMENT:** If the target socket (`/tmp/tmux-1000/default`) does not exist when the container attempts to attach, a standard containerized `tmux` server will be initialized instead of attaching to host sessions.
+5. Build and launch:
+   ```bash
+   docker compose up -d --build
+   ```
 
-> **CRITICAL SETUP REQUIREMENT**
-> For Pass-through to work correctly, you **MUST** have an active `tmux` server running natively on your host machine before logging into Sovereign Terminal. If the host socket (`/tmp/tmux-1000/default`) is empty, the container will automatically spawn its own `tmux` server on that socket. Because that new server is spawned by the container, it will run inside the container's isolated filesystem (giving you a containerized shell rather than your host shell).
-> 
-> To prevent this, ensure a host session is running: `tmux -S /tmp/tmux-1000/default new -d -s host-session`
+---
 
-### Section 5: Option C (True Baremetal Execution)
+## Section 5: Option C (True Baremetal Execution)
 
-Run the backend natively on your host OS. Bypasses Docker completely for absolute native integration. No container layer means direct access to all system binaries, user permissions, and host networking interfaces.
+Executes the Python FastAPI gateway and built React frontend assets natively on the host OS, bypassing Docker containers entirely. Provides raw native access to host binaries, networking interfaces, and user permissions.
 
-**Target Audience:** Expert sysadmins bypassing Docker entirely.
+**Target Audience:** Expert sysadmins requiring native performance without container boundaries.
 
-**Code:**
-```bash
-# Install system dependencies (Debian/Ubuntu example)
-sudo apt update && sudo apt install -y python3 python3-pip tmux nodejs npm
+**Relevant Environment Variables (`.env`):**
+* `PORT`: Listener port (Default: `2069`).
+* `AUTH_MODE`: Set to `token` or `pam`.
+* `SERVER_AUTH_TOKEN`: Secret token (required if `AUTH_MODE=token`).
+* `ENABLE_HTTPS`: Enables direct SSL in Uvicorn (`true` / `false`).
+* `SSL_CERT_PATH`: Path to SSL certificate (Default: `./server/certs/cert.pem`).
+* `SSL_KEY_PATH`: Path to SSL private key (Default: `./server/certs/key.pem`).
 
-# Install Python backend dependencies
-cd server && pip install -r requirements.txt
+**Native Installation & Execution Steps:**
 
-# Install frontend dependencies and build
-cd .. && npm install && npm run build
+1. Install system build tools and dependencies (Debian/Ubuntu example):
+   ```bash
+   sudo apt update && sudo apt install -y python3 python3-pip tmux nodejs npm git
+   ```
 
-# Configure environment natively
-cp .env.example .env
-# Edit .env and set AUTH_MODE=token or AUTH_MODE=pam
+2. Build frontend static assets:
+   ```bash
+   npm install
+   npm run build
+   ```
+   *This compiles the React application into the `./dist` directory, which is served automatically by the Python gateway.*
 
-# Run the Python Gateway natively
-cd server
-python3 -m uvicorn main:app --host 0.0.0.0 --port 2069
-```
+3. Install backend Python dependencies:
+   ```bash
+   cd server
+   pip install -r requirements.txt
+   cd ..
+   ```
 
-**Explanation:**
-The application reads `.env` directly from the local file system. Set `AUTH_MODE` natively and run Uvicorn. Manage the Uvicorn process with `systemd` or similar for production persistence.
+4. Configure local environment:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` to define execution parameters:
+   ```env
+   PORT=2069
+   AUTH_MODE=token
+   SERVER_AUTH_TOKEN=your_secure_token
+   ENABLE_HTTPS=false
+   ```
+
+5. Launch the Gateway server:
+   ```bash
+   cd server
+   python3 -m uvicorn main:app --host 0.0.0.0 --port 2069
+   ```
+
+6. **Systemd Service Setup (Recommended for Production Persistence):**
+   Create `/etc/systemd/system/sovereign-terminal.service`:
+   ```ini
+   [Unit]
+   Description=Sovereign Terminal Native Service
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=root
+   WorkingDirectory=/path/to/Sovereign_Terminal/server
+   ExecStart=/usr/local/bin/uvicorn main:app --host 0.0.0.0 --port 2069
+   Restart=always
+   RestartSec=3
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+   Enable and start the service:
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now sovereign-terminal
+   ```

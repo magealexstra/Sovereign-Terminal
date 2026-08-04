@@ -40,7 +40,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Unsaved File Safeguards:** Modal dialog on tab close with explicit options (`[ Save & Close ]`, `[ Discard ]`, `[ Cancel ]`).
 * **Automated Git Commit Macro:** Auto-detects Git repository root and executes staging and commit sequences.
 * **Universal Binary Transfer:** Direct bidirectional phone-to-server transfer supporting images, archives, audio, 3D models, and PDFs, with on-the-fly zip archive streaming for multi-file downloads.
-* **Configurable Trash Protection:** Safe trash mode moves deleted files to `./_temp_trash/` by default. Permanent removal can be enabled via `ENABLE_PERMANENT_DELETE=true` in `.env`.
+* **Dual File Management:** Dedicated GUI controls for both standard permanent deletion and safe archiving (moving items to a local `_temp_trash` directory).
 
 ### 3. Single-Bar Visual TouchBar Editor (Settings Sub-Tab 3: Layout Builder)
 * **Tap-Selection Workflow:** 2-tap add, move left/right, and delete interaction model for full TouchBar customization.
@@ -50,23 +50,13 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Tap-to-Deselect:** Tapping any blank background area of the card or container deselects the active button item.
 
 ### 4. Categorized Command Toolkits & AI Agent Suites
-* **`AGY` (Google Antigravity CLI Suite):** `/model`, `/clear`, `/plan`, `/schedule`, `/goal`, `/grill-me`, `/teamwork-preview`, `/learn`, `Ctrl+O`.
-* **`CLD` (Claude CLI Suite):** `/compact`, `/cost`, `/doctor`, `/clear`, `/help`, `/init`, `/bug`, `/review`, `Ctrl+C`.
-* **`HMS` (Hermes Agent Suite):** `/status`, `/reset`, `/tools`, `/logs`, `/cancel`, `/config`, `/memory`, `/mcp`.
-* **`APT` (Debian/Ubuntu Package Manager):** `upgrade -y` (`sudo apt update && sudo apt upgrade -y`), `sudo apt update`, `sudo apt search`, `sudo apt install`, `sudo apt purge`, `sudo apt autoremove -y`, `sudo apt clean`.
-* **`PAC` (Arch Linux Pacman Suite):** `upgrade -y` (`sudo pacman -Syu`), `sudo pacman -S`, `pacman -Ss`, `sudo pacman -Rns`, `sudo pacman -Sc`.
-* **`YUM` (Fedora/RHEL DNF Suite):** `upgrade -y` (`sudo dnf upgrade --refresh -y`), `sudo dnf update`, `sudo dnf install`, `dnf search`, `sudo dnf remove`.
-* **`DOC` (Docker Suite):** `docker ps`, `docker ps -a`, `docker compose up -d`, `docker compose down`, `docker compose logs -f`, `docker exec -it`, `docker system prune -f`.
-* **`GIT` (Git Version Control):** `git status`, `git log -10`, `git add .`, `git commit -m`, `git push`, `git pull`, `git checkout -b`, `git diff`.
-* **`SYS` (System & Disks):** `sudo systemctl status`, `sudo systemctl restart`, `sudo journalctl -xeu`, `lsblk`, `sudo blkid`, `df -h`, `du -sh *`, `sudo fdisk -l`, `sudo dmesg -T`, `htop`.
-* **`FILE` (Permissions & Archives):** `chmod +x`, `chmod 755`, `chmod 644`, `sudo chown -R`, `sudo chgrp -R`, `mkdir -p`, `find . -name`, `rsync -avz`, `tar -czvf`, `tar -xvf`, `unzip`.
-* **`NET` (Networking Tools):** `ip a`, `ping -c 4`, `sudo netstat -tuln`, `sudo ss -tulpn`, `sudo ufw status`, `curl -I`, `dig`, `traceroute`.
-* **`PY` (Python & Venv):** `python3`, `pip install`, `python3 -m venv venv`, `source venv/bin/activate`, `pip list`, `pip freeze`.
-* **`TMX` (Tmux Manager):** `tmux ls`, `tmux new-session -s`, `tmux attach -t`, `tmux kill-session -t`, `split h`, `split v`.
-* **`KEY` (Stacked Mobile Keys):** 3-button sub-navigation:
-  * `SYM` (Shell Operators): `|`, `~`, `>`, `>>`, `<`, `&&`, `||`, `;`, `` ` ``, `\`, `/`, `$`, `#`
-  * `MODE` (Signals/Escapes): `ESC`, `TAB`, `DEL` (`\x1b[3~`), `^C`, `^Z`, `^D`
-  * `LINE` (Cursor Controls): `^A` (Home), `^E` (End), `^K` (Cut end), `^U` (Cut start), `^W` (Delete word), `^Y` (Paste), `^R` (History search), `^L` (Clear)
+* **Built-in Touch Toolkits**: One-tap touchscreen access to 18+ categorized toolkits including AI Agent Suites (`AGY`, `CLD`, `HMS`), Package Managers (`APT`, `PAC`, `YUM`), Containers & DevOps (`DOC`, `TMX`, `GIT`), and System Tools (`SYS`, `NET`, `PY`, `FILE`, `VIM`).
+* **Mobile Operator Keys**: Stacked keys for shell operators (`|`, `~`, `>`, `&&`), signals (`ESC`, `TAB`, `^C`, `^Z`), and cursor navigation (`^A`, `^E`, `^K`).
+* **Dynamic Customization**: Full visual button studio for customizing labels, colors, shapes, and shell strings stored in [buttonData.js](src/components/settings/button-studio/buttonData.js).
+
+*For the complete command reference, key injection guide, and source files, see [COMMAND_TOOLKITS_AND_MACROS.md](COMMAND_TOOLKITS_AND_MACROS.md) and [CUSTOM_BUTTON_GUIDE.md](CUSTOM_BUTTON_GUIDE.md).*
+
+
 
 ### 5. Touch Button Studio & 100% Dynamic Theme Engine (Settings Sub-Tabs 1 & 2)
 * **Fluid Flexbox Button Studio:** Dynamic proportional flex scaling across 4K displays, laptops, 12" tablets, fold phones, and smartphones.
@@ -88,17 +78,15 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 
 ---
 
-## File Safety & Trash Policy
+## File Management & Archiving
 
-By default, file deletion within the File Explorer follows **Safe Trash Mode**, moving deleted items to `./_temp_trash/` instead of executing unrecoverable removal.
+The Sovereign Terminal GUI Explorer provides two distinct file management workflows directly in the interface:
 
-To enable permanent deletion, update `.env`:
+1. **Permanent Delete (`Trash2` Icon):** Executes a standard, unrecoverable removal that matches native operating system commands (e.g., `rm`). Items deleted this way are permanently destroyed.
+2. **Archive to Trash (`FolderMinus` Icon):** Safely moves the selected files or directories into a local `_temp_trash` directory, preserving them for potential recovery.
 
-```env
-# Enable Permanent Deletion (Bypasses _temp_trash)
-SAFE_TRASH_MODE=false
-ENABLE_PERMANENT_DELETE=true
-```
+> [!WARNING]
+> **Deletion is Final:** The standard delete button bypasses the archive functionality. Please exercise caution when choosing to permanently delete files.
 
 ---
 
@@ -106,179 +94,61 @@ ENABLE_PERMANENT_DELETE=true
 
 Sovereign Terminal deployment is defined by two separate concepts: **Deployment Architecture** (where it runs) and **Authentication Mode** (how you log in).
 
-### Overview of Deployment Matrices
+### Configuration Workflow (`.env` vs `docker-compose.yml`)
 
-Sovereign Terminal offers two primary Authentication Modes (Token vs. PAM) combined with three primary Deployment Architectures (Option A: Sandbox, Option B: Host Passthrough, Option C: True Baremetal). This results in 5 possible installation matrices.
+The repository includes a version-controlled configuration template named `.env.example`. Create your local `.env` configuration file from this template:
 
-* **Token Mode:** The simple default. Log in with a single `SERVER_AUTH_TOKEN`.
-* **PAM Mode:** The advanced mode. Log in with your Linux OS user. Enables true multi-device resume via persistent background `tmux` sessions.
+```bash
+cp .env.example .env
+```
+
+`docker-compose.yml` uses environment variable substitution with fallbacks (`${VARIABLE:-fallback}`), automatically loading settings defined in `.env`. For detailed deployment matrix specifications, see [USER_GUIDE.md](USER_GUIDE.md).
 
 #### Section 1: Option A (Sandbox) + Token Mode (The Default)
 
 This is the simplest method for getting started immediately. The terminal runs in a fully isolated container and authenticates with a simple token.
 
-**Code:** (This is the default `docker-compose.yml` provided in the repository)
+**Compose Specification (`docker-compose.yml`):**
 ```yaml
 version: '3.8'
+
 services:
   sovereign-terminal:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sovereign-terminal
+    container_name: ${CONTAINER_NAME:-sovereign-terminal}
     restart: unless-stopped
     ports:
-      - "2069:2069"
+      - "${PORT:-2069}:${PORT:-2069}"
     environment:
-      - AUTH_MODE=token
-      - SERVER_AUTH_TOKEN=1234
-      - PORT=2069
+      - PORT=${PORT:-2069}
+      - AUTH_MODE=${AUTH_MODE:-token}
+      - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN:-1234}
+      - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
+      - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
+      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
+      - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
+      - TZ=${TZ:-America/Chicago}
     volumes:
-      - ./:/workspace
-```
-**Explanation:**
-1. Run `docker compose up -d` in your terminal.
-2. Open your browser and log in with the default token: `1234`.
-3. **IMPORTANT:** For prolonged usage, change `SERVER_AUTH_TOKEN` in `docker-compose.yml` (and `.env`) to a strong cryptographic string and run `docker compose up -d` again to apply the changes.
-
-#### Section 2: Option A (Sandbox) + PAM Mode (Internal Users)
-
-This runs the isolated sandbox, but uses PAM authentication against test users *inside* the container for testing multi-device persistence without touching your host machine.
-
-**Code:**
-```yaml
-version: '3.8'
-services:
-  sovereign-terminal:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sovereign-terminal
-    restart: unless-stopped
-    ports:
-      - "2069:2069"
-    environment:
-      - AUTH_MODE=pam
-      - PORT=2069
-      - SOVEREIGN_ROOT=/workspace
-    volumes:
-      - ./:/workspace
-```
-**Explanation:** 
-1. Open `Dockerfile` and uncomment `# RUN useradd -m -s /bin/bash testuser && echo "testuser:password" | chpasswd`.
-2. Update your `docker-compose.yml` to the block above, changing `AUTH_MODE` to `pam`.
-3. Build and launch: `docker compose up -d --build`.
-4. Log in with user `testuser` and password `password`.
-
-#### Section 3: Option B (Host Passthrough) + Token Mode
-
-This option maps your host OS's filesystem and `tmux` environment into the container, giving you control over your real system while still protecting the web UI with a simple token login.
-
-> **WARNING: Host Control**
-> In `pass-through` mode, Sovereign Terminal's UI actively controls the host's local tmux server. Creating, killing, or sweeping sessions in the web UI will affect your host machine directly!
-
-**Code:**
-```yaml
-version: '3.8'
-services:
-  sovereign-terminal:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - TMUX_VERSION=3.6 # MUST MATCH YOUR HOST tmux -V
-    container_name: sovereign-terminal
-    restart: unless-stopped
-    ports:
-      - "2069:2069"
-    environment:
-      - DEPLOYMENT_MODE=pass-through
-      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
-      - AUTH_MODE=token
-      - SERVER_AUTH_TOKEN=1234
-      - PORT=2069
-      - SOVEREIGN_ROOT=/workspace
-    volumes:
-      - ./:/workspace
+      - ${HOST_WORKSPACE_PATH:-./}:/workspace
       - /etc/localtime:/etc/localtime:ro
-      - /tmp/tmux-1000:/tmp/tmux-1000
-      - /home:/home
+      - sovereign-terminal-data:/root/.local/share/sovereign-terminal
+
+volumes:
+  sovereign-terminal-data:
 ```
-**Explanation:** 
-1. Check your host's tmux version with `tmux -V` and set `TMUX_VERSION` accordingly.
-2. The `/tmp/tmux-1000` volume allows the container to attach to your host's native tmux.
-3. Replace `1234` with a secure token!
 
-#### Section 4: Option B (Host Passthrough) + PAM Mode
+**Quick Start Steps:**
+1. Copy `.env.example` to `.env`: `cp .env.example .env`
+2. Configure `SERVER_AUTH_TOKEN` in `.env` with a strong cryptographic secret.
+3. Launch container: `docker compose up -d`
+4. Access `http://localhost:2069` and log in with your configured token.
 
-The ultimate containerized sovereign workstation. Manages your host system and authenticates using your actual host Linux user account.
+For PAM modes, Host Passthrough, external drive mounting (`/mnt`, `/media`), and True Baremetal installation steps, consult the complete [USER_GUIDE.md](USER_GUIDE.md).
 
-> **WARNING: Host Control**
-> As with Option B Token Mode, Sovereign Terminal's UI actively controls the host's local tmux server in `pass-through` mode. Modifying sessions in the UI will affect your host machine directly!
-
-**Code:**
-```yaml
-version: '3.8'
-services:
-  sovereign-terminal:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - TMUX_VERSION=3.6
-    container_name: sovereign-terminal
-    restart: unless-stopped
-    ports:
-      - "2069:2069"
-    environment:
-      - DEPLOYMENT_MODE=pass-through
-      - TMUX_SOCKET_PATH=/tmp/tmux-1000/default
-      - AUTH_MODE=pam
-      - PORT=2069
-      - SOVEREIGN_ROOT=/workspace
-    volumes:
-      - ./:/workspace
-      - /etc/localtime:/etc/localtime:ro
-      - /tmp/tmux-1000:/tmp/tmux-1000
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/shadow:/etc/shadow:ro
-      - /etc/group:/etc/group:ro
-      - /home:/home
-```
-**Explanation:** 
-We mount `/etc/passwd`, `/etc/shadow`, and `/etc/group` in read-only mode so the container can authenticate against your host Linux users directly via PAM. Match `TMUX_VERSION` to your host, build, and deploy.
-
-> **CRITICAL SETUP REQUIREMENT**
-> For Pass-through to work correctly, you **MUST** have an active `tmux` server running natively on your host machine before logging into Sovereign Terminal. If the host socket (`/tmp/tmux-1000/default`) is empty, the container will automatically spawn its own `tmux` server on that socket. Because that new server is spawned by the container, it will run inside the container's isolated filesystem (giving you a containerized shell rather than your host shell).
-> 
-> To prevent this, ensure a host session is running: `tmux -S /tmp/tmux-1000/default new -d -s host-session`
-
-#### Section 5: Option C (True Baremetal Execution)
-
-Run the backend natively on your host OS. Bypasses Docker completely for absolute native integration. No container layer means direct access to all system binaries, user permissions, and host networking interfaces.
-
-**Code:**
-```bash
-# Install system dependencies (Debian/Ubuntu example)
-sudo apt update && sudo apt install -y python3 python3-pip tmux nodejs npm
-
-# Install Python backend dependencies
-cd server && pip install -r requirements.txt
-
-# Install frontend dependencies and build
-cd .. && npm install && npm run build
-
-# Configure environment natively
-cp .env.example .env
-# Edit .env and set AUTH_MODE=token or AUTH_MODE=pam
-
-# Run the Python Gateway natively
-cd server
-python3 -m uvicorn main:app --host 0.0.0.0 --port 2069
-```
-**Explanation:** 
-The application reads `.env` directly from the local file system. Set `AUTH_MODE` natively and run Uvicorn. Ensure you manage the Uvicorn process with `systemd` or similar for production persistence.
+---
 
 ## HTTPS, Tailscale & Remote Access
 

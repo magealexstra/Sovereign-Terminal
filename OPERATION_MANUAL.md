@@ -1,62 +1,86 @@
 # Sovereign Terminal — Operation Manual
 
-Welcome to **The Sovereign Terminal**, a touch-controlled, mobile-first Linux server management workstation. This manual serves as the definitive in-app guide for using the UI.
+Welcome to **The Sovereign Terminal**, a touch-controlled, mobile-first Linux server management workstation. This manual serves as the definitive in-app guide for using the interface.
 
 ---
 
 ## Section 1: Header Navigation & Session Management
 
-The main navigation bar is located at the top of the interface and allows you to seamlessly switch between the core workstation areas:
+The main navigation bar at the top of the interface allows you to switch between the core workstation views:
 
-*   **Terminal (Tab 1):** Your primary command-line interface with multi-session support.
-*   **Files (Tab 2):** The File Explorer and Code Editor, synchronized with your terminal's working directory.
-*   **Settings (Tab 3):** The Settings Studio where you can customize themes, layouts, and macro buttons.
+* **Terminal (Tab 1):** Your primary command-line interface with multi-session `tmux` tab support.
+* **Files (Tab 2):** Dual-pane File Explorer and Code Editor, synchronized with your terminal's working directory.
+* **Settings (Tab 3):** The Settings Studio for customizing themes, macro buttons, TouchBar layouts, and `tmux` server behavior.
 
 **Session Controls:**
-In the top-left corner of the header, you will find the **SOVEREIGN TERMINAL** brand logo hitbox. Tapping this logo reveals the active session pop-up menu. This menu displays your current authentication mode (Linux OS PAM or Token). Most importantly, this menu houses the **LOGOUT SESSION** button. Tapping this button securely tears down active WebSockets, clears your session credentials, and returns you to a clean login screen, ensuring your workstation remains secure when you step away.
+In the top-left corner of the header is the **SOVEREIGN TERMINAL** brand logo hitbox. Tapping this logo opens the Session Controls menu. This menu displays your active authentication mode (Linux OS PAM or Token) and houses the **LOGOUT SESSION** button. Tapping this button tears down WebSockets, clears local session credentials, and returns you to the login screen.
 
 ---
 
-## Section 2: Terminal & Left-Edge Copy Suite (`CopyCard`)
+## Section 2: Right-Edge Collapsible Copy Suite (`CopyCard`)
 
-Pinned to the left edge above the TouchBar is the vertical 3-button Copy Suite, known as the `CopyCard`. This provides rapid text extraction capabilities without awkward mobile text selection:
+Flushed against the right edge of the terminal viewport is the vertical tri-color Copy Suite (`CopyCard`). In its collapsed state, it appears as a subtle 6px vertical handle. Tapping the handle slides out the full panel without dismissing your mobile soft keyboard:
 
-*   **COPY (Sage Green):** Copies the active terminal line to your selected destination. Useful for quickly grabbing the most recent output or command.
-*   **ALL (Glacier Blue):** Copies the entire terminal scrollback buffer. Ideal for exporting extensive logs or a full session history.
-*   **CUST (Nordic Red):** Copies a specified number of lines (defaulting to the last 50 lines). You can customize this line count to your preference.
+* **COPY (Sage Green):** Copies the output of the most recent terminal command.
+* **ALL (Glacier Blue):** Copies the entire visible screen scrollback buffer.
+* **CUST (Nordic Red):** Copies a specified number of scrollback lines (defaulting to 50 lines). You can customize this target line count in Settings -> Studio.
 
 **Destination Toggle Pill:**
-At the bottom of the `CopyCard`, there is an interactive pill-shaped toggle. Tapping this pill switches the destination of your copied text:
-*   **`[ CLIP ]`**: Copies the selected text directly to your device's system clipboard, ready to be pasted into other apps.
-*   **`[ CODE ]`**: Pipes the copied terminal output directly into a new document tab inside the CodeMirror Editor (Tab 2). This is a powerful feature for instantly reviewing or modifying command outputs in a full text editor.
+At the bottom of the `CopyCard` panel is an interactive destination toggle:
+* **`[ CLIP ]`**: Copies selected text directly to your device's system clipboard.
+* **`[ CODE ]`**: Pipes copied terminal output directly into a new `Inspect` tab inside the CodeMirror Editor (Tab 2). This allows you to inspect, search, or edit terminal outputs in a full code editor.
 
 ---
 
 ## Section 3: The TouchBar, Dictation & Command Stager
 
-Located at the bottom of the screen is the customizable TouchBar, designed for rapid mobile input:
+Located at the bottom of the screen is the customizable TouchBar, engineered for rapid mobile and tablet input:
 
-*   **Mic Button:** Tap this to activate your device's Gboard voice dictation, allowing you to speak commands directly.
-*   **Stager Launcher Button (Edit Icon):** This button opens the TouchBar-anchored dictation & command staging drawer immediately above the TouchBar. This is the **Command Stager**. It allows you to stage, review, and edit commands (whether spoken or typed) before executing them, preventing accidental or malformed commands from being sent to the server.
-*   **Master Red `MACROS` Button:** Tapping this opens the complete library of categorized macro command toolkits. These suites (`AGY`, `APT`, `GIT`, `SYS`, etc.) provide one-tap access to complex or frequently used commands, drastically reducing the need for manual typing on a mobile device.
+* **Mic Button:** Activates in-browser Web Speech API voice dictation for speaking commands directly (requires an HTTPS connection or `localhost`).
+* **Command Stager Launcher (Edit Icon):** Opens the TouchBar-anchored Command Stager drawer. The Stager allows you to review, edit, or append text (spoken or typed) before executing it in the active terminal session, preventing accidental command execution.
+* **Master Red `MACROS` Button:** Opens the complete library of categorized macro command toolkits (`AGY`, `APT`, `GIT`, `SYS`, `DOC`, `DEV`, `PAM`, etc.) for one-tap execution of complex shell workflows.
+
+> **PRO TIP: Mobile Keyboard Dictation (Recommended for HTTP)**
+> If accessing Sovereign Terminal over local network HTTP (without SSL certificates), use your device's native soft keyboard dictation (e.g., Gboard mic or Samsung voice input) inside the **Command Stager** drawer. Because speech-to-text conversion is handled natively by your keyboard app, it completely bypasses browser Web Speech API / HTTPS certificate requirements, allowing smooth voice input on any connection!
 
 ---
 
 ## Section 4: File Explorer & Code Editor (Tab 2)
 
-The second tab houses a dual-pane File Explorer and Code Editor optimized for touch interactions:
+Tab 2 provides a touch-optimized file workspace with two sub-tabs:
 
-*   **File Tree Sync:** The explorer automatically synchronizes with your active terminal working directory, ensuring you are always viewing the relevant files for your current task.
-*   **Multi-Document Tabs:** The Code Editor supports opening multiple files simultaneously in tabs. These tabs are color-coded with official language brand colors (e.g., Python Blue, JS Yellow, HTML Orange) for easy visual identification.
-*   **Touch Scrolling:** You can smoothly drag with your finger to scroll through long code or Markdown documents. The scrollbars automatically adapt to your active theme.
-*   **Editor Touch Bar:** Located at the bottom of the editor, this action row provides quick access to essential file operations: **SAVE**, **SAVE & COMMIT** (for rapid git workflows), **COPY ALL** (copies the entire document), and **CLOSE** (closes the active tab).
+* **File Explorer (`Files` Sub-Tab):** Synchronizes automatically with your terminal session's working directory (`cwd`). Supports browsing, creating, deleting, and selecting files.
+* **Code Editor (`Editor` Sub-Tab):** Multi-document CodeMirror editor featuring:
+  * **Language Badges & Tab Navigation:** Color-coded document tabs for code files and virtual `Inspect` tabs generated via the `CopyCard`.
+  * **Touch Scrolling:** Smooth momentum scrolling optimized for mobile and tablet touch displays.
+  * **Editor Action Row:** Includes **SAVE** (writes to disk), **SAVE & COMMIT** (saves and executes git commit), **SAVE AS** (prompts for disk location when saving virtual inspect tabs), **COPY ALL** (copies document text), and **CLOSE** (closes document tab with unsaved changes prompt).
 
 ---
 
 ## Section 5: Settings Studio (Tab 3)
 
-The Settings Studio allows deep customization of your Sovereign Terminal experience:
+The Settings Studio provides deep customization across four dedicated sub-tabs:
 
-*   **Theme Engine:** Switch between various pre-built theme presets or define your own. You can precisely adjust font scaling using the sliders, ranging from a compact 6px to a highly readable 20px, optimizing the interface for your specific device screen size.
-*   **Button Layout Builder:** This powerful tool lets you edit the default TouchBar slots. It features an intuitive 2-tap add/move workflow, allowing you to quickly swap out default buttons for the macros you use most frequently.
-*   **Button Studio:** Here you can fully customize individual macro buttons. You can change their shapes (Square, Round, Pill), assign specific colors, and edit their labels. **Crucially, this is where you can edit the `CUST` button's behavior**, allowing you to change its target line count value from the default 50 to any number that suits your workflow.
+### 1. Themes (`ThemeSettings`)
+* **Visual Presets:** Switch between dark and high-contrast color themes.
+* **Font Scaling:** Adjust terminal and code editor font sizes dynamically via sliders, ranging from 6px (dense view) to 20px (large readability).
+
+### 2. Studio (`ButtonStudio`)
+* **Macro Customization:** Customize macro button shapes (Square, Round, Pill), colors, labels, and command strings.
+* **Custom Copy Value:** Edit the target line count for the `CUST` button in the `CopyCard` (e.g. change default from 50 to 100 or 500 lines).
+
+### 3. Layout (`LayoutBuilder`)
+* **TouchBar Builder:** Re-order and swap slot assignments on your TouchBar using an intuitive 2-tap add/move workflow.
+
+### 4. TMUX (`TmuxManager`)
+* **Server Health Indicator:** Displays real-time `tmux` server connectivity and active session counts.
+* **Session Manager:** Lists active and detached `tmux` sessions on the server with one-tap controls:
+  * **Attach:** Attaches the selected `tmux` session directly as an active terminal tab in Tab 1.
+  * **Kill Session (`X`):** Terminates the targeted `tmux` session.
+  * **Sweep Zombies:** Clears orphaned background `tmux` sessions not currently open as browser tabs.
+* **Behavior Settings:**
+  * **Kill on Close:** Toggle whether closing a terminal tab kills the underlying `tmux` session or detaches it (default: detach).
+  * **Auto-Attach AGY Subagents:** Automatically spawns new terminal tabs when background subagents are detected.
+* **Performance Controls:**
+  * **Scrollback Buffer Slider:** Adjust session history buffer depth (2,000 to 100,000 lines).
+  * **Escape-time Input:** Adjust key sequence delay in milliseconds (0–10ms recommended for Vim/Neovim responsiveness).
