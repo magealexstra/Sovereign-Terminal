@@ -97,11 +97,11 @@
 }
 
 .tree-item:active {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-parchment) 5%, transparent);
 }
 
 .tree-item.selected {
-  background: rgba(136, 192, 208, 0.15);
+  background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
   color: var(--accent-highlight);
 }
 
@@ -178,43 +178,12 @@
 
 .doc-pill-btn .close-tab-icon:active {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.doc-tab {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.85rem;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  background: transparent;
-  border-right: 1px solid var(--border-forest);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.doc-tab.active {
-  background: rgba(136, 192, 208, 0.12);
-  color: var(--accent-highlight);
-  border-bottom: 2px solid var(--accent-highlight);
+  background: color-mix(in srgb, var(--text-parchment) 15%, transparent);
 }
 
 .modified-dot {
   color: var(--status-warning);
   font-weight: bold;
-}
-
-.doc-tab-close {
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.doc-tab-close:active {
-  color: var(--status-danger);
 }
 
 .editor-subheader {
@@ -228,19 +197,6 @@
   font-size: 0.78rem;
   color: var(--text-muted);
   flex-shrink: 0;
-}
-
-.term-return-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: transparent;
-  border: 1px solid var(--accent-highlight);
-  border-radius: 4px;
-  color: var(--accent-highlight);
-  padding: 0.2rem 0.5rem;
-  font-size: 0.75rem;
-  cursor: pointer;
 }
 
 .editor-viewport {
@@ -284,6 +240,7 @@
   background: var(--accent-mana);
 }
 
+/* Code Editor Touch Bar & Consolidated Action Buttons */
 .editor-touch-bar {
   display: flex;
   align-items: center;
@@ -301,11 +258,12 @@
 }
 
 .editor-touch-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   height: 2.2rem;
   padding: 0 0.6rem;
+  flex: 0 0 auto;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
   border-radius: 6px;
@@ -314,6 +272,14 @@
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.editor-touch-btn.active {
+  border-color: var(--accent-mana);
+  color: var(--accent-mana);
+  font-weight: 700;
 }
 
 .editor-touch-btn.save {
@@ -323,10 +289,31 @@
 }
 
 .editor-touch-btn.commit {
-  background: rgba(136, 192, 208, 0.2);
+  background: color-mix(in srgb, var(--accent-highlight) 20%, transparent);
   border-color: var(--accent-highlight);
   color: var(--accent-highlight);
 }
+
+/* Markdown Preview Pane Styles (Relocated from terminal.css) */
+.markdown-preview-pane {
+  flex: 1 1 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: var(--bg-earth);
+  color: var(--text-parchment);
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.markdown-preview-pane h1 { font-size: 1.6rem; font-weight: 700; border-bottom: 1px solid var(--border-forest); padding-bottom: 0.3rem; margin-bottom: 1rem; color: var(--accent-mana); }
+.markdown-preview-pane h2 { font-size: 1.3rem; font-weight: 600; margin-top: 1.2rem; margin-bottom: 0.6rem; color: var(--text-parchment); }
+.markdown-preview-pane h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.4rem; }
+.markdown-preview-pane p { margin-bottom: 0.8rem; }
+.markdown-preview-pane li { margin-left: 1.2rem; margin-bottom: 0.3rem; }
+.markdown-preview-pane blockquote { border-left: 3px solid var(--accent-mana); padding-left: 0.8rem; color: var(--text-muted); margin: 0.8rem 0; font-style: italic; }
+.markdown-preview-pane hr { border: none; border-top: 1px solid var(--border-forest); margin: 1.2rem 0; }
+.markdown-preview-pane pre.preview-code-block { background: var(--bg-canopy); border: 1px solid var(--border-forest); border-radius: 6px; padding: 0.8rem; font-family: var(--font-mono); font-size: 0.85rem; overflow-x: auto; margin: 0.8rem 0; }
 
 /* Explorer Dialog Modals */
 .explorer-modal-overlay {
@@ -337,7 +324,7 @@
   bottom: 0;
   width: 100vw;
   height: var(--visual-viewport-height, 100dvh);
-  background: rgba(10, 17, 24, 0.82);
+  background: color-mix(in srgb, var(--bg-earth) 82%, transparent);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -431,69 +418,72 @@
    CODEMIRROR 6 SEARCH PANEL OVERRIDES
    ========================================================================== */
 .cm-panel.cm-search {
-  background: var(--bg-canopy) !important;
-  color: var(--text-parchment) !important;
-  border-top: 1px solid var(--border-forest) !important;
-  font-family: var(--font-sans) !important;
-  padding: 0.5rem 0.75rem !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  align-items: center !important;
-  gap: 0.35rem !important;
+  background: var(--bg-canopy);
+  color: var(--text-parchment);
+  border-top: 1px solid var(--border-forest);
+  font-family: var(--font-sans);
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+
+  input.cm-textfield {
+    background: var(--bg-earth);
+    border: 1px solid var(--border-forest);
+    border-radius: 4px;
+    color: var(--text-parchment);
+    padding: 0.3rem 0.5rem;
+    font-family: var(--font-mono);
+    outline: none;
+
+    &:focus {
+      border-color: var(--accent-highlight);
+      box-shadow: 0 0 5px var(--accent-glow);
+    }
+  }
+
+  button.cm-button {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-forest);
+    border-radius: 4px;
+    color: var(--text-parchment);
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    text-transform: capitalize;
+    font-family: var(--font-sans);
+
+    &:hover,
+    &:active {
+      background: var(--accent-highlight);
+      color: var(--bg-earth);
+      border-color: var(--accent-highlight);
+    }
+  }
+
+  label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-family: var(--font-sans);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  input[type="checkbox"] {
+    accent-color: var(--accent-mana);
+  }
 }
 
-.cm-search input.cm-textfield {
-  background: var(--bg-earth) !important;
-  border: 1px solid var(--border-forest) !important;
-  border-radius: 4px !important;
-  color: var(--text-parchment) !important;
-  padding: 0.3rem 0.5rem !important;
-  font-family: var(--font-mono) !important;
-  outline: none !important;
-}
+.cm-editor {
+  .cm-searchMatch {
+    background: var(--accent-glow);
+    border: 1px solid var(--accent-mana);
+    border-radius: 2px;
+  }
 
-.cm-search input.cm-textfield:focus {
-  border-color: var(--accent-highlight) !important;
-  box-shadow: 0 0 5px var(--accent-glow) !important;
-}
-
-.cm-search button.cm-button {
-  background: var(--bg-panel) !important;
-  border: 1px solid var(--border-forest) !important;
-  border-radius: 4px !important;
-  color: var(--text-parchment) !important;
-  padding: 0.3rem 0.6rem !important;
-  cursor: pointer !important;
-  text-transform: capitalize !important;
-  font-family: var(--font-sans) !important;
-}
-
-.cm-search button.cm-button:active,
-.cm-search button.cm-button:hover {
-  background: var(--accent-highlight) !important;
-  color: var(--bg-earth) !important;
-  border-color: var(--accent-highlight) !important;
-}
-
-.cm-search label {
-  color: var(--text-muted) !important;
-  font-size: 0.85rem !important;
-  font-family: var(--font-sans) !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.25rem !important;
-}
-
-.cm-search input[type="checkbox"] {
-  accent-color: var(--accent-mana) !important;
-}
-
-.cm-editor .cm-searchMatch {
-  background: var(--accent-glow) !important;
-  border: 1px solid var(--accent-mana) !important;
-  border-radius: 2px;
-}
-.cm-editor .cm-searchMatch-selected {
-  background: var(--accent-highlight) !important;
-  color: var(--bg-earth) !important;
+  .cm-searchMatch-selected {
+    background: var(--accent-highlight);
+    color: var(--bg-earth);
+  }
 }

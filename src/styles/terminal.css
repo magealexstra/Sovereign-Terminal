@@ -63,7 +63,7 @@
 }
 
 .terminal-container .xterm-viewport::-webkit-scrollbar-track {
-  background: rgba(20, 30, 38, 0.6);
+  background: color-mix(in srgb, var(--bg-canopy) 60%, transparent);
 }
 
 .terminal-container .xterm-viewport::-webkit-scrollbar-thumb {
@@ -119,7 +119,7 @@
   background: var(--accent-highlight);
   border-color: var(--accent-highlight);
   font-weight: 700;
-  box-shadow: 0 0 12px rgba(136, 192, 208, 0.4);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-highlight) 40%, transparent);
 }
 
 .close-session-icon {
@@ -136,7 +136,7 @@
 }
 
 .close-session-icon:active {
-  background: rgba(255, 0, 60, 0.4);
+  background: color-mix(in srgb, var(--status-danger) 40%, transparent);
   color: white;
 }
 
@@ -205,23 +205,23 @@
 .touch-btn.pill { border-radius: 20px; }
 
 .touch-btn.sudo-btn {
-  background: rgba(136, 192, 208, 0.15);
+  background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
   border-color: var(--accent-highlight);
   color: var(--accent-highlight);
 }
 
 .touch-btn.macro-launcher-btn {
-  background: rgba(255, 0, 60, 0.15);
+  background: color-mix(in srgb, var(--status-danger) 15%, transparent);
   border: 1px solid var(--status-danger);
   color: var(--status-danger);
   font-weight: 700;
-  box-shadow: 0 0 10px rgba(255, 0, 60, 0.3);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--status-danger) 30%, transparent);
 }
 
 .touch-btn.macro-launcher-btn:active {
   background: var(--status-danger);
   color: var(--bg-earth);
-  box-shadow: 0 0 14px rgba(255, 0, 60, 0.7);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--status-danger) 70%, transparent);
 }
 
 .sub-suite-bar {
@@ -254,7 +254,7 @@
   background: var(--status-active);
   color: var(--bg-earth);
   border-color: var(--status-active);
-  box-shadow: 0 0 8px rgba(76, 120, 100, 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--status-active) 40%, transparent);
 }
 
 .touch-btn.voice-btn.recording {
@@ -272,7 +272,7 @@
   bottom: 0;
   width: 100vw;
   height: var(--visual-viewport-height, 100dvh);
-  background: rgba(10, 17, 24, 0.82);
+  background: color-mix(in srgb, var(--bg-earth) 82%, transparent);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -764,72 +764,4 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-/* Code Editor Touch Bar & Markdown Preview Styles */
-.editor-touch-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.5rem;
-  background: var(--bg-canopy);
-  border-top: 1px solid var(--border-forest);
-  overflow-x: auto;
-  flex-shrink: 0;
-}
-
-.editor-touch-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  height: 2.1rem;
-  padding: 0 0.6rem;
-  flex: 0 0 auto;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-forest);
-  border-radius: 6px;
-  color: var(--text-parchment);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.editor-touch-btn.active {
-  background: var(--bg-earth);
-  border-color: var(--accent-mana);
-  color: var(--accent-mana);
-  font-weight: 700;
-}
-
-.editor-touch-btn.save {
-  border-color: var(--status-active);
-  color: var(--status-active);
-}
-
-.editor-touch-btn.commit {
-  border-color: var(--accent-mana);
-  color: var(--accent-mana);
-}
-
-.markdown-preview-pane {
-  flex: 1 1 100%;
-  height: 100%;
-  overflow-y: auto;
-  padding: 1.5rem;
-  background: var(--bg-earth);
-  color: var(--text-parchment);
-  font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.6;
-}
-
-.markdown-preview-pane h1 { font-size: 1.6rem; font-weight: 700; border-bottom: 1px solid var(--border-forest); padding-bottom: 0.3rem; margin-bottom: 1rem; color: var(--accent-mana); }
-.markdown-preview-pane h2 { font-size: 1.3rem; font-weight: 600; margin-top: 1.2rem; margin-bottom: 0.6rem; color: var(--text-parchment); }
-.markdown-preview-pane h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.4rem; }
-.markdown-preview-pane p { margin-bottom: 0.8rem; }
-.markdown-preview-pane li { margin-left: 1.2rem; margin-bottom: 0.3rem; }
-.markdown-preview-pane blockquote { border-left: 3px solid var(--accent-mana); padding-left: 0.8rem; color: var(--text-muted); margin: 0.8rem 0; font-style: italic; }
-.markdown-preview-pane hr { border: none; border-top: 1px solid var(--border-forest); margin: 1.2rem 0; }
-.markdown-preview-pane pre.preview-code-block { background: var(--bg-canopy); border: 1px solid var(--border-forest); border-radius: 6px; padding: 0.8rem; font-family: var(--font-mono); font-size: 0.85rem; overflow-x: auto; margin: 0.8rem 0; }
 

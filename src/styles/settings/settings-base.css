@@ -1,0 +1,142 @@
+/* ==========================================================================
+   SOVEREIGN TERMINAL — SETTINGS BASE
+   File: src/styles/settings/settings-base.css
+   Purpose: Settings Manager container viewport, subtabs navbar,
+            and shared section title headers.
+   ========================================================================== */
+
+/* Settings Sub-Tabs Bar & Viewport Container */
+.settings-master-container,
+.settings-manager-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-earth);
+  overflow: hidden;
+}
+
+.settings-subtabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-canopy);
+  border-bottom: 1px solid var(--border-forest);
+  flex-shrink: 0;
+}
+
+.settings-content-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding: 1.25rem;
+}
+
+/* MOBILE & TABLET TOUCH RESPONSIVE STYLES */
+
+@media (max-width: 768px) {
+  .settings-content-viewport {
+    padding: 0.75rem;
+  }
+}
+
+/* Sub-Tab Action Buttons (Files/Editor and Settings Sub-Tabs) */
+.subtab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 18px; /* Distinct Sub-Tab Pill Shape */
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.subtab-btn:active {
+  color: var(--text-parchment);
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.subtab-btn.active {
+  color: var(--bg-earth);
+  background: var(--accent-highlight);
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-highlight) 40%, transparent);
+}
+
+/* Dynamic Equal-Distribution Tab Auto-Fitting Rules */
+.settings-subtabs-bar {
+  display: flex !important;
+  width: 100% !important;
+  gap: 0.25rem !important;
+  overflow: hidden !important;
+}
+
+.subtab-btn, .nav-pill-btn {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0.35rem 0.2rem !important;
+}
+
+.tab-auto-text, .subtab-btn span, .nav-pill-btn span {
+  font-size: clamp(0.55rem, 2.2vw, 0.76rem) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Shared Section Title Header */
+.section-header-compact {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+  margin-bottom: 0.5rem;
+}
+
+/* OmniState Transparent Logo Styling */
+.omni-logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-highlight) 40%, transparent));
+}
+
+@media (max-width: 768px) {
+  .brand-title {
+    flex-shrink: 0;
+    margin-right: 0.25rem;
+  }
+}
+
+/* Global Input Focus Glow Sync */
+.micro-input:focus,
+.micro-textarea:focus,
+.live-preview-textarea:focus,
+.hex-input:focus,
+.search-input-box input:focus,
+.color-input-group input[type="text"]:focus,
+.audition-hex-input:focus,
+.theme-name-input-group input:focus,
+.tmux-num-input:focus {
+  outline: none;
+  border-color: var(--accent-highlight) !important;
+  box-shadow: 0 0 5px var(--accent-glow) !important;
+}

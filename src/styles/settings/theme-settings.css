@@ -1,0 +1,643 @@
+/* ==========================================================================
+   SOVEREIGN TERMINAL — THEME SETTINGS & ENGINE
+   File: src/styles/settings/theme-settings.css
+   Purpose: Preset cards, theme customizer modal, Base-16 swatch grid,
+            color editor, font control preview windows, and theme management.
+   ========================================================================== */
+
+/* Theme Settings Container */
+.theme-settings-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.reset-theme-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--accent-highlight);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Micro & Compact Preset Cards */
+.compact-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.micro-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.micro-preset-card:active {
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.micro-preset-card.active {
+  border-color: var(--accent-highlight);
+  background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-highlight) 30%, transparent);
+}
+
+.micro-swatch-row {
+  display: flex;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.micro-swatch-row span {
+  flex: 1;
+  height: 100%;
+}
+
+.micro-preset-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+
+.micro-preset-name {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-parchment);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-hex-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem;
+}
+
+.hex-picker-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+}
+
+.hex-picker-card span {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.color-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.color-input-group input[type="color"] {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.color-input-group input[type="text"] {
+  flex: 1;
+  width: 100%;
+  padding: 0.2rem 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+/* Full Preset Cards Grid */
+.presets-full-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.full-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.full-preset-card:active {
+  border-color: var(--accent-highlight);
+  background: var(--bg-canopy);
+}
+
+.full-preset-card.active {
+  border-color: var(--accent-highlight);
+  background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-highlight) 30%, transparent);
+}
+
+.preset-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.preset-full-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+  line-height: 1.1;
+}
+
+.swatches-5-strip {
+  display: flex;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.swatches-5-strip span {
+  flex: 1;
+  height: 100%;
+}
+
+/* Font Controls Grid */
+.font-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.font-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.45rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+}
+
+.font-control-card.full-width {
+  grid-column: 1 / span 2;
+}
+
+.font-control-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.font-control-label strong {
+  color: var(--accent-highlight);
+  font-family: var(--font-mono);
+}
+
+.font-slider {
+  width: 100%;
+  accent-color: var(--accent-highlight);
+  cursor: pointer;
+}
+
+.font-select-dropdown {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/* Native Theme Buttons Grid */
+.native-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.45rem;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+  padding-right: 0.2rem;
+}
+
+.native-theme-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.native-theme-button.active {
+  border-width: 2px;
+}
+
+.native-theme-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+
+.native-theme-title {
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.native-gear-btn {
+  align-self: flex-end;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  border-radius: 50%;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.native-gear-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Theme Customizer Modal & Overlays */
+.explorer-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.theme-modal-card {
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 92%;
+  max-width: 420px;
+  max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.modal-header-row h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-parchment);
+}
+
+.modal-close-x {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-highlight);
+  margin-bottom: 0.4rem;
+}
+
+.modal-btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Create & Delete Custom Theme Action Buttons */
+.create-custom-theme-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 12px;
+  color: var(--bg-earth);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  background: color-mix(in srgb, var(--status-danger) 20%, transparent);
+  border: 1px solid var(--status-danger);
+  border-radius: 6px;
+  color: var(--status-danger);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.delete-theme-btn:active {
+  background: var(--status-danger);
+  color: var(--bg-earth);
+}
+
+/* Theme Customizer Modal Theme Naming Field */
+.theme-name-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.theme-name-input-group label {
+  font-size: 0.70rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.theme-name-field {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Theme Customizer Modal Active Swatches Row */
+.modal-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.35rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+}
+
+/* Base-16 swatch grid in customize modal */
+.base16-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.2rem;
+  padding: 0.2rem 0;
+}
+
+.base16-swatch-grid-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.base16-swatch-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  cursor: pointer;
+  padding: 0.2rem 0.1rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+  touch-action: manipulation;
+}
+
+.base16-swatch-cell:active {
+  background: color-mix(in srgb, var(--text-parchment) 6%, transparent);
+}
+
+.base16-swatch-cell.selected {
+  border-color: var(--accent-highlight);
+  background: color-mix(in srgb, var(--accent-highlight) 12%, transparent);
+}
+
+.base16-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+.base16-label {
+  font-size: 7px;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.1;
+}
+
+/* Inline color editor below swatch grid */
+.modal-color-editor {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  background: var(--bg-earth);
+  border-radius: 6px;
+  border: 1px solid var(--border-forest);
+}
+
+.modal-editing-label {
+  font-size: 0.68rem;
+  color: var(--accent-highlight);
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.modal-color-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.modal-color-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.15);
+  flex-shrink: 0;
+}
+
+/* Mini Base-16 color strip on each theme card */
+.native-theme-strip {
+  display: flex;
+  gap: 2px;
+  margin-top: 0.15rem;
+}
+
+.native-strip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.theme-section-grid {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Live Theme-Styled Interactive Font Preview Windows */
+.live-font-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.preview-window-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.45rem;
+}
+
+.preview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-parchment);
+}
+
+.live-preview-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  resize: vertical;
+  line-height: 1.35;
+  outline: none;
+  scrollbar-width: none;
+}
+
+/* Font Action Buttons & Applied Toast Badge */
+.font-action-btn-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.font-reset-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.70rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.font-apply-btn {
+  flex: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.3rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 8px;
+  color: var(--bg-earth);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--status-active) 40%, transparent);
+}
+
+.applied-toast-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.4rem;
+  background: color-mix(in srgb, var(--status-active) 20%, transparent);
+  border: 1px solid var(--status-active);
+  border-radius: 10px;
+  color: var(--accent-mana);
+  font-size: 0.65rem;
+  font-weight: 700;
+}

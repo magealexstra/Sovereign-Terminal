@@ -2,10 +2,8 @@
    SOVEREIGN TERMINAL — DESIGN TOKENS & ROOT RESET
    File: src/styles/tokens.css
    Purpose: Global CSS custom properties (colors, typography, status tokens),
-            Google Fonts imports, and universal element reset rules.
+            and universal element reset rules.
    ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap');
 
 :root {
   /* Vitni Nordic Forest Theme Tokens (Default System Palette) */

@@ -2,7 +2,11 @@
 @import './styles/layout.css';
 @import './styles/terminal.css';
 @import './styles/explorer.css';
-@import './styles/settings.css';
+@import './styles/settings/settings-base.css';
+@import './styles/settings/theme-settings.css';
+@import './styles/settings/button-studio.css';
+@import './styles/settings/layout-builder.css';
+@import './styles/settings/tmux-manager.css';
 @import './styles/auth.css';
 
 /* Global Shape Overrides */

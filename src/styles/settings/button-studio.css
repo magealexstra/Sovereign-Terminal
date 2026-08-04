@@ -1,0 +1,548 @@
+/* ==========================================================================
+   SOVEREIGN TERMINAL — BUTTON STUDIO
+   File: src/styles/settings/button-studio.css
+   Purpose: Touch Button Studio surround grid layout, micro-inputs,
+            shapes, palette dots, audition console, and custom button saver.
+   ========================================================================== */
+
+/* Touch Button Studio Mobile-Native Surround Grid */
+.touch-studio-mobile-window {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-forest) var(--bg-earth);
+}
+
+.touch-studio-mobile-window::-webkit-scrollbar {
+  width: 6px;
+}
+.touch-studio-mobile-window::-webkit-scrollbar-track {
+  background: var(--bg-earth);
+}
+.touch-studio-mobile-window::-webkit-scrollbar-thumb {
+  background: var(--border-forest);
+  border-radius: 4px;
+}
+
+.studio-top-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-panel);
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-forest);
+  flex-shrink: 0;
+}
+
+.studio-top-select-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.studio-dropdown {
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.studio-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+  padding: 0.3rem 0.6rem;
+  background: var(--status-active);
+  color: var(--bg-earth);
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.studio-mobile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-rows: minmax(140px, 1fr) auto;
+  gap: 0.25rem;
+  flex: 1;
+  min-height: min-content;
+}
+
+.doc-tab-title {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.region-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.35rem;
+  overflow: hidden;
+}
+
+.region-box.left { grid-column: 1; grid-row: 1; }
+.region-box.center { grid-column: 2; grid-row: 1; align-items: center; justify-content: center; background: var(--bg-earth); border-color: var(--accent-highlight); }
+.region-box.right { grid-column: 3; grid-row: 1; }
+.region-box.bottom { grid-column: 1 / span 3; grid-row: 2; }
+
+.region-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+  white-space: nowrap;
+}
+
+.center-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-highlight);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.flex-column-grow {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.flex-1 {
+  flex: 1 1 0px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.35rem;
+}
+
+.field-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-mana);
+  letter-spacing: 0.04em;
+}
+
+/* Micro Inputs, Textareas, Shapes */
+.micro-input {
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.micro-textarea {
+  width: 100%;
+  flex: 1 1 0px;
+  min-height: 3.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.stepper-section, .shape-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 0.3rem;
+}
+
+.micro-step-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.3rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  padding: 0.15rem 0.4rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.step-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: clamp(0.85rem, 1.8vh, 1.2rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.step-btn:active {
+  background: var(--accent-mana);
+  color: var(--bg-earth);
+}
+
+.step-val {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 1.5vh, 1.05rem);
+  font-weight: 700;
+  color: var(--accent-mana);
+}
+
+.micro-shapes-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.shape-tap-btn {
+  width: 100%;
+  flex: 1 1 0px;
+  min-height: 22px;
+  padding: 0.2rem 0.4rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.shape-tap-btn.shape-square { border-radius: 2px; }
+.shape-tap-btn.shape-rounded { border-radius: 6px; }
+.shape-tap-btn.shape-pill { border-radius: 16px; }
+
+.shape-tap-btn.active {
+  box-shadow: 0 0 12px var(--accent-highlight), inset 0 0 0 2px var(--accent-highlight);
+}
+
+.pinned-save-wrapper {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 0.3rem;
+}
+
+.micro-shapes button.active {
+  border-color: var(--accent-highlight);
+  color: var(--accent-highlight);
+  background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
+}
+
+.live-studio-btn {
+  border: none;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.live-studio-btn.square { border-radius: 2px; }
+.live-studio-btn.rounded { border-radius: 6px; }
+.live-studio-btn.pill { border-radius: 20px; }
+
+.bottom-palette-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.swatch-strip {
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+}
+
+.palette-dot {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hex-input {
+  width: 80px !important;
+  margin-bottom: 0 !important;
+  text-align: center;
+}
+
+/* Touch Button Studio Target Layers & Audition Console */
+.studio-lower-color-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.target-layer-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.target-layer-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.2rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.target-layer-btn.active {
+  background: var(--accent-highlight);
+  color: var(--bg-earth);
+  border-color: var(--accent-highlight);
+  font-weight: 700;
+}
+
+.dual-color-console {
+  display: flex;
+  gap: 0.5rem;
+  height: 140px;
+}
+
+.vertical-swatch-palette {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.4rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.swatch-group-title {
+  font-size: 0.60rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.swatch-grid-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.custom-dot {
+  border-color: var(--accent-highlight) !important;
+}
+
+/* Audition Console Panel */
+.audition-console {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.audition-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.right-audition-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.4rem;
+}
+
+.large-audition-box {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.large-audition-box span {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-parchment);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.audition-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.audition-native-picker {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.audition-hex-input {
+  flex: 1;
+  padding: 0.2rem 0.3rem;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 4px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.70rem;
+  text-align: center;
+}
+
+.audition-btn-row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.add-swatch-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.2rem;
+  background: var(--status-active);
+  border: none;
+  border-radius: 10px;
+  color: var(--bg-earth);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clear-swatch-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.25rem 0.2rem;
+  background: color-mix(in srgb, var(--status-danger) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-danger) 50%, transparent);
+  border-radius: 10px;
+  color: var(--accent-violet);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Save Config Button */
+.studio-save-btn {
+  width: 100%;
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.4rem;
+  background: var(--accent-mana);
+  border: none;
+  border-radius: 8px;
+  color: var(--bg-earth);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  touch-action: manipulation;
+}
+
+.studio-save-btn.saved {
+  background: var(--status-active);
+}

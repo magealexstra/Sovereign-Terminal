@@ -1,0 +1,443 @@
+/* ==========================================================================
+   SOVEREIGN TERMINAL — LAYOUT BUILDER & TOUCHBAR EDITOR
+   File: src/styles/settings/layout-builder.css
+   Purpose: Single-Bar Layout Builder, TouchBar preview strip, macro suite
+            selector, category dropdown selector, action control console,
+            and 1:1 perfect square grid.
+   ========================================================================== */
+
+/* Single-Bar Layout Builder & TouchBar Editor */
+.layout-builder-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.25rem;
+  box-sizing: border-box;
+}
+
+.layout-editor-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.6rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* 1. Layout Dropdown Standalone Cards & Macro Suite / Category Selectors */
+.layout-dropdown-card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.macro-suite-select-wrapper,
+.category-select-wrapper {
+  width: 100%;
+}
+
+.search-input-box {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.search-input-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  outline: none;
+}
+
+.category-dropdown {
+  width: 100%;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  color: var(--accent-mana);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.45rem 0.6rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.category-dropdown optgroup {
+  background: var(--bg-earth);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.category-dropdown option {
+  background: var(--bg-canopy);
+  color: var(--text-parchment);
+  padding: 0.2rem;
+}
+
+/* 2. Available Buttons Pool Section */
+.available-pool-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.6rem;
+  overflow: hidden;
+}
+
+.pool-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-mana);
+  letter-spacing: 0.05em;
+}
+
+.reset-pool-link {
+  background: transparent;
+  border: none;
+  color: var(--accent-highlight);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.available-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.4rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.pool-chip-item {
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pool-chip-item.launcher-chip {
+  border-color: var(--accent-mana);
+  color: var(--accent-mana);
+  font-weight: 700;
+}
+
+.pool-chip-item.selected-glow {
+  background: var(--accent-mana);
+  color: var(--bg-earth);
+  border-color: var(--accent-mana);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-highlight) 60%, transparent);
+}
+
+/* 3. Live TouchBar Preview Section */
+.live-bar-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  width: 100%;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+.bar-preview-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--status-active);
+  letter-spacing: 0.05em;
+}
+
+.live-bar-strip-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.live-bar-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  overflow-x: auto;
+  padding: 0.3rem 0.1rem;
+  scrollbar-width: thin;
+}
+
+.live-bar-tile {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.live-bar-tile.launcher-tile {
+  color: var(--accent-mana);
+  border-color: var(--accent-mana);
+}
+
+.live-bar-tile.selected-bar-tile {
+  background: var(--status-active);
+  color: var(--bg-earth);
+  border-color: var(--status-active);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--status-active) 60%, transparent);
+}
+
+.add-to-bar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 32px;
+  padding: 0 0.75rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+
+.add-to-bar-btn.active-add {
+  background: var(--accent-mana);
+  color: var(--bg-earth);
+  border-color: var(--accent-mana);
+  cursor: pointer;
+  opacity: 1;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-highlight) 40%, transparent);
+}
+
+/* 4. Bottom Control Console */
+.single-bar-control-console {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-forest);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.action-btn.add-action-btn {
+  border-color: var(--status-active);
+  color: var(--status-active);
+}
+
+.action-btn.add-action-btn:not(:disabled) {
+  background: var(--status-active);
+  color: var(--bg-earth);
+  border-color: var(--status-active);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--status-active) 40%, transparent);
+}
+
+.action-btn.delete-action-btn {
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+}
+
+.action-btn.delete-action-btn:not(:disabled) {
+  background: color-mix(in srgb, var(--status-danger) 12%, transparent);
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+}
+
+.delete-action-btn:not(:disabled):active {
+  background: var(--status-danger);
+  color: var(--bg-earth);
+}
+
+.action-btn.reset-action-btn {
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+.action-btn.reset-action-btn:not(:disabled) {
+  background: color-mix(in srgb, var(--status-warning) 10%, transparent);
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+}
+
+.action-btn.reset-action-btn:not(:disabled):active {
+  background: var(--status-warning);
+  color: var(--bg-earth);
+}
+
+/* Narrow screens: Move Left / Move Right collapse to icon-only to accommodate 5-button bar */
+@media (max-width: 480px) {
+  .move-action-btn span {
+    display: none;
+  }
+  .move-action-btn {
+    padding: 0.45rem 0.4rem;
+  }
+}
+
+/* Standardized 1:1 Perfect Square Grid Layout */
+.perfect-square-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 12px;
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  flex: 1;
+}
+
+.square-slot-box {
+  width: 42px;
+  height: 42px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-sage);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-parchment);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.square-slot-box.target-pulse {
+  border-color: var(--accent-highlight);
+  animation: pulse-border 1.5s infinite;
+}
+
+.pool-4x4-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+}
+
+.square-pool-tile {
+  width: 42px;
+  height: 42px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  border-radius: 6px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.square-pool-tile.macros-anchor {
+  background: color-mix(in srgb, var(--accent-highlight) 20%, transparent);
+  border-color: var(--accent-highlight);
+  color: var(--accent-highlight);
+}
+
+.square-pool-tile.selected-glow {
+  background: var(--accent-highlight);
+  color: var(--bg-earth);
+  border-color: var(--accent-highlight);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-highlight) 50%, transparent);
+}
+
+/* Dynamic Auto-Scaling Font Utility Classes for Fixed 1:1 Squares */
+.square-slot-box.text-lg, .square-pool-tile.text-lg { font-size: 0.78rem; font-weight: 700; }
+.square-slot-box.text-md, .square-pool-tile.text-md { font-size: 0.70rem; font-weight: 600; }
+.square-slot-box.text-sm, .square-pool-tile.text-sm { font-size: 0.62rem; font-weight: 600; }
+.square-slot-box.text-xs, .square-pool-tile.text-xs { font-size: 0.54rem; font-weight: 600; }
