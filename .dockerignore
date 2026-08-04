@@ -3,6 +3,7 @@ node_modules
 dist
 .git
 .gitignore
+docs/
 testing/
 *.log
 _temp_trash
