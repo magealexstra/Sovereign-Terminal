@@ -601,7 +601,7 @@ export default function App() {
 
         <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading tab...</div>}>
           {explorerSubTab === 'tree' ? (
-            <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
+            <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} onOpenTerminal={(path) => { handleAddSession(path); setActiveMainTab('terminal'); }} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
           ) : (
             <CodeEditor
               openDocuments={openDocuments}

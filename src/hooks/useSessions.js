@@ -88,7 +88,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
     return () => window.removeEventListener('sovereign_attach_session', handleAttachEvent);
   }, [rootDir, showToast]);
 
-  const handleAddSession = async (inheritCwd = false) => {
+  const handleAddSession = async (inheritCwdOrPath = false) => {
     if (sessions.length >= 5) {
       // Use toast instead of browser alert() for non-blocking UX
       if (showToast) showToast('Max 5 sessions — close a tab to add another.');
@@ -99,7 +99,9 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
     const sessionName = `term-${sessionCounterRef.current}`;
     let targetCwd = rootDir;
 
-    if (inheritCwd && activeSession) {
+    if (typeof inheritCwdOrPath === 'string') {
+      targetCwd = inheritCwdOrPath;
+    } else if (inheritCwdOrPath && activeSession) {
       try {
         const res = await fetch(`/api/terminal/cwd?session=${encodeURIComponent(activeSession)}`);
         if (res.ok) {

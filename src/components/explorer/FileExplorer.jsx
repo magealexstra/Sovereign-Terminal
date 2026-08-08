@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, Clipboard, FileCode, Check, CheckSquare, Square, FolderMinus } from 'lucide-react';
+import { Folder, FileText, ChevronRight, Search, Plus, Trash2, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, TerminalSquare, Clipboard, FileCode, Check, CheckSquare, Square, FolderMinus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 
-export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
+export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -256,9 +256,10 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
   return (
     <div className="file-explorer-container">
       {/* Explorer Action Header */}
-      <div className="explorer-toolbar">
-        <div className="breadcrumbs-row" style={{ overflowX: 'visible', overflowY: 'visible', flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'flex', alignItems: 'center', flex: 1, overflowX: 'auto', scrollbarWidth: 'none', minWidth: 0, gap: '0.35rem' }}>
+      <div className="explorer-header-wrapper">
+        {/* Row 1: Breadcrumbs & Copy Path */}
+        <div className="explorer-breadcrumbs-bar">
+          <div className="breadcrumbs-scroll-container">
             {getBreadcrumbs().map((crumb, idx) => (
               <React.Fragment key={crumb.path}>
                 <span className="crumb-item" onClick={() => fetchDirectory(crumb.path)}>
@@ -267,7 +268,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
                 {idx < getBreadcrumbs().length - 1 && <ChevronRight size={12} color="var(--text-muted)" />}
               </React.Fragment>
             ))}
-          </span>
+          </div>
           <button
             className="tb-btn"
             style={{ flexShrink: 0, borderColor: 'var(--status-active)', marginLeft: '0.5rem' }}
@@ -292,7 +293,8 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
           </button>
         </div>
 
-        <div className="toolbar-actions">
+        {/* Row 2: Action Buttons */}
+        <div className="explorer-actions-bar">
           <button className="tb-btn" onClick={() => setCurrentPath(currentPath.split('/').slice(0, -1).join('/') || '/')} title="Up One Level">
             <CornerLeftUp size={14} />
           </button>
@@ -301,6 +303,9 @@ export default function FileExplorer({ onCopyPath, onOpenFile, activeTerminalPat
           </button>
           <button className="tb-btn" onClick={() => setCurrentPath(activeTerminalPath)} title="Snap to Terminal">
             <Terminal size={14} />
+          </button>
+          <button className="tb-btn" onClick={() => onOpenTerminal && onOpenTerminal(currentPath)} title="Open New Terminal Here">
+            <TerminalSquare size={14} />
           </button>
           <button className="tb-btn" onClick={() => fetchDirectory(currentPath)} title="Refresh Directory">
             <RefreshCw size={14} className={loading ? 'spin' : ''} />
