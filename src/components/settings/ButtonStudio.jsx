@@ -132,6 +132,27 @@ export default function ButtonStudio() {
     setSelectedId(newId);
   };
 
+  // Determines if the active button has a matching built-in in PREBUILT_CATEGORIES.
+  // If true: removing it from custom list falls back silently to the built-in (RESET).
+  // If false: removing it is permanent — no built-in fallback exists (DELETE).
+  const isResetMode = Object.values(PREBUILT_CATEGORIES)
+    .flatMap(cat => cat.items)
+    .some(item => item.label === activeBtn?.label);
+
+  const handleResetDelete = () => {
+    if (!activeBtn || isEditingCust) return;
+    const currentIndex = buttons.findIndex(b => b.id === activeBtn.id);
+    const updated = buttons.filter(b => b.id !== activeBtn.id);
+    setButtons(updated);
+    // Auto-advance selection to nearest remaining button
+    if (updated.length > 0) {
+      const nextIndex = Math.min(currentIndex, updated.length - 1);
+      setSelectedId(updated[nextIndex].id);
+    } else {
+      setSelectedId(null);
+    }
+  };
+
   // Apply swatch to selected layer AND load into audition box so Add works as expected
   const handleApplySwatch = (color) => {
     if (targetLayer === 'bg')     updateActiveBtn({ bg: color });
@@ -253,6 +274,9 @@ export default function ButtonStudio() {
         displayCategories={displayCategories}
         onSelectPresetOrCustom={handleSelectPresetOrCustom}
         onCreateNew={handleCreateNew}
+        onResetDelete={handleResetDelete}
+        isResetMode={isResetMode}
+        isResetDeleteDisabled={isEditingCust || !activeBtn || buttons.length === 0}
       />
 
       {/* Main Surround Grid with Dynamic Flex Growth */}

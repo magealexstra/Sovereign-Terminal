@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Save } from 'lucide-react';
+import { Plus, Save, Trash2, RotateCcw } from 'lucide-react';
 
 /**
  * ButtonHeader — Top search and dropdown selector navigation stack for Button Studio.
@@ -11,65 +11,44 @@ export default function ButtonHeader({
   filteredCustomButtons,
   displayCategories,
   onSelectPresetOrCustom,
-  onCreateNew
+  onCreateNew,
+  onResetDelete,
+  isResetMode,
+  isResetDeleteDisabled,
 }) {
   return (
     <div className="studio-top-row">
-      <div className="studio-action-row" style={{ display: 'flex', width: '100%', gap: '0.4rem', marginBottom: '0.4rem' }}>
+      <div className="studio-action-row">
         <button
           type="button"
-          className="shape-tap-btn"
-          style={{
-            flex: 1,
-            height: '36px',
-            background: 'var(--bg-canopy)',
-            border: '1.5px solid var(--status-active)',
-            color: 'var(--text-parchment)',
-            borderRadius: '10px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.74rem',
-            fontWeight: '700',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.15s ease'
-          }}
+          className="studio-action-btn studio-action-btn--create"
           onClick={onCreateNew}
         >
-          <Plus size={14} color="var(--status-active)" />
-          <span>CREATE NEW BUTTON</span>
+          <Plus size={14} />
+          <span>CREATE</span>
         </button>
 
         <button
           type="button"
-          className="shape-tap-btn"
-          style={{
-            flex: 1,
-            height: '36px',
-            background: 'var(--bg-canopy)',
-            border: '1.5px solid var(--accent-highlight)',
-            color: 'var(--text-parchment)',
-            borderRadius: '10px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.74rem',
-            fontWeight: '700',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.35rem',
-            transition: 'all 0.15s ease'
-          }}
+          className={`studio-action-btn ${isResetMode ? 'studio-action-btn--reset' : 'studio-action-btn--delete'}`}
+          onClick={onResetDelete}
+          disabled={isResetDeleteDisabled}
+        >
+          {isResetMode ? <RotateCcw size={14} /> : <Trash2 size={14} />}
+          <span>{isResetMode ? 'RESET' : 'DELETE'}</span>
+        </button>
+
+        <button
+          type="button"
+          className="studio-action-btn studio-action-btn--save"
           onClick={() => {
             if (window.dispatchEvent) {
               window.dispatchEvent(new CustomEvent('sovereign_save_studio_buttons'));
             }
           }}
         >
-          <Save size={14} color="var(--accent-highlight)" />
-          <span>SAVE BUTTON</span>
+          <Save size={14} />
+          <span>SAVE</span>
         </button>
       </div>
 

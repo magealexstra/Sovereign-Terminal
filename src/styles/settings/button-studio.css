@@ -43,6 +43,76 @@
   flex-shrink: 0;
 }
 
+/* Studio Header Action Row — CREATE / RESET / DELETE / SAVE buttons */
+.studio-action-row {
+  display: flex;
+  width: 100%;
+  gap: 0.4rem;
+}
+
+.studio-action-btn {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: var(--bg-canopy);
+  border: 1.5px solid var(--border-sage);
+  border-radius: 8px;
+  color: var(--text-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.studio-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.studio-action-btn--create {
+  border-color: var(--status-active);
+  color: var(--text-parchment);
+}
+
+.studio-action-btn--create:active {
+  background: var(--status-active);
+  color: var(--bg-earth);
+}
+
+.studio-action-btn--reset {
+  border-color: var(--accent-mana);
+  color: var(--text-parchment);
+}
+
+.studio-action-btn--reset:active {
+  background: var(--accent-mana);
+  color: var(--bg-earth);
+}
+
+.studio-action-btn--delete {
+  border-color: var(--status-danger);
+  color: var(--text-parchment);
+}
+
+.studio-action-btn--delete:active {
+  background: var(--status-danger);
+  color: var(--bg-earth);
+}
+
+.studio-action-btn--save {
+  border-color: var(--accent-highlight);
+  color: var(--text-parchment);
+}
+
+.studio-action-btn--save:active {
+  background: var(--accent-highlight);
+  color: var(--bg-earth);
+}
+
 .studio-top-select-group {
   display: flex;
   align-items: center;
