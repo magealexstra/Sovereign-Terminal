@@ -511,6 +511,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             socketRef.current.send(text);
             if (executeImmediately) {
               socketRef.current.send('\r');
+            } else {
+              setTimeout(() => {
+                if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                  socketRef.current.send(' \x7f');
+                }
+              }, 100);
             }
           }
         } catch (e) {
