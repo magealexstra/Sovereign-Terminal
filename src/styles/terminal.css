@@ -172,6 +172,8 @@
   flex-shrink: 0;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .touch-btn {
@@ -192,6 +194,8 @@
   cursor: pointer;
   white-space: nowrap;
   max-width: 220px;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .touch-btn svg {
@@ -248,6 +252,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .sub-suite-pill.active {
@@ -279,6 +285,8 @@
   justify-content: center;
   z-index: 100;
   padding: 1rem;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .macro-modal-content {
@@ -294,6 +302,8 @@
   padding: 1rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
   overflow-y: auto;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .macro-modal-header {
@@ -418,6 +428,8 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .macro-grid-btn.square { border-radius: 2px; }
@@ -476,6 +488,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .suite-tab-pill.active {

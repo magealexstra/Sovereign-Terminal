@@ -678,6 +678,7 @@ export default function TouchBar({ onKeyPress }) {
                 <button
                   type="button"
                   className={`target-pill ${macroTarget === 'stager' ? 'active' : ''}`}
+                  onPointerDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMacroTargetToggle('stager');
@@ -690,6 +691,7 @@ export default function TouchBar({ onKeyPress }) {
                 <button
                   type="button"
                   className={`target-pill ${macroTarget === 'terminal' ? 'active' : ''}`}
+                  onPointerDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMacroTargetToggle('terminal');
@@ -701,7 +703,7 @@ export default function TouchBar({ onKeyPress }) {
                 </button>
               </div>
 
-              <button className="close-modal-btn" onClick={() => setShowMacroModal(false)}>
+              <button className="close-modal-btn" onPointerDown={(e) => e.preventDefault()} onClick={() => setShowMacroModal(false)}>
                 <X size={16} />
               </button>
             </div>
@@ -715,6 +717,7 @@ export default function TouchBar({ onKeyPress }) {
                     key={groupKey}
                     type="button"
                     className={`suite-tab-pill ${isActive ? 'active' : ''}`}
+                    onPointerDown={(e) => e.preventDefault()}
                     onClick={() => {
                       setPrimaryGroup(groupKey);
                       const defaultSub = effectiveGroups[groupKey].suites[0];
@@ -737,6 +740,7 @@ export default function TouchBar({ onKeyPress }) {
                       key={subKey}
                       type="button"
                       className={`sub-suite-pill ${isSubActive ? 'active' : ''}`}
+                      onPointerDown={(e) => e.preventDefault()}
                       onClick={() => setSelectedSuite(subKey)}
                     >
                       {SUB_LABELS[subKey] || subKey}
@@ -762,6 +766,8 @@ export default function TouchBar({ onKeyPress }) {
                       width: macro.width ? `${macro.width}rem` : undefined,
                       height: macro.height ? `${macro.height}rem` : undefined,
                     } : {}}
+                    onPointerDown={(e) => e.preventDefault()}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       if (isLauncher) {
                         const targetGroup = Object.keys(effectiveGroups).find(g =>
@@ -809,6 +815,7 @@ export default function TouchBar({ onKeyPress }) {
             <div className="macro-modal-header">
               <button
                 className="focused-suite-title-reset"
+                onPointerDown={(e) => e.preventDefault()}
                 onClick={() => setFocusedSubSuite(null)}
                 title="Tap to return to root suite view"
               >
@@ -819,6 +826,7 @@ export default function TouchBar({ onKeyPress }) {
                 <button
                   type="button"
                   className={`target-pill ${macroTarget === 'stager' ? 'active' : ''}`}
+                  onPointerDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMacroTargetToggle('stager');
@@ -831,6 +839,7 @@ export default function TouchBar({ onKeyPress }) {
                 <button
                   type="button"
                   className={`target-pill ${macroTarget === 'terminal' ? 'active' : ''}`}
+                  onPointerDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMacroTargetToggle('terminal');
@@ -842,7 +851,7 @@ export default function TouchBar({ onKeyPress }) {
                 </button>
               </div>
 
-              <button className="close-modal-btn" onClick={() => setShowFocusedSuiteModal(false)}>
+              <button className="close-modal-btn" onPointerDown={(e) => e.preventDefault()} onClick={() => setShowFocusedSuiteModal(false)}>
                 <X size={16} />
               </button>
             </div>
@@ -855,6 +864,7 @@ export default function TouchBar({ onKeyPress }) {
                     key={chip.id}
                     type="button"
                     className={`sub-suite-pill ${focusedSubSuite === chip.label ? 'active' : ''}`}
+                    onPointerDown={(e) => e.preventDefault()}
                     onClick={() => setFocusedSubSuite(chip.label)}
                   >
                     {chip.label}
@@ -881,6 +891,8 @@ export default function TouchBar({ onKeyPress }) {
                       width: macro.width ? `${macro.width}rem` : undefined,
                       height: macro.height ? `${macro.height}rem` : undefined,
                     } : {}}
+                    onPointerDown={(e) => e.preventDefault()}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
                       if (macroTarget === 'stager') {
                         const valToAppend = macro.value ? macro.value.replace(/\n$/, '') : macro.label;
