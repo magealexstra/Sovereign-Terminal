@@ -102,6 +102,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   transition: background 0.15s ease;
+  overflow: hidden;
 }
 
 .tree-item:active {
@@ -116,8 +117,8 @@
 .tree-item-name {
   flex: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tree-item-size {
