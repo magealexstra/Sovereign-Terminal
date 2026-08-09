@@ -3,11 +3,11 @@
 
 // Default buttons loaded when no localStorage save exists
 export const DEFAULT_BUTTONS = [
-  { id: 'b1', label: 'ESC',       value: '\x1b',      width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
-  { id: 'b2', label: 'TAB',       value: '\t',        width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
-  { id: 'b3', label: '^C',        value: '\x03',      width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
-  { id: 'b4', label: 'htop',      value: 'htop\n',    width: 3.2, height: 2.0, shape: 'pill',    bg: 'var(--bg-canopy)', text: 'var(--border-sage)',    border: 'var(--status-active)' },
-  { id: 'b5', label: 'docker ps', value: 'docker ps\n', width: 4.2, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--accent-highlight)', border: 'var(--status-warning)' },
+  { id: 'b1', label: 'ESC',       value: '\x1b',        width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'b2', label: 'TAB',       value: '\t',          width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'b3', label: '^C',        value: '\x03',        width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'b4', label: 'htop',      value: 'htop\n',      width: 3.2, height: 2.0, shape: 'pill',    bg: null, text: null, border: null },
+  { id: 'b5', label: 'docker ps', value: 'docker ps\n', width: 4.2, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
 ];
 
 // Built-in categorized command preset bundles
@@ -250,10 +250,10 @@ export const PREBUILT_CATEGORIES = {
 };
 
 export const KEY_NAV_PRESETS = [
-  { id: 'nav1', label: '▲', value: '\x1b[A', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
-  { id: 'nav2', label: '▼', value: '\x1b[B', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
-  { id: 'nav3', label: '◀', value: '\x1b[D', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
-  { id: 'nav4', label: '▶', value: '\x1b[C', width: 2.4, height: 2.0, shape: 'rounded', bg: 'var(--bg-canopy)', text: 'var(--text-parchment)', border: 'var(--border-sage)' },
+  { id: 'nav1', label: '▲', value: '\x1b[A', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'nav2', label: '▼', value: '\x1b[B', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'nav3', label: '◀', value: '\x1b[D', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'nav4', label: '▶', value: '\x1b[C', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
   { id: 'nav5', label: 'PgUp', value: '\x1b[5~' },
   { id: 'nav6', label: 'PgDn', value: '\x1b[6~' },
   { id: 'nav7', label: 'Home', value: '\x1b[H' },
