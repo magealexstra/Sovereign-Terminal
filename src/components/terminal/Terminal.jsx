@@ -516,7 +516,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
                 if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
                   socketRef.current.send(' \x7f');
                 }
-              }, 100);
+              }, 1000);
             }
           }
         } catch (e) {
