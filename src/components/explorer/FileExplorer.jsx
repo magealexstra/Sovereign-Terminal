@@ -3,6 +3,7 @@ import { Folder, FileText, ChevronRight, Search, Download, Upload, RefreshCw, Ho
 import { useApp } from '../../context/AppContext';
 import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 import ExplorerContextMenu from './ExplorerContextMenu';
+import { getFileBrandColor, getFileExtension } from '../../utils/fileColors';
 
 export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
   const [items, setItems] = useState([]);
@@ -33,6 +34,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   const newFileInputRef = useRef(null);
   const renameInputRef = useRef(null);
   const longPressTimerRef = useRef(null);
+  const fetchIdRef = useRef(0);
 
   useEffect(() => {
     fetch('/api/auth/verify')
@@ -79,11 +81,14 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   }, []);
 
   const fetchDirectory = async (targetPath) => {
+    const fetchId = ++fetchIdRef.current;
     setLoading(true);
     try {
       const res = await fetch(`/api/fs/tree?path=${encodeURIComponent(targetPath)}`);
+      if (fetchId !== fetchIdRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        if (fetchId !== fetchIdRef.current) return;
         setCurrentPath(data.currentPath);
         try {
           localStorage.setItem('sovereign_explorer_last_path', data.currentPath);
@@ -92,9 +97,10 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         setSelectedItems([]);
       }
     } catch (e) {
+      if (fetchId !== fetchIdRef.current) return;
       console.error('Failed to fetch directory tree:', e);
     } finally {
-      setLoading(false);
+      if (fetchId === fetchIdRef.current) setLoading(false);
     }
   };
 
@@ -132,7 +138,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
     }
   }, []);
 
-  const startLongPress = useCallback((item = null) => {
+  const startLongPress = useCallback((e, item = null) => {
     cancelLongPress();
     longPressTimerRef.current = setTimeout(() => {
       if (item && !selectedItems.includes(item.path)) {
@@ -421,9 +427,9 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
 
   // ── Derived state ──────────────────────────────────────────────────────────
 
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items
+    .filter((item) => item && item.name)
+    .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const allVisibleSelected =
     filteredItems.length > 0 &&
@@ -531,7 +537,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
           <div
             key={item.path}
             className={`tree-item ${selectedItems.includes(item.path) ? 'selected' : ''}`}
-            onTouchStart={() => startLongPress(item)}
+            onTouchStart={(e) => { e.preventDefault(); startLongPress(e, item); }}
             onTouchMove={cancelLongPress}
             onTouchEnd={cancelLongPress}
             onContextMenu={(e) => handleContextMenuOpen(e, item)}
@@ -553,9 +559,14 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
                 handleSelectItem(item.path);
               }}
             />
-            {item.isDir ? <Folder size={16} color="var(--accent-mana)" /> : <FileText size={16} color="var(--status-active)" />}
+            {item.isDir
+              ? <Folder size={16} color="var(--accent-mana)" />
+              : <FileText size={16} color="var(--status-active)" />}
             <span className="tree-item-name">{item.name}</span>
-            {item.size && <span className="tree-item-size">{item.size}</span>}
+            <span className="tree-item-ext" style={{ color: getFileBrandColor(item.name) }}>
+              {getFileExtension(item.name, item.isDir) || ''}
+            </span>
+            <span className="tree-item-size">{item.size || (item.isDir ? '—' : '')}</span>
           </div>
         ))}
       </div>

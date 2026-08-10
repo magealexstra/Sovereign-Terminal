@@ -31,6 +31,8 @@
   justify-content: space-between;
   padding: 0.25rem;
   border-bottom: 1px solid var(--border-forest);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .breadcrumbs-scroll-container {
@@ -90,6 +92,8 @@
   flex: 1;
   overflow-y: auto;
   padding: 0.5rem;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .tree-item {
@@ -117,13 +121,29 @@
 .tree-item-name {
   flex: 1;
   white-space: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tree-item-ext {
+  flex-shrink: 0;
+  width: 3.5rem;
+  text-align: right;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .tree-item-size {
+  flex-shrink: 0;
+  width: 4.5rem;
+  text-align: right;
   font-size: 0.75rem;
   color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* Multi-Document Code Editor Layout & Workspace */

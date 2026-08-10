@@ -15,6 +15,7 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
 import { openSearchPanel, searchKeymap, search } from '@codemirror/search';
 import { keymap as cmKeymap } from '@codemirror/view';
+import { getFileBrandColor } from '../../utils/fileColors';
 
 // Lightweight Markdown HTML Preview Component
 function MarkdownPreview({ content }) {
@@ -209,22 +210,6 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
     );
   }
 
-  const getFileBrandColor = (filename) => {
-    if (!filename) return '#88C0D0';
-    const fn = filename.toLowerCase();
-    if (fn.endsWith('.py')) return '#3776AB'; // Python Blue
-    if (fn.endsWith('.js') || fn.endsWith('.jsx')) return '#F7DF1E'; // JS Yellow
-    if (fn.endsWith('.ts') || fn.endsWith('.tsx')) return '#3178C6'; // TS Blue
-    if (fn.endsWith('.html')) return '#E34F26'; // HTML5 Orange
-    if (fn.endsWith('.css')) return '#1572B6'; // CSS3 Blue
-    if (fn.endsWith('.sh') || fn.endsWith('.bash') || fn.endsWith('.zsh')) return '#4EAA25'; // Shell Green
-    if (fn.endsWith('.json')) return '#F9A825'; // JSON Gold
-    if (fn.endsWith('.md')) return '#083FA1'; // Markdown Blue
-    if (fn.endsWith('.yaml') || fn.endsWith('.yml')) return '#CB171E'; // YAML Red
-    if (fn.includes('docker') || fn.endsWith('.dockerignore')) return '#2496ED'; // Docker Blue
-    return '#A3B1B8'; // Default Muted
-  };
-
   if (!activeDoc) {
     return (
       <div className="code-editor-workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -238,7 +223,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
   }
 
   return (
-    <div className="code-editor-workspace">
+    <div className="code-editor-workspace" onContextMenu={(e) => e.preventDefault()}>
       {/* Dynamic Multi-Document Tab Bar */}
       <div className="editor-tabs-bar">
         {openDocuments.map((doc) => {

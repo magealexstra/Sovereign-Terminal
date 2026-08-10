@@ -24,6 +24,19 @@ TRASH_DIR = os.getenv("TRASH_DIR", os.path.join(SOVEREIGN_ROOT, "_temp_trash"))
 SAFE_TRASH_MODE = os.getenv("SAFE_TRASH_MODE", "true").lower() in ("true", "1", "yes")
 ENABLE_PERMANENT_DELETE = os.getenv("ENABLE_PERMANENT_DELETE", "false").lower() in ("true", "1", "yes")
 
+def format_size(size_bytes: int) -> str:
+    """Return human-readable file size: B / KB / MB / GB / TB at 1 decimal place."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 ** 2:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 ** 3:
+        return f"{size_bytes / 1024 ** 2:.1f} MB"
+    elif size_bytes < 1024 ** 4:
+        return f"{size_bytes / 1024 ** 3:.1f} GB"
+    else:
+        return f"{size_bytes / 1024 ** 4:.1f} TB"
+
 def get_safe_path(target_path: str) -> Path:
     """Ensure path is absolute and normalized, expanding ~ to the server user's home directory."""
     return Path(target_path).expanduser().resolve()
@@ -88,7 +101,7 @@ def get_directory_tree(path: str = SOVEREIGN_ROOT):
             try:
                 is_dir = entry.is_dir(follow_symlinks=True)
                 stat = entry.stat(follow_symlinks=False)
-                size_str = f"{stat.st_size / 1024:.1f} KB" if not is_dir else ""
+                size_str = format_size(stat.st_size) if not is_dir else ""
                 resolved_path = str(Path(entry.path).resolve())
                 items.append({
                     "name": entry.name,
