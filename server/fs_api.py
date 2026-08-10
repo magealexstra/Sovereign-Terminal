@@ -251,6 +251,194 @@ def archive_to_local_trash(payload: dict, request: Request):
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Archive to trash failed: {str(e)}")
 
+@router.post("/move")
+def move_items(payload: dict, request: Request):
+    """
+    Move one or more items to a destination directory.
+    Batch operation — all sources move to the same destination.
+    Timestamp-suffix conflict resolution matches /trash pattern.
+    """
+    sources = payload.get("sources", [])
+    destination = payload.get("destination")
+    use_sudo = payload.get("use_sudo", False)
+    if not sources or not destination:
+        raise HTTPException(status_code=400, detail="Missing sources or destination")
+
+    dest_dir = get_safe_path(destination)
+    if not dest_dir.exists() or not dest_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Destination directory not found")
+
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    session_info = active_sessions.get(cookie_token, {})
+    username = session_info.get("username", "admin")
+
+    moved = []
+    def _do_move():
+        for src_str in sources:
+            p = get_safe_path(src_str)
+            if not p.exists():
+                continue
+            dest_path = dest_dir / p.name
+            if dest_path.exists():
+                dest_path = dest_dir / f"{p.stem}_{int(time.time())}{p.suffix}"
+            shutil.move(str(p), str(dest_path))
+            moved.append(str(dest_path))
+
+    try:
+        if use_sudo:
+            if not is_user_sudoer(username):
+                raise HTTPException(status_code=403, detail="User is not authorized for sudo elevation")
+            _do_move()
+        else:
+            run_with_user_privileges(request, _do_move)
+        return {"status": "moved", "moved": moved, "destination": str(dest_dir)}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to move items")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Move failed: {str(e)}")
+
+
+@router.post("/copy")
+def copy_items(payload: dict, request: Request):
+    """
+    Copy one or more items to a destination directory.
+    Uses copy2 for files (preserves metadata) and copytree for directories.
+    Timestamp-suffix conflict resolution matches /trash pattern.
+    """
+    sources = payload.get("sources", [])
+    destination = payload.get("destination")
+    use_sudo = payload.get("use_sudo", False)
+    if not sources or not destination:
+        raise HTTPException(status_code=400, detail="Missing sources or destination")
+
+    dest_dir = get_safe_path(destination)
+    if not dest_dir.exists() or not dest_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Destination directory not found")
+
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    session_info = active_sessions.get(cookie_token, {})
+    username = session_info.get("username", "admin")
+
+    copied = []
+    def _do_copy():
+        for src_str in sources:
+            p = get_safe_path(src_str)
+            if not p.exists():
+                continue
+            dest_path = dest_dir / p.name
+            if dest_path.exists():
+                dest_path = dest_dir / f"{p.stem}_{int(time.time())}{p.suffix}"
+            if p.is_dir():
+                shutil.copytree(str(p), str(dest_path))
+            else:
+                shutil.copy2(str(p), str(dest_path))
+            copied.append(str(dest_path))
+
+    try:
+        if use_sudo:
+            if not is_user_sudoer(username):
+                raise HTTPException(status_code=403, detail="User is not authorized for sudo elevation")
+            _do_copy()
+        else:
+            run_with_user_privileges(request, _do_copy)
+        return {"status": "copied", "copied": copied, "destination": str(dest_dir)}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to copy items")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Copy failed: {str(e)}")
+
+
+@router.post("/rename")
+def rename_item(payload: dict, request: Request):
+    """
+    Rename a single file or directory in place.
+    Returns 409 if an item with the new name already exists — no silent overwrite.
+    Path separators in new_name are rejected to prevent traversal.
+    """
+    source = payload.get("source")
+    new_name = payload.get("new_name", "").strip()
+    use_sudo = payload.get("use_sudo", False)
+    if not source or not new_name:
+        raise HTTPException(status_code=400, detail="Missing source or new_name")
+    if "/" in new_name or "\\" in new_name:
+        raise HTTPException(status_code=400, detail="New name cannot contain path separators")
+
+    p = get_safe_path(source)
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    dest_path = p.parent / new_name
+    if dest_path.exists():
+        raise HTTPException(status_code=409, detail=f"An item named '{new_name}' already exists in this directory")
+
+    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
+    session_info = active_sessions.get(cookie_token, {})
+    username = session_info.get("username", "admin")
+
+    def _do_rename():
+        os.rename(str(p), str(dest_path))
+
+    try:
+        if use_sudo:
+            if not is_user_sudoer(username):
+                raise HTTPException(status_code=403, detail="User is not authorized for sudo elevation")
+            _do_rename()
+        else:
+            run_with_user_privileges(request, _do_rename)
+        return {"status": "renamed", "source": str(p), "destination": str(dest_path)}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to rename item")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Rename failed: {str(e)}")
+
+
+@router.post("/compress")
+def compress_items(payload: dict):
+    """
+    Compress one or more items into a ZIP archive saved to disk in the destination directory.
+    Single item: named <item_name>.zip. Multiple items: archive_<timestamp>.zip.
+    Reuses zipfile module already present in this module.
+    """
+    sources = payload.get("sources", [])
+    destination = payload.get("destination")
+    if not sources or not destination:
+        raise HTTPException(status_code=400, detail="Missing sources or destination")
+
+    dest_dir = get_safe_path(destination)
+    if not dest_dir.exists() or not dest_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Destination directory not found")
+
+    if len(sources) == 1:
+        src_stem = Path(sources[0]).name
+        zip_name = f"{src_stem}.zip"
+    else:
+        zip_name = f"archive_{int(time.time())}.zip"
+
+    zip_path = dest_dir / zip_name
+    if zip_path.exists():
+        zip_path = dest_dir / f"archive_{int(time.time())}.zip"
+
+    try:
+        with zipfile.ZipFile(str(zip_path), "w", zipfile.ZIP_DEFLATED) as zf:
+            for src_str in sources:
+                p = get_safe_path(src_str)
+                if not p.exists():
+                    continue
+                if p.is_dir():
+                    for root, _, files in os.walk(p):
+                        for file in files:
+                            abs_file = Path(root) / file
+                            rel_path = abs_file.relative_to(p.parent)
+                            zf.write(abs_file, rel_path)
+                else:
+                    zf.write(str(p), p.name)
+        return {"status": "compressed", "archive": str(zip_path)}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Permission denied to compress items")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Compression failed: {str(e)}")
+
+
 @router.post("/git-commit")
 def git_commit_file(payload: dict):
     """

@@ -496,3 +496,125 @@
     color: var(--bg-earth);
   }
 }
+
+/* ==========================================================================
+   EXPLORER CONTEXT MENU — Long-Press / Right-Click Bottom Sheet
+   All values reference global CSS token variables.
+   z-index: backdrop 200, sheet 201 — above all explorer UI.
+   ========================================================================== */
+
+.ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.ctx-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 201;
+  background: var(--bg-canopy);
+  border-top: 1px solid var(--border-forest);
+  border-radius: 1rem 1rem 0 0;
+  padding-top: 0.25rem;
+  max-height: 78vh;
+  overflow-y: auto;
+  animation: ctx-slide-up 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ctx-slide-up {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+
+/* Cosmetic drag handle */
+.ctx-handle {
+  width: 2.75rem;
+  height: 4px;
+  background: var(--border-sage);
+  border-radius: 2px;
+  margin: 0.6rem auto 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Action group container */
+.ctx-group {
+  padding: 0.2rem 0;
+}
+
+/* Separator between groups */
+.ctx-separator {
+  height: 1px;
+  background: var(--border-forest);
+  margin: 0.15rem 0;
+}
+
+/* Individual action button row */
+.ctx-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 1.35rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  color: var(--text-parchment);
+  text-align: left;
+  transition: background 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.ctx-btn svg {
+  color: var(--accent-mana);
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.ctx-btn:active {
+  background: color-mix(in srgb, var(--accent-mana) 10%, transparent);
+}
+
+/* Accent variant — paste / available clipboard action */
+.ctx-btn--accent {
+  color: var(--accent-highlight);
+}
+
+.ctx-btn--accent svg {
+  color: var(--accent-highlight);
+}
+
+.ctx-btn--accent:active {
+  background: color-mix(in srgb, var(--accent-highlight) 10%, transparent);
+}
+
+/* Danger variant — destructive actions */
+.ctx-btn--danger {
+  color: var(--status-danger);
+}
+
+.ctx-btn--danger svg {
+  color: var(--status-danger);
+}
+
+.ctx-btn--danger:active {
+  background: color-mix(in srgb, var(--status-danger) 10%, transparent);
+}
+
+/* Safe area spacer for notched phones (iPhone home bar, etc.) */
+.ctx-safe-area {
+  height: env(safe-area-inset-bottom, 0.5rem);
+  min-height: 0.5rem;
+}
+
