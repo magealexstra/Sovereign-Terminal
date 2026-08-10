@@ -83,6 +83,8 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   const fetchDirectory = async (targetPath) => {
     const fetchId = ++fetchIdRef.current;
     setLoading(true);
+    setItems([]);
+    setSelectedItems([]);
     try {
       const res = await fetch(`/api/fs/tree?path=${encodeURIComponent(targetPath)}`);
       if (fetchId !== fetchIdRef.current) return;
@@ -273,6 +275,17 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
       console.error('Compress error:', e);
     }
   }, [selectedItems, currentPath]);
+
+  const handleCopyName = useCallback(() => {
+    if (selectedItems.length === 0) return;
+    const names = selectedItems.map((p) => p.split('/').pop()).join('\n');
+    writeToClipboard(names).catch(() => {});
+  }, [selectedItems]);
+
+  const handleCopyPath = useCallback(() => {
+    if (selectedItems.length === 0) return;
+    writeToClipboard(selectedItems.join('\n')).catch(() => {});
+  }, [selectedItems]);
 
   // ── Archive / Delete ───────────────────────────────────────────────────────
 
@@ -592,6 +605,8 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         onCopy={handleCopyFiles}
         onPaste={handlePaste}
         onDuplicate={handleDuplicate}
+        onCopyName={handleCopyName}
+        onCopyPath={handleCopyPath}
         onCompress={handleCompress}
         onArchive={handleArchiveSelected}
         onDelete={handleDeleteSelected}

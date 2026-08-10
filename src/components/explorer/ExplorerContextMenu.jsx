@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Plus, FolderOpen, Terminal, Pencil,
-  Scissors, Copy, Clipboard, Files, Archive,
+  Scissors, Copy, Clipboard, ClipboardCopy, Files, Archive,
   FolderMinus, Trash2,
 } from 'lucide-react';
 
@@ -24,6 +24,8 @@ import {
  *   onCopy           {fn}
  *   onPaste          {fn}
  *   onDuplicate      {fn(path)}
+ *   onCopyName       {fn}       Copy filename(s) as text to system clipboard
+ *   onCopyPath       {fn}       Copy full path(s) as text to system clipboard
  *   onCompress       {fn}
  *   onArchive        {fn}
  *   onDelete         {fn}
@@ -43,6 +45,8 @@ export default function ExplorerContextMenu({
   onCopy,
   onPaste,
   onDuplicate,
+  onCopyName,
+  onCopyPath,
   onCompress,
   onArchive,
   onDelete,
@@ -137,7 +141,23 @@ export default function ExplorerContextMenu({
           </>
         )}
 
-        {/* Group 4: Compress */}
+        {/* Group 4: Text clipboard — Copy Name / Copy Path */}
+        {anySelected && (
+          <>
+            <div className="ctx-separator" />
+            <div className="ctx-group">
+              <button className="ctx-btn" onClick={close(onCopyName)}>
+                <ClipboardCopy size={16} />
+                <span>Copy Name</span>
+              </button>
+              <button className="ctx-btn" onClick={close(onCopyPath)}>
+                <Clipboard size={16} />
+                <span>Copy Path</span>
+              </button>
+            </div>
+          </>
+        )}
+
         {anySelected && (
           <>
             <div className="ctx-separator" />
