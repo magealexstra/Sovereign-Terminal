@@ -121,9 +121,14 @@
 .tree-item-name {
   flex: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   min-width: 0;
+  scrollbar-width: none;
+}
+
+.tree-item-name::-webkit-scrollbar {
+  display: none;
 }
 
 .tree-item-ext {

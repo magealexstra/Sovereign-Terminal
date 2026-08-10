@@ -138,7 +138,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
     }
   }, []);
 
-  const startLongPress = useCallback((e, item = null) => {
+  const startLongPress = useCallback((_, item = null) => {
     cancelLongPress();
     longPressTimerRef.current = setTimeout(() => {
       if (item && !selectedItems.includes(item.path)) {
@@ -541,7 +541,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
           <div
             key={item.path}
             className={`tree-item ${selectedItems.includes(item.path) ? 'selected' : ''}`}
-            onTouchStart={(e) => { e.preventDefault(); startLongPress(e, item); }}
+            onTouchStart={() => startLongPress(null, item)}
             onTouchMove={cancelLongPress}
             onTouchEnd={cancelLongPress}
             onContextMenu={(e) => handleContextMenuOpen(e, item)}
