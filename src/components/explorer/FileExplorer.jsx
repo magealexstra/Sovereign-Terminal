@@ -429,7 +429,11 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
 
   const filteredItems = items
     .filter((item) => item && item.name)
-    .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
 
   const allVisibleSelected =
     filteredItems.length > 0 &&
