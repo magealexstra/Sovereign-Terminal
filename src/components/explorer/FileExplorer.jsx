@@ -569,8 +569,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         clipboardMode={clipboardMode}
         currentPath={currentPath}
         onClose={() => setContextMenuVisible(false)}
-        onNewFile={() => setNewFileModal(true)}
-        onNewFolder={() => { setNewItemType('directory'); setNewFileModal(true); }}
+        onNew={() => setNewFileModal(true)}
         onOpen={handleOpenItem}
         onOpenInTerminal={handleOpenInTerminal}
         onRename={openRenameModal}

@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  FilePlus, FolderPlus, FolderOpen, Terminal, Pencil,
+  Plus, FolderOpen, Terminal, Pencil,
   Scissors, Copy, Clipboard, Files, Archive,
   FolderMinus, Trash2,
 } from 'lucide-react';
@@ -16,8 +16,7 @@ import {
  *   clipboardMode    {string}   'cut' | 'copy' | null
  *   currentPath      {string}   Current directory path
  *   onClose          {fn}       Close the menu
- *   onNewFile        {fn}
- *   onNewFolder      {fn}
+ *   onNew            {fn}       Open the new file/folder modal
  *   onOpen           {fn(path)}
  *   onOpenInTerminal {fn(path)}
  *   onRename         {fn(path)}
@@ -36,8 +35,7 @@ export default function ExplorerContextMenu({
   clipboardItems = [],
   clipboardMode = null,
   onClose,
-  onNewFile,
-  onNewFolder,
+  onNew,
   onOpen,
   onOpenInTerminal,
   onRename,
@@ -74,13 +72,9 @@ export default function ExplorerContextMenu({
 
         {/* Group 1: Creation — always visible */}
         <div className="ctx-group">
-          <button className="ctx-btn" onClick={close(onNewFile)}>
-            <FilePlus size={16} />
-            <span>New File</span>
-          </button>
-          <button className="ctx-btn" onClick={close(onNewFolder)}>
-            <FolderPlus size={16} />
-            <span>New Folder</span>
+          <button className="ctx-btn" onClick={close(onNew)}>
+            <Plus size={16} />
+            <span>New</span>
           </button>
         </div>
 
