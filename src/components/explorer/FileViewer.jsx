@@ -341,6 +341,11 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   // 'init' | 'caching' | 'streaming' | 'no_ffmpeg' | 'failed'
   const [viewState, setViewState]     = useState('init');
   const [subtitleTracks, setSubtitles] = useState([]);
+  // True when the SW has been caching for longer than CACHE_TIMEOUT_MS without
+  // completing. Caused by: mobile browser killing the SW worker mid-download,
+  // Cache API storage quota exceeded, connection stall, or file too large for
+  // the device's cache budget. Switches the overlay to an actionable message.
+  const [cachingTimedOut, setCachingTimedOut] = useState(false);
 
   const cacheState = useCacheState();
   const isStreamingOnly = cacheState?.[path]?.state === 'skip';
@@ -425,6 +430,16 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   // Note: intentionally NOT listing cacheState — init reads it as a snapshot.
   // The reactive watcher below handles ongoing updates.
 
+  // ── Caching timeout ────────────────────────────────────────────────────────
+  // If the SW hasn't reported 'cached' within CACHE_TIMEOUT_MS, surface an
+  // actionable message instead of leaving the user stuck indefinitely.
+  const CACHE_TIMEOUT_MS = 45_000;
+  useEffect(() => {
+    if (viewState !== 'caching') { setCachingTimedOut(false); return; }
+    const t = setTimeout(() => setCachingTimedOut(true), CACHE_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [viewState]);
+
   // ── Reactive cacheState watcher ───────────────────────────────────────────
   // Transitions 'caching' → 'streaming' once the SW broadcasts completion.
   useEffect(() => {
@@ -508,10 +523,29 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   }
 
   if (viewState === 'caching') {
+    if (cachingTimedOut) {
+      return (
+        <div className="viewer-video-frame">
+          <div className="viewer-caching-overlay">
+            <span className="viewer-caching-title">Loading is taking longer than expected</span>
+            <span className="viewer-caching-sub">
+              Your browser may not support background caching for files of this size,
+              or your connection is too slow. You can try streaming the file directly.
+            </span>
+            <button
+              className="viewer-stream-direct-btn"
+              onClick={() => { autoPlayRef.current = true; setViewState('streaming'); }}
+            >
+              Stream Directly
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="viewer-video-frame">
         <div className="viewer-caching-overlay">
-          <span className="viewer-caching-title">Caching for offline playback</span>
+          <span className="viewer-caching-title">Caching for playback</span>
           <span className="viewer-caching-sub">Playback begins automatically when caching completes.</span>
         </div>
       </div>

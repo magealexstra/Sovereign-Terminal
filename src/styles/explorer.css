@@ -834,6 +834,25 @@
   line-height: 1.5;
 }
 
+.viewer-stream-direct-btn {
+  margin-top: 0.5rem;
+  padding: 0.55rem 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-mana);
+  background: transparent;
+  border: 1px solid var(--accent-mana);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.viewer-stream-direct-btn:hover {
+  background: var(--accent-mana);
+  color: var(--bg-base);
+}
+
 /* Wraps the video/plyr element — fades in after preparing overlay lifts */
 .viewer-plyr-wrap {
   flex: 1;
