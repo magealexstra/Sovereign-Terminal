@@ -20,6 +20,7 @@ from auth import router as auth_router
 from pty_manager import router as pty_router
 from fs_api import router as fs_router
 from fs_video import router as fs_video_router
+from fs_audio import router as fs_audio_router
 from user_settings import router as user_settings_router
 
 
@@ -73,6 +74,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(pty_router)
 app.include_router(fs_video_router)  # Phase 2 streaming — before fs_router so /stream route takes precedence
+app.include_router(fs_audio_router)  # Audio art & metadata — before fs_router
 app.include_router(fs_router)
 app.include_router(user_settings_router)
 

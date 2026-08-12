@@ -550,16 +550,41 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
 }
 
 /* ─── Audio player (Plyr) ──────────────────────────────────────────────────── */
+// Number of decorative waveform bars — pure CSS height variation, no Web Audio API.
+const WAVE_BAR_COUNT = 40;
+
 function AudioPlayer({ path, filename }) {
   const audioRef  = useRef(null);
   const playerRef = useRef(null);
 
+  const [meta, setMeta]     = useState(null);   // { title, artist, album, format, bits_per_sample, sample_rate }
+  const [artUrl, setArtUrl] = useState(null);   // string URL or null (no art found)
+  const [artError, setArtError] = useState(false);
+
+  // Fetch metadata and art in parallel on mount.
+  useEffect(() => {
+    let cancelled = false;
+    const encoded = encodeURIComponent(path);
+
+    Promise.all([
+      fetch(`/api/fs/audio-meta?path=${encoded}`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/fs/audio-art?path=${encoded}`, { method: 'HEAD' }).then(r => r.ok),
+    ]).then(([metaData, hasArt]) => {
+      if (cancelled) return;
+      if (metaData) setMeta(metaData);
+      if (hasArt) setArtUrl(`/api/fs/audio-art?path=${encoded}`);
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [path]);
+
+  // Init Plyr audio player.
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
     try {
       playerRef.current = new Plyr(el, {
-        controls: ['play','progress','current-time','duration','mute','volume'],
+        controls: ['play', 'progress', 'current-time', 'duration', 'mute', 'volume'],
       });
     } catch (err) {
       console.error('[FileViewer] Plyr audio init failed:', err);
@@ -570,22 +595,68 @@ function AudioPlayer({ path, filename }) {
     };
   }, []);
 
+  // Format technical sub-label: e.g. "FLAC · 24-bit / 96 kHz"
+  const techLabel = (() => {
+    if (!meta) return null;
+    const parts = [meta.format].filter(Boolean);
+    if (meta.bits_per_sample) parts.push(`${meta.bits_per_sample}-bit`);
+    if (meta.sample_rate) {
+      const khz = (parseInt(meta.sample_rate, 10) / 1000).toFixed(1).replace(/\.0$/, '');
+      parts.push(`${khz} kHz`);
+    }
+    return parts.length > 1 ? parts.join(' · ') : parts[0] || null;
+  })();
+
+  const displayTitle  = meta?.title  || filename;
+  const displayArtist = meta?.artist || '';
+  const displayAlbum  = meta?.album  || '';
+
   return (
     <div className="viewer-audio-frame">
-      <div className="viewer-audio-art">
-        <Music size={64} color="var(--text-dim)" />
-        <span className="viewer-audio-filename">{filename}</span>
-      </div>
-      <div className="viewer-audio-player-wrap">
-        <audio
-          ref={audioRef}
-          src={`/api/fs/stream?path=${encodeURIComponent(path)}`}
-          controls
-        />
+      <div className="viewer-audio-card">
+
+        {/* Top row: art panel + metadata */}
+        <div className="viewer-audio-top">
+          <div className="viewer-audio-art-panel">
+            {artUrl && !artError
+              ? <img
+                  src={artUrl}
+                  alt="Album art"
+                  className="viewer-audio-art-img"
+                  onError={() => setArtError(true)}
+                />
+              : <Music size={48} className="viewer-audio-art-icon" />
+            }
+          </div>
+          <div className="viewer-audio-meta">
+            <span className="viewer-audio-title">{displayTitle}</span>
+            {displayArtist && <span className="viewer-audio-artist">{displayArtist}</span>}
+            {displayAlbum  && <span className="viewer-audio-album">{displayAlbum}</span>}
+            {techLabel     && <span className="viewer-audio-tech">{techLabel}</span>}
+          </div>
+        </div>
+
+        {/* Decorative waveform — static CSS, no live audio data */}
+        <div className="viewer-audio-wave" aria-hidden="true">
+          {Array.from({ length: WAVE_BAR_COUNT }, (_, i) => (
+            <span key={i} className="viewer-audio-wave-bar" />
+          ))}
+        </div>
+
+        {/* Plyr audio controls */}
+        <div className="viewer-audio-player-wrap">
+          <audio
+            ref={audioRef}
+            src={`/api/fs/stream?path=${encodeURIComponent(path)}`}
+            controls
+          />
+        </div>
+
       </div>
     </div>
   );
 }
+
 
 /* ─── PDF viewer ────────────────────────────────────────────────────────────── */
 function PdfViewer({ path }) {

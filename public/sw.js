@@ -260,6 +260,19 @@ self.addEventListener('fetch', event => {
     console.log('Intercepting stream request:', event.request.url);
     const urlObj = new URL(event.request.url);
     const path   = urlObj.searchParams.get('path');
+
+    // ── Audio guard ───────────────────────────────────────────────────────────
+    // Audio files are served directly by the browser's <audio> element via HTTP
+    // range requests. They must NOT be intercepted or cached here — lossless
+    // files (WAV, FLAC) can be gigabytes in size, and buffering them in the
+    // Cache API / memory would cause catastrophic memory exhaustion.
+    // The audio player component manages its own network requests directly.
+    const AUDIO_EXTS = new Set([
+      'mp3','flac','wav','aac','m4a','ogg','oga','opus','wma','aiff','aif','alac','ape','wv','mka',
+    ]);
+    const pathExt = path ? path.split('.').pop()?.toLowerCase() : '';
+    if (AUDIO_EXTS.has(pathExt)) return; // pass through — never cache audio
+    // ─────────────────────────────────────────────────────────────────────────
     // Normalize the cache key: rebuild from URLSearchParams so that %20 and +
     // both resolve to the same canonical URL regardless of how the browser or
     // the SW's internal fetch encoded the query string.

@@ -23,6 +23,7 @@
   --accent-highlight: #88C0D0;   /* Polar Ice Cyan — Active tab/pill highlight */
   --accent-violet: #B48EAD;      /* Nordic Frost Violet — Staging drawer accent */
   --accent-glow: rgba(136, 192, 208, 0.25);
+  --accent-mana-faint: rgba(94, 129, 172, 0.18);
 
   --status-active: #4C7864;      /* Nordic Sage Green — Connected/Saved indicator */
   --status-warning: #fbbf24;     /* Amber — Modified file dot & warnings */
