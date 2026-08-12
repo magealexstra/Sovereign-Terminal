@@ -562,18 +562,22 @@ function AudioPlayer({ path, filename }) {
   const [artError, setArtError] = useState(false);
 
   // Fetch metadata and art in parallel on mount.
+  // Art: set the URL directly — the <img> onError handler in the JSX below
+  // catches 404s cleanly, saving a redundant HEAD request (and a second full
+  // ffprobe + ffmpeg run) on every audio file open.
   useEffect(() => {
     let cancelled = false;
     const encoded = encodeURIComponent(path);
 
-    Promise.all([
-      fetch(`/api/fs/audio-meta?path=${encoded}`).then(r => r.ok ? r.json() : null),
-      fetch(`/api/fs/audio-art?path=${encoded}`, { method: 'HEAD' }).then(r => r.ok),
-    ]).then(([metaData, hasArt]) => {
-      if (cancelled) return;
-      if (metaData) setMeta(metaData);
-      if (hasArt) setArtUrl(`/api/fs/audio-art?path=${encoded}`);
-    }).catch(() => {});
+    fetch(`/api/fs/audio-meta?path=${encoded}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(metaData => {
+        if (cancelled) return;
+        if (metaData) setMeta(metaData);
+      })
+      .catch(() => {});
+
+    if (!cancelled) setArtUrl(`/api/fs/audio-art?path=${encoded}`);
 
     return () => { cancelled = true; };
   }, [path]);

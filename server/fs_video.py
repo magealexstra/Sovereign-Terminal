@@ -307,7 +307,13 @@ def get_or_build_cache(p: Path) -> tuple[Path, str]:
         try:
             result = subprocess.run(
                 cmd,
-                capture_output=True,
+                # Discard stdout and stderr entirely — we only check returncode.
+                # capture_output=True would buffer FFmpeg's verbose progress
+                # output (time, bitrate, frame, speed lines) into RAM for the
+                # entire duration of the remux, which can be hundreds of MB for
+                # long files.
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 timeout=600,      # 10 min: generous for large remux, still bounded
             )
         except subprocess.TimeoutExpired:
@@ -325,6 +331,12 @@ def get_or_build_cache(p: Path) -> tuple[Path, str]:
             )
 
         tmp.rename(dest)   # Atomic on Linux — no partial file ever served
+
+    # Evict the lock entry once the remux is done. Future requests will hit the
+    # cache file check above and never reach _get_file_lock() for this key.
+    # This prevents the dict from growing unboundedly over long server uptime.
+    with _cache_locks_mutex:
+        _cache_locks.pop(key, None)
 
     return dest, mime
 
