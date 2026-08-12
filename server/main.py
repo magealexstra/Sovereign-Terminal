@@ -8,18 +8,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import traceback
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load .env BEFORE importing routers — auth.py reads SERVER_AUTH_TOKEN at
+# module-import time, so load_dotenv must run first or it captures the default.
+config_env_path = Path(__file__).parent.parent / ".env"
+if config_env_path.exists():
+    load_dotenv(config_env_path)
 
 from auth import router as auth_router
 from pty_manager import router as pty_router
 from fs_api import router as fs_router
+from fs_video import router as fs_video_router
 from user_settings import router as user_settings_router
 
-from dotenv import load_dotenv
-
-# Load .env from project root if present
-config_env_path = Path(__file__).parent.parent / ".env"
-if config_env_path.exists():
-    load_dotenv(config_env_path)
 
 app = FastAPI(
     title="The Sovereign Terminal",
@@ -70,6 +72,7 @@ app.add_middleware(
 # Mount API & WebSocket Routers
 app.include_router(auth_router)
 app.include_router(pty_router)
+app.include_router(fs_video_router)  # Phase 2 streaming — before fs_router so /stream route takes precedence
 app.include_router(fs_router)
 app.include_router(user_settings_router)
 

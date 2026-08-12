@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal as TerminalIcon, FolderTree, Sliders, LogOut } from 'lucide-react';
+import { Terminal as TerminalIcon, FolderTree, Sliders, LogOut, FileCode, MonitorPlay } from 'lucide-react';
 import { useApp } from './context/AppContext';
 import { useSessions } from './hooks/useSessions';
 import { useToast } from './hooks/useToast';
@@ -9,10 +9,13 @@ import SessionTabs from './components/terminal/SessionTabs';
 import TouchBar from './components/terminal/TouchBar';
 
 import FileExplorer from './components/explorer/FileExplorer';
-const CodeEditor = React.lazy(() => import('./components/explorer/CodeEditor'));
+const CodeEditor  = React.lazy(() => import('./components/explorer/CodeEditor'));
+const FileViewer  = React.lazy(() => import('./components/explorer/FileViewer'));
+import { getViewerType, VIEWER_EXTENSIONS, magicTypeToViewerType } from './utils/viewerTypes';
 
 const SettingsManager = React.lazy(() => import('./components/settings/SettingsManager'));
 import LoginModal from './components/auth/LoginModal';
+import { CacheStateProvider } from './context/CacheStateContext';
 
 export default function App() {
   const { activeMainTab, setActiveMainTab, fetchUserSettings, setUsername, clearUserCache } = useApp();
@@ -172,6 +175,7 @@ export default function App() {
 
   // Session limit toast (replaces the alert() that was inside useSessions)
   const { toast: sessionToast, showToast: showSessionToast } = useToast(3000);
+  const { toast: fileOpenToast, showToast: showFileOpenToast } = useToast(3500);
 
   // Tab 1 Terminal Sessions — all state and handlers live in useSessions
   const [activeTerminalPath, setActiveTerminalPath] = useState('/workspace');
@@ -189,6 +193,11 @@ export default function App() {
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
   const inspectCountRef = useRef(0);
   const [treeRefreshKey, setTreeRefreshKey] = useState(0);
+
+  // File Viewer state
+  const [viewerDocs, setViewerDocs] = useState([]);
+  const [activeViewerPath, setActiveViewerPath] = useState('');
+  const [hasViewerMounted, setHasViewerMounted] = useState(false);
 
   // Dispatch layout reflow on return to Terminal tab to snap absolute footers/stagers to bottom: 3.5rem
   useEffect(() => {
@@ -238,8 +247,53 @@ export default function App() {
   // File Explorer & CodeEditor Handlers
   const handleOpenFile = async (filepath) => {
     const filename = filepath.split('/').pop();
-    const existing = openDocuments.find((doc) => doc.path === filepath);
+    const viewerType = getViewerType(filename);
 
+    // Route recognized media/viewer extensions directly to the Viewer tab
+    if (viewerType !== 'other' && VIEWER_EXTENSIONS.has(filename.split('.').pop().toLowerCase())) {
+      const alreadyOpen = viewerDocs.find(d => d.path === filepath);
+      if (!alreadyOpen) {
+        setViewerDocs(prev => [...prev, { path: filepath, name: filename, type: viewerType }]);
+      }
+      setActiveViewerPath(filepath);
+      setHasViewerMounted(true);
+      setExplorerSubTab('viewer');
+      return;
+    }
+
+    // Extensionless files: call magic byte endpoint before opening in editor
+    const hasExtension = filename.includes('.') && !filename.startsWith('.');
+    if (!hasExtension) {
+      try {
+        const ftRes = await fetch(`/api/fs/filetype?path=${encodeURIComponent(filepath)}`);
+        if (ftRes.ok) {
+          const ft = await ftRes.json();
+          // Viewable type → route to Viewer
+          if (ft.type === 'image' || ft.type === 'video' || ft.type === 'audio' || ft.type === 'pdf') {
+            const mType = magicTypeToViewerType(ft.type, ft.ext);
+            const alreadyOpen = viewerDocs.find(d => d.path === filepath);
+            if (!alreadyOpen) {
+              setViewerDocs(prev => [...prev, { path: filepath, name: filename, type: mType }]);
+            }
+            setActiveViewerPath(filepath);
+            setHasViewerMounted(true);
+            setExplorerSubTab('viewer');
+            return;
+          }
+          // Binary file → warn and stop. Don't open in editor.
+          if (ft.is_binary) {
+            showFileOpenToast('Binary file — right-click in File Manager to download it.');
+            return;
+          }
+          // ft.type === 'text' → fall through to editor normally
+        }
+      } catch (e) {
+        console.warn('filetype detection failed, opening in editor:', e);
+      }
+    }
+
+    // Text editor flow
+    const existing = openDocuments.find((doc) => doc.path === filepath);
     if (existing) {
       setActiveFilePath(filepath);
       setExplorerSubTab('editor');
@@ -264,6 +318,7 @@ export default function App() {
       console.error('Failed to open file:', e);
     }
   };
+
 
   const handleContentChange = (filepath, newContent) => {
     setOpenDocuments((prev) =>
@@ -436,8 +491,9 @@ export default function App() {
   }
 
   return (
-    <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
-      {/* Header with OmniState Logo & Vertically Stacked Title */}
+    <CacheStateProvider>
+      <div className={`sovereign-layout ${isKeyboardOpen ? 'keyboard-open' : ''}`}>
+        {/* Header with OmniState Logo & Vertically Stacked Title */}
       <header className="main-nav-bar" style={{ position: 'relative', width: '100%' }}>
         <div
           className={`brand-title ${showBrandMenu ? 'active' : ''}`}
@@ -577,7 +633,7 @@ export default function App() {
         />
       </div>
 
-      {/* Tab 2: GUI File Explorer & Multi-Document CodeEditor */}
+      {/* Tab 2: GUI File Explorer, Code Editor & File Viewer */}
       <div className="tab-content-panel" style={{ display: activeMainTab === 'explorer' ? 'flex' : 'none' }}>
         <div className="settings-subtabs-bar">
           <button
@@ -594,28 +650,54 @@ export default function App() {
             className={`subtab-btn ${explorerSubTab === 'editor' ? 'active' : ''}`}
             onClick={() => setExplorerSubTab('editor')}
           >
-            <TerminalIcon size={13} />
+            <FileCode size={13} />
             <span>Editor ({openDocuments.length})</span>
+          </button>
+
+          <button
+            type="button"
+            className={`subtab-btn ${explorerSubTab === 'viewer' ? 'active' : ''}`}
+            onClick={() => setExplorerSubTab('viewer')}
+          >
+            <MonitorPlay size={13} />
+            <span>Viewer{viewerDocs.length > 0 ? ` (${viewerDocs.length})` : ''}</span>
           </button>
         </div>
 
-        <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading tab...</div>}>
-          {explorerSubTab === 'tree' ? (
-            <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} onOpenTerminal={(path) => { handleAddSession(path); setActiveMainTab('terminal'); }} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
-          ) : (
-            <CodeEditor
-              openDocuments={openDocuments}
-              activeFilePath={activeFilePath}
-              onSelectTab={setActiveFilePath}
-              onCloseTab={handleCloseTab}
-              onContentChange={handleContentChange}
-              onSaveFile={handleSaveFile}
-              onGitCommit={handleGitCommit}
-              onSaveAs={handleSaveAs}
-              suggestedSaveDir={suggestedSaveDir}
-            />
-          )}
-        </React.Suspense>
+        {/* Files + Editor — existing ternary behavior */}
+        {explorerSubTab !== 'viewer' && (
+          <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading...</div>}>
+            {explorerSubTab === 'tree' ? (
+              <FileExplorer onCopyPath={handleInspectText} onOpenFile={handleOpenFile} onOpenTerminal={(path) => { handleAddSession(path); setActiveMainTab('terminal'); }} activeTerminalPath={activeTerminalPath} rootDir={rootDir} currentPath={explorerPath} setCurrentPath={setExplorerPath} refreshKey={treeRefreshKey} />
+            ) : (
+              <CodeEditor
+                openDocuments={openDocuments}
+                activeFilePath={activeFilePath}
+                onSelectTab={setActiveFilePath}
+                onCloseTab={handleCloseTab}
+                onContentChange={handleContentChange}
+                onSaveFile={handleSaveFile}
+                onGitCommit={handleGitCommit}
+                onSaveAs={handleSaveAs}
+                suggestedSaveDir={suggestedSaveDir}
+              />
+            )}
+          </React.Suspense>
+        )}
+
+        {/* File Viewer — lazy mounted, kept alive with display:none */}
+        {hasViewerMounted && (
+          <React.Suspense fallback={null}>
+            <div style={{ display: explorerSubTab === 'viewer' ? 'flex' : 'none', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <FileViewer
+                viewerDocs={viewerDocs}
+                setViewerDocs={setViewerDocs}
+                activeViewerPath={activeViewerPath}
+                setActiveViewerPath={setActiveViewerPath}
+              />
+            </div>
+          </React.Suspense>
+        )}
       </div>
 
       {/* Tab 3: Settings, Themes & Button Studio */}
@@ -625,5 +707,7 @@ export default function App() {
         </React.Suspense>
       </div>
     </div>
+    </CacheStateProvider>
   );
 }
+

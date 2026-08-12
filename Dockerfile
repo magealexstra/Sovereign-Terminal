@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libncurses-dev \
     bison \
     pkg-config \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Compile exact version of tmux from source
