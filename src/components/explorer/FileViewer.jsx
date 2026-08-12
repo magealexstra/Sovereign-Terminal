@@ -391,6 +391,18 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
         }
       }
 
+      // SW availability check — skip caching entirely if the Service Worker
+      // isn't active. This happens on plain HTTP (non-secure context) where
+      // the SW cannot register, or on the very first HTTPS page load before
+      // the SW has taken control. In either case go straight to streaming:
+      // the video element makes range requests directly to the server, and
+      // onError handles unsupported codecs as normal.
+      const swActive = !!navigator.serviceWorker?.controller;
+      if (!swActive) {
+        if (!cancelled) setViewState('streaming');
+        return;
+      }
+
       // 2. Snapshot cacheState at mount time (not reactive — that's the watcher below)
       const entry = cacheState?.[path];
 
@@ -730,11 +742,20 @@ function NoPreview({ filename, type }) {
 
 /* ─── Empty state ───────────────────────────────────────────────────────────── */
 function ViewerEmptyState() {
+  // window.isSecureContext is true on HTTPS or localhost, false on plain HTTP.
+  // Only show the notice when the SW cannot run — no alarm, just context.
+  const needsHttps = !window.isSecureContext;
   return (
     <div className="viewer-empty-state">
       <FileImage size={48} color="var(--text-dim)" />
       <p className="viewer-empty-title">Open a file from the Files tab</p>
       <span className="viewer-empty-sub">Images, video, audio, and PDF files appear here.</span>
+      {needsHttps && (
+        <p className="viewer-https-notice">
+          Video caching requires a secure connection (HTTPS).
+          Playback still works for supported formats.
+        </p>
+      )}
     </div>
   );
 }

@@ -1139,6 +1139,18 @@
   line-height: 1.5;
 }
 
+.viewer-https-notice {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-forest);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  max-width: 260px;
+  line-height: 1.5;
+  opacity: 0.7;
+}
+
 /* ==========================================================================
    PLYR THEME — Maps Plyr CSS custom properties to Sovereign Terminal tokens
    ========================================================================== */
