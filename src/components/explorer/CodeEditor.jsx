@@ -305,7 +305,13 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
               '.cm-content': {
                 caretColor: theme?.accentHighlight || '#88C0D0',
                 fontSize: `${editorFontSizePx || 14}px`,
-                paddingBottom: 'calc(100vh - var(--visual-viewport-height) + 45px)'
+                paddingBottom: 'calc(100vh - var(--visual-viewport-height) + 45px)',
+                userSelect: 'text',
+                webkitUserSelect: 'text'
+              },
+              '.cm-line': {
+                userSelect: 'text',
+                webkitUserSelect: 'text'
               },
               '&.cm-focused .cm-cursor': {
                 borderLeftColor: theme?.accentHighlight || '#88C0D0'

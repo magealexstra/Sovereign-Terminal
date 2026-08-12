@@ -6,6 +6,7 @@ import subprocess
 from io import BytesIO
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, UploadFile, File, Response, Depends, Request
+from fastapi.responses import StreamingResponse
 from auth import require_auth, AUTH_MODE, is_user_sudoer, active_sessions, SESSION_COOKIE_NAME
 
 try:
@@ -161,9 +162,9 @@ def save_file(payload: dict):
         raise HTTPException(status_code=500, detail=f"File system error: {str(e)}")
 
 @router.post("/create")
-def create_item(payload: dict):
+def create_item(payload: dict, request: Request):
     """
-    Creates a new file or directory.
+    Creates a new file or directory using the active PAM user's privileges (if AUTH_MODE == 'pam').
     """
     target_path = payload.get("path")
     item_type = payload.get("type", "file")
@@ -171,12 +172,16 @@ def create_item(payload: dict):
         raise HTTPException(status_code=400, detail="Missing path")
 
     p = get_safe_path(target_path)
-    try:
+
+    def _do_create():
         if item_type == "directory":
             p.mkdir(parents=True, exist_ok=True)
         else:
             p.parent.mkdir(parents=True, exist_ok=True)
             p.touch(exist_ok=True)
+
+    try:
+        run_with_user_privileges(request, _do_create)
         return {"status": "created", "path": str(p)}
     except PermissionError:
         raise HTTPException(status_code=403, detail="Permission denied to create item")
