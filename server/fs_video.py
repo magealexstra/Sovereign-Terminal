@@ -374,9 +374,20 @@ def _serve_with_range(file_path: Path, mime: str, request: Request) -> Streaming
             },
         )
 
-    # No Range header — serve the full file
+    # No Range header — stream the full file in 64 KB chunks.
+    # DO NOT pass open(file_path, 'rb') directly to StreamingResponse: uvicorn
+    # may buffer the entire response body before sending, turning a large file
+    # into an equivalent-sized memory allocation on the server.
+    def _full_iter(path: Path):
+        with open(path, 'rb') as f:
+            while True:
+                data = f.read(65536)
+                if not data:
+                    break
+                yield data
+
     return StreamingResponse(
-        open(file_path, 'rb'),
+        _full_iter(file_path),
         media_type=mime,
         headers={
             'Content-Length': str(file_size),

@@ -71,23 +71,41 @@ def _extract_embedded_art(p: Path) -> bytes | None:
     """
     Extract the first embedded image from an audio file via ffmpeg pipe.
     Returns raw image bytes or None on failure.
+
+    Uses a size-limited pipe read rather than capture_output=True to prevent
+    ffmpeg from inadvertently dumping a large stream into memory. Album art
+    should never exceed ~10 MB; if it does we abort and return None.
     """
+    MAX_ART_BYTES = 10 * 1024 * 1024  # 10 MB hard cap
+
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             [
                 'ffmpeg', '-i', str(p),
                 '-an',               # drop audio
-                '-vcodec', 'copy',   # copy the image stream as-is
-                '-frames:v', '1',    # only one frame (the cover art)
+                '-vcodec', 'copy',   # copy the image (video) stream as-is
+                '-frames:v', '1',    # only one frame
                 '-f', 'image2',      # force image muxer
                 'pipe:1',            # write to stdout
             ],
-            capture_output=True,
-            timeout=15,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
         )
-        if result.returncode == 0 and result.stdout:
-            return result.stdout
-        return None
+        try:
+            data = proc.stdout.read(MAX_ART_BYTES + 1)
+            proc.stdout.close()
+            proc.wait(timeout=15)
+        except Exception:
+            proc.kill()
+            proc.wait()
+            return None
+
+        if proc.returncode != 0:
+            return None
+        if len(data) > MAX_ART_BYTES:
+            # Output suspiciously large — not a cover image, discard
+            return None
+        return data if data else None
     except Exception:
         return None
 
