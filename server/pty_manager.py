@@ -157,6 +157,12 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
         if not SESSION_REGEX.match(sess):
             logger.warning(f"Skipping invalid session name during sweep: {sess}")
             continue
+        if sess in _active_ws_sessions:
+            # Another device or browser tab has a live WebSocket on this session.
+            # Never sweep it — the calling device's tab list only represents its
+            # own open tabs, not the global picture.
+            logger.info(f"Sweep skipping '{sess}' — active WebSocket connection present")
+            continue
         if sess not in active_ids:
             try:
                 if use_pam and target_user:
@@ -234,6 +240,11 @@ async def apply_tmux_config(request: Request, user: dict = Depends(require_auth)
 
 SUDO_MACRO_SECRET = os.getenv("SUDO_MACRO_SECRET", "")
 
+# Registry of tmux session names that currently have at least one active
+# WebSocket connection. Used by sweep_sessions() to avoid killing sessions
+# that are live on another device or browser tab.
+_active_ws_sessions: set[str] = set()
+
 _tmux_bin = shutil.which("tmux") or shutil.which("tmux", path="/usr/local/bin:/usr/bin:/bin")
 
 # Context-Aware Socket Resolution
@@ -283,6 +294,8 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
             target_user = active_sessions[cookie_token].get("username")
 
     await websocket.accept()
+    _active_ws_sessions.add(session)
+    logger.debug(f"WS connected to session '{session}' — active WS sessions: {_active_ws_sessions}")
 
     tmux_bin = _tmux_bin
     target_cwd = cwd if (cwd and os.path.isdir(cwd)) else os.getenv("SOVEREIGN_ROOT", str(Path.home()))
@@ -452,6 +465,8 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
     except Exception as e:
         logger.warning(f"WebSocket error: {e}")
     finally:
+        _active_ws_sessions.discard(session)
+        logger.debug(f"WS disconnected from session '{session}' — active WS sessions: {_active_ws_sessions}")
         read_task.cancel()
         try:
             os.close(master_fd)
