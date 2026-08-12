@@ -69,7 +69,7 @@ Designed to replace traditional, rigid web terminals, it pairs a fluid xterm.js 
 * **Live Session List:** Displays all active tmux sessions with name, attached/detached status, and window count. Refreshes on demand.
 * **Intelligent Status Indicator:** A color-coded dot tracks session count thresholds in real time (vivid green = ok, amber = 11–20, red = 21+).
 * **Per-Session Kill:** Remove any individual session with a single click without disturbing others.
-* **Sweep Zombies:** Identifies and terminates orphaned sessions that are no longer associated with any open terminal tab.
+* **Sweep Zombies:** Identifies and terminates detached tmux sessions — those with no active client connected from any device. Sessions that are attached (phone, tablet, or any other browser) are never touched, regardless of which device triggers the sweep.
 * **Kill All (Confirmed):** Two-click confirmation flow to clear all tmux sessions and reset the server.
 * **Kill-on-Close Toggle:** Controls whether closing a terminal tab terminates (`on`) or detaches (`off`) the underlying tmux session. Defaults to **off** so background work survives browser closure.
 * **Auto-Sweep on Startup:** Optionally clears orphaned sessions automatically each time the backend restarts.

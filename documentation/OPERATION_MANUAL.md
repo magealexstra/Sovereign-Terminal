@@ -77,7 +77,7 @@ The Settings Studio provides deep customization across four dedicated sub-tabs:
 * **Session Manager:** Lists active and detached `tmux` sessions on the server with one-tap controls:
   * **Attach:** Attaches the selected `tmux` session directly as an active terminal tab in Tab 1.
   * **Kill Session (`X`):** Terminates the targeted `tmux` session.
-  * **Sweep Zombies:** Clears orphaned background `tmux` sessions not currently open as browser tabs.
+  * **Sweep Zombies:** Kills all tmux sessions that are detached — no active client connected from any device. Sessions that are attached (open on a phone, tablet, or any other browser) are never touched, regardless of which device triggers the sweep.
 * **Behavior Settings:**
   * **Kill on Close:** Toggle whether closing a terminal tab kills the underlying `tmux` session or detaches it (default: detach).
   * **Auto-Attach AGY Subagents:** Automatically spawns new terminal tabs when background subagents are detected.
