@@ -130,7 +130,14 @@ def kill_session(session_id: str, user: dict = Depends(require_auth)):
 
 @router.post("/api/terminal/sessions/sweep")
 async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
-    """Kill tmux sessions that are not in the provided active UI-tab list."""
+    """Kill tmux sessions that are not in the provided active UI-tab list.
+
+    A session is NEVER swept if:
+      - tmux reports it as attached (#{session_attached} == 1), meaning any
+        device's PTY client is still connected — this is the ground truth, or
+      - it is in _active_ws_sessions (belt-and-suspenders: active WS on this
+        server process that tmux may not yet have registered as attached).
+    """
     if not _tmux_bin:
         raise HTTPException(status_code=503, detail="tmux not available")
     use_pam = (AUTH_MODE == "pam" and ENABLE_AUTH)
@@ -139,28 +146,40 @@ async def sweep_sessions(request: Request, user: dict = Depends(require_auth)):
     body = await request.json()
     active_ids = set(body.get("active", []))
 
-    # Fetch the current live session list
+    # Fetch session names AND their attached status in one call.
     try:
+        fmt = "#{session_name}|#{session_attached}"
         if use_pam and target_user:
-            cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '#S'"]
+            cmd = ["su", "-", target_user, "-c", f"{_get_tmux_base_str()} list-sessions -F '{fmt}'"]
         else:
-            cmd = _get_tmux_base() + ["list-sessions", "-F", "#S"]
+            cmd = _get_tmux_base() + ["list-sessions", "-F", fmt]
         res = await asyncio.to_thread(subprocess.run, cmd, capture_output=True, text=True, check=False)
         if res.returncode != 0 or not res.stdout:
             return {"status": "ok", "swept": []}
-        live_sessions = [s.strip() for s in res.stdout.splitlines() if s.strip()]
+        live_sessions = []
+        for line in res.stdout.splitlines():
+            parts = line.strip().split("|")
+            if not parts or not parts[0]:
+                continue
+            name = parts[0]
+            attached = len(parts) > 1 and parts[1] == "1"
+            live_sessions.append((name, attached))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
     swept = []
-    for sess in live_sessions:
+    for sess, attached in live_sessions:
         if not SESSION_REGEX.match(sess):
             logger.warning(f"Skipping invalid session name during sweep: {sess}")
             continue
+        if attached:
+            # tmux reports a client is attached — this session is in active use
+            # by some device. Never sweep it regardless of this caller's tab list.
+            logger.info(f"Sweep skipping '{sess}' — tmux reports session as attached")
+            continue
         if sess in _active_ws_sessions:
-            # Another device or browser tab has a live WebSocket on this session.
-            # Never sweep it — the calling device's tab list only represents its
-            # own open tabs, not the global picture.
+            # Belt-and-suspenders: active WebSocket on this process not yet
+            # reflected in tmux's attached flag.
             logger.info(f"Sweep skipping '{sess}' — active WebSocket connection present")
             continue
         if sess not in active_ids:
