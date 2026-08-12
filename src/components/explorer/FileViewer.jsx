@@ -162,6 +162,11 @@ function VideoPlayer({ path }) {
   const baseUrl    = `/api/fs/stream?path=${encodeURIComponent(path)}`;
 
   const [viewState, setViewState] = useState(() => {
+    // If the SW isn't active (plain HTTP, non-secure context, or first load
+    // before the SW takes control) there is no cacheState to wait on —
+    // go straight to streaming so the video plays immediately.
+    const swActive = !!navigator.serviceWorker?.controller;
+    if (!swActive) return 'streaming';
     const entry = cacheState?.[path];
     return (entry?.state === 'cached' || entry?.state === 'skip') ? 'streaming' : 'caching';
   });
