@@ -223,9 +223,9 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
   }
 
   return (
-    <div className="code-editor-workspace" onContextMenu={(e) => e.preventDefault()}>
+    <div className="code-editor-workspace">
       {/* Dynamic Multi-Document Tab Bar */}
-      <div className="editor-tabs-bar">
+      <div className="editor-tabs-bar" onContextMenu={(e) => e.preventDefault()}>
         {openDocuments.map((doc) => {
           const brandColor = getFileBrandColor(doc.name);
           const isActive = activeFilePath === doc.path;
