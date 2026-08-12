@@ -15,6 +15,23 @@ import React, { useState, useEffect } from 'react';
  * @param {string|null} activeTerminalPath  Current CWD tracked by the terminal (used for inheritCwd).
  * @param {function}    showToast           showToast(msg) from useToast() — replaces alert().
  */
+/**
+ * Read previously saved session IDs from localStorage.
+ * Returns a sessions array  [{ id, name }]  if valid data exists, null otherwise.
+ * Used as a cold-start fallback when the server reports no live tmux sessions.
+ */
+function _restoreSessionsFromStorage() {
+  try {
+    const raw = localStorage.getItem('sovereign_active_session_ids');
+    if (!raw) return null;
+    const ids = JSON.parse(raw);
+    if (!Array.isArray(ids) || ids.length === 0) return null;
+    return ids.map((id, i) => ({ id: String(id), name: `term-${i + 1}` }));
+  } catch {
+    return null;
+  }
+}
+
 export function useSessions(activeTerminalPath, showToast, rootDir) {
   // Counter only ever increments — prevents duplicate names after close+add cycles
   const sessionCounterRef = React.useRef(1);
@@ -34,6 +51,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.sessions && data.sessions.length > 0) {
+          // Live tmux sessions found — attach to all of them.
           const loadedSessions = data.sessions.map((id, index) => ({
             id: id,
             name: `term-${index + 1}`
@@ -42,13 +60,33 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
           setSessions(loadedSessions);
           setActiveSession(loadedSessions[0].id);
         } else {
-          setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
-          setActiveSession(initialSessionId.current);
+          // No live sessions (cold start, container restart, or tmux wiped).
+          // Check localStorage for session IDs saved during the previous run.
+          // The WS reconnects via  new-session -A -s <id>  which either attaches
+          // to a surviving session or creates a fresh one with the same name —
+          // either way tab names stay stable across restarts on this device.
+          const restored = _restoreSessionsFromStorage();
+          if (restored) {
+            sessionCounterRef.current = restored.length;
+            setSessions(restored);
+            setActiveSession(restored[0].id);
+          } else {
+            setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
+            setActiveSession(initialSessionId.current);
+          }
         }
       })
       .catch(() => {
-        setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
-        setActiveSession(initialSessionId.current);
+        // Server unreachable — same fallback: prefer localStorage over fresh random.
+        const restored = _restoreSessionsFromStorage();
+        if (restored) {
+          sessionCounterRef.current = restored.length;
+          setSessions(restored);
+          setActiveSession(restored[0].id);
+        } else {
+          setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
+          setActiveSession(initialSessionId.current);
+        }
       });
   }, []);
 
