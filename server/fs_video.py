@@ -388,9 +388,14 @@ def _serve_with_range(file_path: Path, mime: str, request: Request) -> Streaming
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.get("/stream")
-def stream_file(path: str, request: Request):
+def stream_file(path: str, request: Request, native: bool = False):
     """
     Universal video stream endpoint.
+
+    native=True (Phase 3a): Client has verified browser can decode this file
+    natively via canPlayType() — serve the original file with range support,
+    bypassing FFmpeg entirely. Used for HEVC and other codecs that the browser
+    can hardware-decode directly.
 
     Native containers (mp4, webm, mov, …):
         Served directly with HTTP Range support.  Zero processing overhead.
@@ -400,14 +405,35 @@ def stream_file(path: str, request: Request):
         disk.  First open blocks while FFmpeg runs (2–5 s for remux).
         Subsequent opens are instant from cache.
 
-    Returns 422 JSON when the video codec requires full transcoding (Phase 3).
+    Returns 422 JSON when the video codec requires full transcoding.
     """
     p = get_safe_path(path)
     if not p.exists() or not p.is_file():
         raise HTTPException(status_code=404, detail='File not found')
 
+    if native:
+        # Phase 3a: browser already verified codec support via canPlayType().
+        # Serve the original file directly — no FFmpeg, no remux.
+        mime, _ = mimetypes.guess_type(str(p))
+        if not mime or mime == 'application/octet-stream':
+            # mimetypes doesn't know most video container extensions — provide fallbacks.
+            _ext_mime = {
+                '.mkv':  'video/x-matroska',
+                '.avi':  'video/x-msvideo',
+                '.wmv':  'video/x-ms-wmv',
+                '.m4v':  'video/mp4',
+                '.flv':  'video/x-flv',
+                '.3gp':  'video/3gpp',
+                '.ts':   'video/mp2t',
+                '.vob':  'video/mpeg',
+                '.mpg':  'video/mpeg',
+                '.mpeg': 'video/mpeg',
+            }
+            mime = _ext_mime.get(p.suffix.lower(), 'application/octet-stream')
+        return _serve_with_range(p, mime, request)
+
     if _needs_ffmpeg(p):
-        # May block during remux on first open — frontend shows 'preparing' state
+        # May block during remux on first open — frontend shows 'caching' state
         cache_file, mime = get_or_build_cache(p)
         return _serve_with_range(cache_file, mime, request)
 
@@ -420,14 +446,8 @@ def stream_file(path: str, request: Request):
 @router.get("/stream/status")
 def stream_status(path: str):
     """
-    Phase 3 stub: poll the cache/transcode status for a given source path.
-
-    In Phase 2b remux is synchronous, so /stream blocks until the cache file
-    is ready.  This endpoint exists so the frontend polling contract is wired
-    now and Phase 3 (async long transcodes) can use it without frontend changes.
-
-    Returns:
-        { state: 'cached'|'not_cached', key: str }
+    Poll the server-side cache status for a given source path.
+    Returns { state: 'cached'|'not_cached', key: str }
     """
     p = get_safe_path(path)
     if not p.exists() or not p.is_file():
@@ -441,6 +461,39 @@ def stream_status(path: str):
             return {'state': 'cached', 'key': key}
 
     return {'state': 'not_cached', 'key': key}
+
+
+@router.get("/stream/probe")
+def stream_probe(path: str):
+    """
+    Phase 3a: Return codec info for client-side native playback detection.
+
+    Runs ffprobe on the file and returns the video and audio codec names.
+    The client uses these to call canPlayType() and decide whether to request
+    the file natively (native=1) or fall back to the FFmpeg remux path.
+
+    No transcoding — this endpoint only reads metadata.
+    Returns null codec fields gracefully when ffprobe is unavailable.
+    """
+    p = get_safe_path(path)
+    if not p.exists() or not p.is_file():
+        raise HTTPException(status_code=404, detail='File not found')
+
+    size_bytes = p.stat().st_size
+
+    try:
+        chk = subprocess.run(['ffprobe', '-version'], capture_output=True, timeout=3)
+        if chk.returncode != 0:
+            return {'video_codec': None, 'audio_codec': None, 'size_bytes': size_bytes}
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {'video_codec': None, 'audio_codec': None, 'size_bytes': size_bytes}
+
+    probe = _probe_codecs(p)
+    return {
+        'video_codec': probe['video'],
+        'audio_codec': probe['audio'],
+        'size_bytes':  size_bytes,
+    }
 
 
 @router.get("/ffmpeg-health")

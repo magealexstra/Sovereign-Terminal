@@ -236,14 +236,16 @@ const activeNetworkSessions = new Set();
 
 // React fires this before mounting any <video> element so backgroundCache
 // starts without going through the fetch-intercept path.
-// IMPORTANT: we derive the normalized URL here from path using URLSearchParams —
-// the same encoding the fetch handler uses — so both sides produce the same
-// cache key and cache.match() finds the entry on the first range request.
+// IMPORTANT: we derive the normalized URL here from path (+ optional native flag)
+// using URLSearchParams — the same encoding the fetch handler uses — so both
+// sides produce the same cache key and cache.match() finds the entry on the
+// first range request.
 self.addEventListener('message', event => {
   if (event.data?.type === 'start-cache') {
-    const { path } = event.data;
+    const { path, native } = event.data;
     if (path) {
       const normalizedParams = new URLSearchParams({ path });
+      if (native) normalizedParams.set('native', '1');
       const normalizedUrl = `${self.location.origin}/api/fs/stream?${normalizedParams.toString()}`;
       backgroundCache(normalizedUrl, path);
     }
@@ -257,13 +259,17 @@ self.addEventListener('fetch', event => {
   if (event.request.url.includes('/api/fs/stream')) {
     console.log('Intercepting stream request:', event.request.url);
     const urlObj = new URL(event.request.url);
-    const path = urlObj.searchParams.get('path');
+    const path   = urlObj.searchParams.get('path');
     // Normalize the cache key: rebuild from URLSearchParams so that %20 and +
     // both resolve to the same canonical URL regardless of how the browser or
     // the SW's internal fetch encoded the query string.
+    // Include the 'native' flag so native-served files (stream?path=...&native=1)
+    // have a distinct cache key from their remuxed counterparts.
+    const native = urlObj.searchParams.get('native');
     const normalizedParams = new URLSearchParams({ path });
-    const baseUrl = urlObj.origin + urlObj.pathname + '?' + normalizedParams.toString();
-    const sid = urlObj.searchParams.get('sid') || '';
+    if (native === '1') normalizedParams.set('native', '1');
+    const baseUrl    = urlObj.origin + urlObj.pathname + '?' + normalizedParams.toString();
+    const sid        = urlObj.searchParams.get('sid') || '';
     const sessionKey = sid ? `${baseUrl}&sid=${sid}` : baseUrl;
     const rangeHeader = event.request.headers.get('Range') || '';
 

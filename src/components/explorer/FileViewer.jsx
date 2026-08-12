@@ -257,12 +257,70 @@ function VideoPlayer({ path }) {
 // Mirrors FFMPEG_CONTAINERS in server/fs_video.py.
 const FFMPEG_EXTS = new Set(['mkv', 'avi', 'mpg', 'mpeg', 'wmv', 'm4v', 'flv', '3gp', 'ts', 'vob']);
 
-// Helper: tell the SW to start background-caching this path.
-// The SW derives the normalized URL itself (URLSearchParams encoding) so
-// the cache key always matches what the fetch handler produces.
-function triggerSwCache(path) {
+// ── Phase 3a: Native codec detection ──────────────────────────────────────────
+// Maps ffprobe codec_name (exact lowercase strings) to the MIME/codec string
+// that HTMLVideoElement.canPlayType() understands.
+// Codecs with no browser support (wmv3, vc1) are intentionally omitted —
+// if a codec isn't here, canPlayNatively() returns false and we fall back to
+// the remux path (or show the "No preview" card if remux also can't handle it).
+const NATIVE_VIDEO_MIME = {
+  hevc:       'video/mp4; codecs="hvc1"',
+  mpeg4:      'video/mp4; codecs="mp4v.20.3"',
+  mpeg1video: 'video/mpeg',
+  mpeg2video: 'video/mpeg',
+};
+
+// Audio codec suffix for combined canPlayType() checks (e.g. 'hvc1,mp4a.40.2').
+// AC3, DTS, TrueHD are intentionally absent — Chrome on Android/Linux lacks
+// the Dolby license; canPlayType() will return "" for those automatically.
+const NATIVE_AUDIO_CODEC = {
+  aac:  'mp4a.40.2',
+  mp3:  'mp3',
+  opus: 'opus',
+  flac: 'flac',
+  alac: 'alac',
+  eac3: 'ec-3',    // Dolby Digital+ — partial Android support, canPlayType handles it
+};
+
+/**
+ * Check whether the current browser can decode the given video + audio codec
+ * combination natively, without FFmpeg remuxing.
+ *
+ * Returns true when canPlayType() reports 'probably' or 'maybe'.
+ * A 'maybe' result means the browser recognises the codec but can't guarantee
+ * support until it loads data — we treat it as supported and fall back
+ * gracefully via the <video> element's error event if it actually fails.
+ */
+function canPlayNatively(videoCodec, audioCodec) {
+  const videoMime = NATIVE_VIDEO_MIME[videoCodec];
+  if (!videoMime) return false;
+
+  const probe = document.createElement('video');
+
+  // Try the combined codec string first (most accurate result).
+  const audioPart = NATIVE_AUDIO_CODEC[audioCodec];
+  if (audioPart) {
+    // e.g. 'video/mp4; codecs="hvc1,mp4a.40.2"'
+    const combined = videoMime.replace(/"$/, `,${audioPart}"`);
+    const result   = probe.canPlayType(combined);
+    if (result === 'probably' || result === 'maybe') return true;
+  }
+
+  // Fallback: video codec alone. Audio may still play if the browser can
+  // handle the track natively from the container (common for MKV + HEVC).
+  const result = probe.canPlayType(videoMime);
+  return result === 'probably' || result === 'maybe';
+}
+
+// ── SW cache trigger ───────────────────────────────────────────────────────────
+// Tell the SW to start background-caching this path.
+// native=true: cache the original file via &native=1 (Phase 3a native path).
+// native=false (default): cache the FFmpeg-remuxed output (Phase 2b/2c path).
+// The SW derives the normalized URL from (path + native flag) using URLSearchParams
+// so the cache key always matches what the fetch handler produces.
+function triggerSwCache(path, native = false) {
   const sw = navigator.serviceWorker?.controller;
-  if (sw) sw.postMessage({ type: 'start-cache', path });
+  if (sw) sw.postMessage({ type: 'start-cache', path, native });
 }
 
 function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
@@ -275,6 +333,11 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   // Warm-cache opens (straight to streaming on mount) stay paused.
   const autoPlayRef = useRef(false);
 
+  // Set to true by init() when /stream/probe + canPlayNatively() confirms the
+  // browser can decode this file without FFmpeg (Phase 3a native path).
+  // Must be set before any setViewState() call so videoSrc is correct at render.
+  const nativeRef = useRef(false);
+
   // 'init' | 'caching' | 'streaming' | 'no_ffmpeg' | 'failed'
   const [viewState, setViewState]     = useState('init');
   const [subtitleTracks, setSubtitles] = useState([]);
@@ -284,20 +347,51 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
 
   const ext        = path.split('.').pop()?.toLowerCase() ?? '';
   const needsRemux = FFMPEG_EXTS.has(ext);
-  // Cache key never includes &sid — the SW normalizes on baseUrl
-  const baseUrl    = `/api/fs/stream?path=${encodeURIComponent(path)}`;
-  const videoSrc   = `${baseUrl}&sid=${sessionId}`;
+  // baseUrl: cache key root (no sid, no native flag — those are appended per use-site).
+  const baseUrl          = `/api/fs/stream?path=${encodeURIComponent(path)}`;
+  // effectiveBaseUrl: appends &native=1 when the probe confirmed native support.
+  // nativeRef.current is always set before any setViewState() call in init(),
+  // so this is correct by the time any state other than 'init' renders.
+  const effectiveBaseUrl = nativeRef.current ? `${baseUrl}&native=1` : baseUrl;
+  const videoSrc         = `${effectiveBaseUrl}&sid=${sessionId}`;
 
-  // ── Init: read cacheState snapshot + optional ffmpeg check ────────────────
+  // ── Init: codec probe (needsRemux files) + cacheState snapshot ────────────
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      // 1. Snapshot cacheState at mount time (not reactive — that's the watcher below)
+      // 1. For needsRemux files: probe codec to determine native vs remux path.
+      //    Must run before the warm-cache fast-path so nativeRef is set before
+      //    any setViewState() call and effectiveBaseUrl is correct at render.
+      if (needsRemux) {
+        let available = ffmpegAvailable;
+        if (available === null) available = await onNeedFfmpegCheck();
+        if (cancelled) return;
+
+        // Phase 3a: ask the server what codecs the file uses, then check
+        // whether this browser can decode them natively (no FFmpeg needed).
+        try {
+          const probeRes = await fetch(`/api/fs/stream/probe?path=${encodeURIComponent(path)}`);
+          if (probeRes.ok) {
+            const { video_codec, audio_codec } = await probeRes.json();
+            nativeRef.current = canPlayNatively(video_codec, audio_codec);
+          }
+        } catch (_) {}
+        if (cancelled) return;
+
+        // If the browser can't play natively AND FFmpeg isn't available, give up.
+        if (!nativeRef.current && !available) {
+          setViewState('no_ffmpeg');
+          return;
+        }
+      }
+
+      // 2. Snapshot cacheState at mount time (not reactive — that's the watcher below)
       const entry = cacheState?.[path];
 
       if (entry?.state === 'cached' || entry?.state === 'skip') {
-        // Warm cache or oversized file — go straight to streaming
+        // Warm cache or oversized file — go straight to streaming.
+        // nativeRef is already set above so effectiveBaseUrl is correct.
         if (!cancelled) setViewState('streaming');
         return;
       }
@@ -308,18 +402,10 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
         return;
       }
 
-      // Cold start — need FFmpeg check for remux files
-      if (needsRemux) {
-        let available = ffmpegAvailable;
-        if (available === null) available = await onNeedFfmpegCheck();
-        if (cancelled) return;
-        if (!available) { setViewState('no_ffmpeg'); return; }
-      }
-
-      // Enter caching state and trigger SW download
+      // 3. Cold start — enter caching state and trigger SW download
       if (!cancelled) {
         setViewState('caching');
-        triggerSwCache(path);
+        triggerSwCache(path, nativeRef.current);
       }
 
       // Pre-fetch subtitle tracks (best-effort, never throws to the caller)
