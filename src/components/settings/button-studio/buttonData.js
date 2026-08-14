@@ -246,10 +246,10 @@ export const PREBUILT_CATEGORIES = {
 };
 
 export const KEY_NAV_PRESETS = [
-  { id: 'nav1', label: '▲', value: '\x1b[A', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
-  { id: 'nav2', label: '▼', value: '\x1b[B', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
-  { id: 'nav3', label: '◀', value: '\x1b[D', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
-  { id: 'nav4', label: '▶', value: '\x1b[C', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'nav1', label: '▲', value: '\x1b[A' },
+  { id: 'nav2', label: '▼', value: '\x1b[B' },
+  { id: 'nav3', label: '◀', value: '\x1b[D' },
+  { id: 'nav4', label: '▶', value: '\x1b[C' },
   { id: 'nav5', label: 'PgUp', value: '\x1b[5~' },
   { id: 'nav6', label: 'PgDn', value: '\x1b[6~' },
   { id: 'nav7', label: 'Home', value: '\x1b[H' },
@@ -258,7 +258,7 @@ export const KEY_NAV_PRESETS = [
   { id: 'nav10', label: 'Ctrl+Right', value: '\x1b[1;5C' },
   { id: 'nav11', label: 'Shift+Tab', value: '\x1b[Z' },
   { id: 'nav12', label: 'Backspace', value: '\x7f' },
-  { id: 'nav13', label: '⏎', value: '\r', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
+  { id: 'nav13', label: '⏎', value: '\r' },
 ];
 
 export const KEY_FN_PRESETS = [
