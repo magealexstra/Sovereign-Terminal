@@ -10,11 +10,15 @@ export const writeToClipboard = (text) => {
   return new Promise((resolve, reject) => {
     const ta = document.createElement('textarea');
     ta.value = text;
-    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    ta.setAttribute('readonly', '');
+    ta.setAttribute('inputmode', 'none');
+    ta.setAttribute('tabindex', '-1');
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
     document.body.appendChild(ta);
-    ta.focus();
     ta.select();
+    ta.setSelectionRange(0, text.length);
     const ok = document.execCommand('copy');
+    if (ta.blur) ta.blur();
     document.body.removeChild(ta);
     if (ok) {
       resolve();

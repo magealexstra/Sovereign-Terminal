@@ -244,17 +244,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
       term.textarea.addEventListener('blur', (e) => {
         if (injectingRef.current) return;
-        // Do NOT reclaim focus if Master Macro Modal or Command Stager is active in DOM
-        if (document.body.querySelector('.macro-modal-overlay') || document.body.querySelector('.staging-drawer-container')) return;
+        // Do NOT reclaim focus if Master Macro Modal, Command Stager, or Copy Card is active in DOM
+        if (document.body.querySelector('.macro-modal-overlay') || 
+            document.body.querySelector('.staging-drawer-container') ||
+            document.body.querySelector('.copy-card-container')) return;
         const target = e.relatedTarget;
-        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-          return; // Let the Stager or other input take focus
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.closest?.('.copy-card-container'))) {
+          return; // Let the Stager, copy card, or other input take focus
         }
         if (isActiveRef.current) {
           // Reclaim focus aggressively to prevent keyboard dismissal ONLY while terminal tab is active and no modal/stager is open
           setTimeout(() => {
             if (injectingRef.current || !isActiveRef.current) return;
-            if (document.body.querySelector('.macro-modal-overlay') || document.body.querySelector('.staging-drawer-container')) return;
+            if (document.body.querySelector('.macro-modal-overlay') || 
+                document.body.querySelector('.staging-drawer-container') ||
+                document.body.querySelector('.copy-card-container')) return;
             if (term.textarea) term.focus();
           }, 10);
         }
@@ -640,7 +644,24 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   };
 
   return (
-    <div className="terminal-wrapper" onClick={() => xtermInstance.current?.focus()}>
+    <div
+      className="terminal-wrapper"
+      onClick={(e) => {
+        if (e.target.closest('.copy-card-container')) return;
+        const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
+        if (tapMode === 'stager') {
+          const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
+          if (isStagerOpen) {
+            window.dispatchEvent(new CustomEvent('sovereign_close_stager'));
+            if (document.activeElement?.blur) document.activeElement.blur();
+          } else {
+            window.dispatchEvent(new CustomEvent('sovereign_open_stager'));
+          }
+        } else {
+          xtermInstance.current?.focus();
+        }
+      }}
+    >
       {toast && (
         <div className="copy-toast">
           <Copy size={13} />

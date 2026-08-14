@@ -31,6 +31,22 @@ export default function StagingDrawer({
       return false;
     }
   });
+  const [tapTarget, setTapTarget] = useState(() => {
+    try {
+      return localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
+    } catch {
+      return 'stager';
+    }
+  });
+
+  const toggleTapTarget = () => {
+    const next = tapTarget === 'stager' ? 'xterm' : 'stager';
+    setTapTarget(next);
+    try {
+      localStorage.setItem('sovereign_stager_tap_redirect', next);
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
+  };
 
   // Sync initialText when dictation updates
   useEffect(() => {
@@ -83,6 +99,19 @@ export default function StagingDrawer({
         </div>
 
         <div className="staging-drawer-controls">
+          <button
+            type="button"
+            className={`stager-mode-toggle tap-target ${tapTarget === 'stager' ? 'stager' : 'xterm'}`}
+            {...noBlur}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTapTarget();
+            }}
+            title={tapTarget === 'stager' ? 'Tap Target: Terminal taps open Command Stager' : 'Tap Target: Terminal taps focus xterm directly'}
+          >
+            <span>{tapTarget === 'stager' ? 'STAGER' : 'XTERM'}</span>
+          </button>
+
           <button
             type="button"
             className={`stager-mode-toggle ${isTwoStepMode ? 'two-step' : 'direct'}`}

@@ -103,6 +103,20 @@ export default function TouchBar({ onKeyPress }) {
     wasStagerOpen.current = showStager;
   }, [showStager]);
 
+  useEffect(() => {
+    const handleOpenStager = (e) => {
+      if (e.detail?.text) setStagerText(e.detail.text);
+      setShowStager(true);
+    };
+    const handleCloseStager = () => setShowStager(false);
+    window.addEventListener('sovereign_open_stager', handleOpenStager);
+    window.addEventListener('sovereign_close_stager', handleCloseStager);
+    return () => {
+      window.removeEventListener('sovereign_open_stager', handleOpenStager);
+      window.removeEventListener('sovereign_close_stager', handleCloseStager);
+    };
+  }, []);
+
   const [primaryGroup, setPrimaryGroup] = useState('AI');
   const [selectedSuite, setSelectedSuite] = useState('AGY');
   const [suiteOverrides, setSuiteOverrides] = useState({});

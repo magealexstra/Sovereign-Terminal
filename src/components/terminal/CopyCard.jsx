@@ -100,8 +100,19 @@ export default function CopyCard({
 
   // Shared pointer-block props — prevents keyboard dismissal on every tap
   const noBlur = {
-    onPointerDown: (e) => e.preventDefault(),
-    onMouseDown:   (e) => e.preventDefault(),
+    onTouchStart:  (e) => { e.stopPropagation(); },
+    onTouchEnd:    (e) => { e.stopPropagation(); },
+    onPointerDown: (e) => { e.stopPropagation(); e.preventDefault(); },
+    onMouseDown:   (e) => { e.stopPropagation(); e.preventDefault(); },
+  };
+
+  const handleBarTap = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (document.activeElement?.blur) {
+      document.activeElement.blur();
+    }
+    setIsExpanded((prev) => !prev);
   };
 
   return (
@@ -109,6 +120,11 @@ export default function CopyCard({
       ref={containerRef}
       className={`copy-card-container${isExpanded ? ' expanded' : ''}`}
       title="Terminal Copy Suite"
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Expandable panel — slides out to the left of the bar */}
       <div className="copy-card-panel">
@@ -116,7 +132,7 @@ export default function CopyCard({
           type="button"
           className="copy-card-btn btn-copy"
           {...noBlur}
-          onClick={() => { onCopyLastOutput(destinationMode); setIsExpanded(false); }}
+          onClick={(e) => { e.stopPropagation(); onCopyLastOutput(destinationMode); setIsExpanded(false); }}
           title={destinationMode === 'clip'
             ? 'Copy last command response to mobile clipboard'
             : 'Open last command response in CodeMirror'}
@@ -128,7 +144,7 @@ export default function CopyCard({
           type="button"
           className="copy-card-btn btn-all"
           {...noBlur}
-          onClick={() => { onCopyScreenBuffer(destinationMode); setIsExpanded(false); }}
+          onClick={(e) => { e.stopPropagation(); onCopyScreenBuffer(destinationMode); setIsExpanded(false); }}
           title={destinationMode === 'clip'
             ? 'Copy visible screen buffer to mobile clipboard'
             : 'Open visible screen buffer in CodeMirror'}
@@ -140,7 +156,7 @@ export default function CopyCard({
           type="button"
           className="copy-card-btn btn-cust"
           {...noBlur}
-          onClick={() => { onCopyCustomLines(destinationMode, parsedLines); setIsExpanded(false); }}
+          onClick={(e) => { e.stopPropagation(); onCopyCustomLines(destinationMode, parsedLines); setIsExpanded(false); }}
           title={destinationMode === 'clip'
             ? `Copy ${parsedLines} scrollback lines to mobile clipboard`
             : `Open ${parsedLines} scrollback lines in CodeMirror`}
@@ -152,7 +168,7 @@ export default function CopyCard({
           type="button"
           className={`copy-card-toggle ${destinationMode}`}
           {...noBlur}
-          onClick={toggleDestination}
+          onClick={(e) => { e.stopPropagation(); toggleDestination(); }}
           title={`Destination Mode: ${destinationMode === 'clip' ? 'Direct Mobile Clipboard' : 'CodeMirror Inspector'}. Tap to toggle.`}
         >
           <span>{destinationMode === 'clip' ? 'CLIP' : 'CODE'}</span>
@@ -163,7 +179,7 @@ export default function CopyCard({
       <div
         className="copy-card-bar-handle"
         {...noBlur}
-        onClick={() => setIsExpanded((prev) => !prev)}
+        onClick={handleBarTap}
         title="Copy Suite (tap to expand)"
         role="button"
         aria-label="Toggle copy suite"

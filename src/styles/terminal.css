@@ -726,6 +726,16 @@
   color: var(--accent-highlight);
 }
 
+.stager-mode-toggle.stager {
+  border: 1px solid var(--accent-violet);
+  color: var(--accent-violet);
+}
+
+.stager-mode-toggle.xterm {
+  border: 1px solid var(--border-forest);
+  color: var(--text-muted);
+}
+
 .stager-icon-btn {
   background: transparent;
   border: none;
