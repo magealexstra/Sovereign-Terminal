@@ -143,6 +143,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   useEffect(() => {
     const handleGlobalFocus = () => {
       if (injectingRef.current) return;
+      if (document.body.querySelector('.macro-modal-overlay') || document.body.querySelector('.staging-drawer-container')) return;
       if (isActive && xtermInstance.current) {
         xtermInstance.current.focus();
       }
@@ -214,17 +215,17 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
       term.textarea.addEventListener('blur', (e) => {
         if (injectingRef.current) return;
-        // Do NOT reclaim focus if Master Macro Modal is active in DOM
-        if (document.body.querySelector('.macro-modal-overlay')) return;
+        // Do NOT reclaim focus if Master Macro Modal or Command Stager is active in DOM
+        if (document.body.querySelector('.macro-modal-overlay') || document.body.querySelector('.staging-drawer-container')) return;
         const target = e.relatedTarget;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
           return; // Let the Stager or other input take focus
         }
         if (isActiveRef.current) {
-          // Reclaim focus aggressively to prevent keyboard dismissal ONLY while terminal tab is active and no macro modal is open
+          // Reclaim focus aggressively to prevent keyboard dismissal ONLY while terminal tab is active and no modal/stager is open
           setTimeout(() => {
             if (injectingRef.current || !isActiveRef.current) return;
-            if (document.body.querySelector('.macro-modal-overlay')) return;
+            if (document.body.querySelector('.macro-modal-overlay') || document.body.querySelector('.staging-drawer-container')) return;
             if (term.textarea) term.focus();
           }, 10);
         }

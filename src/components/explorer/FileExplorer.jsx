@@ -623,6 +623,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
             <input
               type="text"
               className="modal-input"
+              autoCapitalize="none"
               placeholder="Search filenames..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -662,6 +663,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
               ref={newFileInputRef}
               type="text"
               className="modal-input"
+              autoCapitalize="none"
               placeholder="Filename (e.g. notes.md)"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
@@ -685,6 +687,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
               ref={renameInputRef}
               type="text"
               className="modal-input"
+              autoCapitalize="none"
               value={renameValue}
               onChange={(e) => { setRenameValue(e.target.value); setRenameError(''); }}
               autoFocus

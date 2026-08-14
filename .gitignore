@@ -56,3 +56,6 @@ Thumbs.db
 
 # Phase 2b video cache
 server/_cache/
+
+# Quests & Task Notes
+Quest/

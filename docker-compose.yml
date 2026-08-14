@@ -6,6 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ${CONTAINER_NAME:-sovereign-terminal}
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 2G
     restart: "no"
     ports:
       - "${PORT:-2069}:${PORT:-2069}"
