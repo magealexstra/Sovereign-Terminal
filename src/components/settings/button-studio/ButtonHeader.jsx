@@ -60,15 +60,16 @@ export default function ButtonHeader({
           onChange={(e) => onSelectPresetOrCustom(e.target.value)}
         >
           {/* SECTION 1: CUSTOM CREATIONS */}
-          {filteredCustomButtons.length > 0 && (
-            <optgroup label="CUSTOM CREATIONS">
-              {filteredCustomButtons.map((b) => (
-                <option key={b.id} value={b.id}>
-                  [CUSTOM] {b.label || b.id} ({b.value ? String(b.value).trim() : ''})
-                </option>
-              ))}
-            </optgroup>
-          )}
+          <optgroup label="CUSTOM CREATIONS">
+            <option value="cust-button">
+              [CUSTOM] copy bar 'cust' button
+            </option>
+            {filteredCustomButtons.map((b) => (
+              <option key={b.id} value={b.id}>
+                [CUSTOM] {b.label || b.id} ({b.value ? String(b.value).trim() : ''})
+              </option>
+            ))}
+          </optgroup>
 
           {/* SECTION 2: ALL LAYOUT TAB PRE-BUILT TOOLKITS */}
           <optgroup label="PRE-BUILT LAYOUT BUTTONS">

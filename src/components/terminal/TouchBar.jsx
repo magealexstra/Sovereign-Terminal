@@ -637,7 +637,16 @@ export default function TouchBar({ onKeyPress }) {
               }}
               onPointerDown={(e) => e.preventDefault()}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => onKeyPress(getCommandPayload(item))}
+              onClick={() => {
+                const match = customButtons.find(b => (b.label || b.name) === item);
+                if (match && match.isExecutable === false) {
+                  const valToStage = match.value ? match.value.replace(/\n$/, '') : item;
+                  setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToStage}` : valToStage));
+                  setShowStager(true);
+                  return;
+                }
+                onKeyPress(getCommandPayload(item));
+              }}
             >
               {item}
             </button>
@@ -796,7 +805,10 @@ export default function TouchBar({ onKeyPress }) {
                           setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
                           setShowStager(true);
                         } else {
-                          onKeyPress(macro.value);
+                          const payload = (macro.isExecutable === false)
+                            ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
+                            : getCommandPayload(macro.label);
+                          onKeyPress(payload);
                         }
                         setShowMacroModal(false);
                       }
@@ -914,7 +926,10 @@ export default function TouchBar({ onKeyPress }) {
                         setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
                         setShowStager(true);
                       } else {
-                        onKeyPress(macro.value);
+                        const payload = (macro.isExecutable === false)
+                          ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
+                          : getCommandPayload(macro.label);
+                        onKeyPress(payload);
                       }
                       setShowFocusedSuiteModal(false);
                     }}

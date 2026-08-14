@@ -24,25 +24,25 @@ TouchBar buttons inject raw bytes directly into the terminal PTY WebSockets stre
 
 When creating a button in **Settings -> Sub-Tab 2 (Studio)**, the string you enter into the **Function / Value** `<textarea>` determines how the shell processes the input:
 
-### A. Auto-Executing Shell Commands (Command + Newline)
-* **Rule**: Append `\n` (or `\r`) to the end of the command string.
+### A. Auto-Executing Shell Commands (Execution Mode: EXECUTE)
+* **Rule**: Set **Execution Mode** to `EXECUTE` (or append `\n` to the command string).
 * **Examples**:
   * `docker ps\n`
   * `git status\n`
   * `sudo apt update && sudo apt upgrade -y\n`
 * **Behavior**: Pastes the command into the shell prompt and immediately presses Return to execute it.
 
-### B. Staged Commands (Prefix / Unfinished Strings)
-* **Rule**: Omit `\n` at the end of the string.
+### B. Staged Commands (Execution Mode: STAGE)
+* **Rule**: Set **Execution Mode** to `STAGE` (or omit `\n` at the end of the string).
 * **Examples**:
   * `git commit -m "`
   * `sudo apt install `
   * `docker exec -it `
-* **Behavior**: Places the text string on the command prompt (or into the Command Stager drawer), leaving the cursor at the end so you can type additional arguments or use voice dictation before executing.
+* **Behavior**: When tapped from the Primary TouchBar, opens the Command Stager drawer with the text pre-filled for editing or voice dictation. In Master Macro modal, pastes directly into the shell prompt without executing.
 
 ### C. Raw Key Injections (ASCII Control Characters & ANSI Escape Sequences)
 * **Rule**: Use JavaScript hex/escape string notation (`\xHH`, `\t`, `\x1b`).
-* **Behavior**: Simulates hardware key presses, terminal control signals (`Ctrl+C`, `Ctrl+Z`), navigation arrows, function keys, or editor shortcuts (`vim`, `tmux`, `htop`).
+* **Behavior**: Simulates hardware key presses, terminal control signals (`Ctrl+C`, `Ctrl+Z`), navigation arrows, function keys, or editor shortcuts (`vim`, `tmux`, `htop`). Keystroke buttons never have newlines appended and send raw bytes directly to the PTY.
 
 ---
 
@@ -80,6 +80,9 @@ The table below lists ANSI escape sequences for cursor navigation, scrolling, fu
 | **Arrow Down** | `▼` | `\x1b[B` | Move cursor down / next command history |
 | **Arrow Left** | `◀` | `\x1b[D` | Move cursor left |
 | **Arrow Right** | `▶` | `\x1b[C` | Move cursor right |
+| **Dash Key** | `-` | `-` | Inserts single dash character |
+| **Slash Key** | `/` | `/` | Inserts single slash character |
+| **Return Key** | `⏎` | `\r` | Carriage return / enter |
 | **Word Left (Ctrl+Left)**| `Ctrl+Left` | `\x1b[1;5D` | Jump cursor left by full word boundary |
 | **Word Right (Ctrl+Right)**| `Ctrl+Right` | `\x1b[1;5C` | Jump cursor right by full word boundary |
 | **Home Key** | `Home` | `\x1b[H` | Jump cursor to home position |
@@ -98,19 +101,20 @@ The table below lists ANSI escape sequences for cursor navigation, scrolling, fu
 
 Here is a step-by-step example of creating a custom button for `git push origin main`:
 
-1. Open **Settings -> Sub-Tab 2 (Studio)**.
-2. Under **Output & Function Card**:
-   - Set **Button Name**: `git push`
+1. Open **Settings -> Buttons tab**.
+2. Tap **CREATE** in the top action header.
+3. Under the **Output & Function** region:
+   - Set **Name**: `git push`
    - Set **Function**: `git push origin main\n`
-3. Under **Size, Shape & Save Card**:
-   - Adjust **Width**: `4.0` (or desired flex width ratio)
-   - Adjust **Height**: `2.0`
-   - Select **Shape**: `Rounded` or `Pill`
-   - Choose custom **Background**, **Text**, and **Border** colors if desired.
-4. Click **Save Button**. The button is now saved and available in your custom button pool.
-5. Open **Settings -> Sub-Tab 3 (Layout)**:
+   - Set **Execution Mode**: `EXECUTE` (or `STAGE` if you want to inspect before running)
+4. Under the **Size & Shape** region:
+   - Adjust **Width** and **Height** steppers as desired.
+   - Select **Shape**: `Square`, `Rounded`, or `Pill`.
+   - Leave color swatches unselected to dynamically inherit the active system theme, or pick custom swatches for bespoke styling.
+5. Tap **SAVE** in the top action header to persist changes to `localStorage` and sync with the server.
+6. Open **Settings -> Layout tab**:
    - Tap any slot in your active TouchBar preview strip.
-   - Tap your new `git push` button from the custom pool to assign it to that slot.
+   - Tap your new `git push` button from the pool to assign it.
 
 ---
 

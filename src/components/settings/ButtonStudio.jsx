@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sliders, Code, Save, Check } from 'lucide-react';
+import { Sliders, Code, Save, Check, Zap, Edit3 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { DEFAULT_BUTTONS, PREBUILT_CATEGORIES } from './button-studio/buttonData';
 import ButtonHeader from './button-studio/ButtonHeader';
@@ -201,6 +201,10 @@ export default function ButtonStudio() {
   }, [buttons, custButton]);
 
   const handleSelectPresetOrCustom = (selectedKey) => {
+    if (selectedKey === 'cust-button') {
+      setSelectedId('cust-button');
+      return;
+    }
     const custom = buttons.find((b) => b.id === selectedKey);
     if (custom) {
       setSelectedId(selectedKey);
@@ -324,33 +328,32 @@ export default function ButtonStudio() {
             />
           </div>
 
-          {/* Pinned Interactive CUST Button Control */}
-          <div style={{ marginTop: '0.8rem', borderTop: '1px solid var(--border-forest)', paddingTop: '0.6rem', textAlign: 'center' }}>
-            <label className="field-label" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.4rem', display: 'block' }}>
-              Terminal Copy Button (Tap to Edit)
-            </label>
-            <button
-              type="button"
-              className={`shape-tap-btn ${isEditingCust ? 'active' : ''}`}
-              style={{
-                width: '64px',
-                height: '32px',
-                margin: '0 auto',
-                border: '1.5px solid var(--status-danger)',
-                background: isEditingCust ? 'var(--status-danger)' : 'var(--bg-earth)',
-                color: isEditingCust ? 'var(--bg-earth)' : 'var(--text-parchment)',
-                borderRadius: '12px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.75rem',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onClick={() => setSelectedId('cust-button')}
-            >
-              {custButton.label || 'CUST'}
-            </button>
-          </div>
+          {/* Executable Command Toggle Switch (Tactile Sovereign Pill Bar) */}
+          {!isEditingCust && (
+            <div className="executable-toggle-group">
+              <label className="field-label">Execution Mode</label>
+              <div className="executable-toggle-bar">
+                <button
+                  type="button"
+                  className={`executable-pill ${activeBtn.isExecutable !== false ? 'active' : ''}`}
+                  onClick={() => updateActiveBtn({ isExecutable: true })}
+                  title="Execute command immediately in terminal PTY"
+                >
+                  <Zap size={11} />
+                  <span>EXECUTE</span>
+                </button>
+                <button
+                  type="button"
+                  className={`executable-pill ${activeBtn.isExecutable === false ? 'active' : ''}`}
+                  onClick={() => updateActiveBtn({ isExecutable: false })}
+                  title="Route command to Command Stager for editing before sending"
+                >
+                  <Edit3 size={11} />
+                  <span>STAGE</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* CENTER REGION: Live Interactive Button Preview Console */}
