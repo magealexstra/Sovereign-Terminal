@@ -45,6 +45,7 @@ const KEY_MAPPINGS = {
   'Shift+Tab': '\x1b[Z',
   'Backspace': '\x7f',
   'Enter': '\r',
+  '⏎': '\r',
   'F1': '\x1bOP', 'F2': '\x1bOQ', 'F3': '\x1bOR', 'F4': '\x1bOS',
   'F5': '\x1b[15~', 'F6': '\x1b[17~', 'F7': '\x1b[18~', 'F8': '\x1b[19~',
   'F9': '\x1b[20~', 'F10': '\x1b[21~', 'F11': '\x1b[23~', 'F12': '\x1b[24~'
@@ -127,6 +128,7 @@ export default function TouchBar({ onKeyPress }) {
   };
 
   const SUB_LABELS = {
+    CUST: 'CUST',
     AGY: 'AGY',
     CLD: 'CLD',
     HMS: 'HMS',
@@ -332,6 +334,15 @@ export default function TouchBar({ onKeyPress }) {
           }
         } catch {}
       });
+
+      // Provide default CUST suite containing all custom buttons
+      if (btns && btns.length > 0) {
+        custData['CUST'] = btns.map((b, idx) => ({
+          ...b,
+          id: b.id || `cust-btn-${idx}`,
+          isSuiteLauncher: false,
+        }));
+      }
       setCustomSuiteData(custData);
     } catch {
       setCustomMacroSuites([]);
@@ -350,9 +361,13 @@ export default function TouchBar({ onKeyPress }) {
     };
   }, []);
 
-  // CUST group prepended when custom suites exist; resolved active button array
-  const effectiveGroups = customMacroSuites.length > 0
-    ? { CUST: { label: 'CUST', suites: customMacroSuites }, ...GROUPS }
+  // CUST group prepended when custom suites or custom buttons exist; resolved active button array
+  const customSuitesList = customMacroSuites.length > 0 
+    ? (customMacroSuites.includes('CUST') ? customMacroSuites : ['CUST', ...customMacroSuites])
+    : (customButtons.length > 0 ? ['CUST'] : []);
+
+  const effectiveGroups = customSuitesList.length > 0
+    ? { CUST: { label: 'CUST', suites: customSuitesList }, ...GROUPS }
     : GROUPS;
 
   const activeSuiteButtons =

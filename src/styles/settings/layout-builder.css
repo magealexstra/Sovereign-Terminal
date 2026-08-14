@@ -143,8 +143,8 @@
   display: flex;
   align-items: center;
   padding: 0.4rem 0.6rem;
-  background: var(--bg-earth);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 6px;
   color: var(--text-parchment);
   font-family: var(--font-mono);
@@ -210,8 +210,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-earth);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 6px;
   color: var(--text-parchment);
   font-family: var(--font-mono);

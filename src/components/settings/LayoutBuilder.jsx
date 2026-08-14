@@ -482,9 +482,17 @@ export default function LayoutBuilder() {
     }
   };
 
-  // Reset active suite to factory defaults (PREBUILT_CATEGORIES only)
+  // Reset active suite to factory defaults (PRIMARY or PREBUILT_CATEGORIES)
   const handleReset = (e) => {
     if (e) e.stopPropagation();
+    if (selectedMacroSuite === 'PRIMARY') {
+      localStorage.removeItem('sovereign_layout_slots');
+      setTouchBarSlots(['ESC', 'TAB', '^C', '-', '/']);
+      window.dispatchEvent(new Event('storage'));
+      setSelectedBarIndex(null);
+      showToast('Primary layout reset to defaults');
+      return;
+    }
     if (!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)) return;
     try {
       localStorage.removeItem(`sovereign_macro_suite_${selectedMacroSuite}`);

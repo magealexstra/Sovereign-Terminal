@@ -124,9 +124,9 @@ export default function ButtonStudio() {
       width: 3.2,
       height: 2.0,
       shape: 'rounded',
-      bg: 'var(--bg-canopy)',
-      text: 'var(--text-parchment)',
-      border: 'var(--accent-mana)'
+      bg: null,
+      text: null,
+      border: null
     };
     setButtons(prev => [...prev, newBtn]);
     setSelectedId(newId);
@@ -222,9 +222,9 @@ export default function ButtonStudio() {
             width: 3.2,
             height: 2.0,
             shape: 'rounded',
-            bg: theme?.bgCanopy || 'var(--bg-canopy)',
-            text: theme?.textParchment || 'var(--text-parchment)',
-            border: theme?.accentMana || 'var(--accent-mana)'
+            bg: null,
+            text: null,
+            border: null
           };
           setButtons([...buttons, newBtn]);
           setSelectedId(newId);

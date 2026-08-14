@@ -184,8 +184,8 @@
   height: 2.2rem;
   padding: 0 0.65rem;
   flex: 0 0 auto;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-forest);
+  background: var(--bg-canopy);
+  border: 1px solid var(--border-sage);
   border-radius: 6px;
   color: var(--text-parchment);
   font-family: var(--font-mono);
@@ -194,8 +194,15 @@
   cursor: pointer;
   white-space: nowrap;
   max-width: 220px;
+  transition: all 0.15s ease;
   touch-action: manipulation;
   user-select: none;
+}
+
+.touch-btn:active {
+  background: var(--status-active);
+  color: var(--bg-earth);
+  border-color: var(--status-active);
 }
 
 .touch-btn svg {

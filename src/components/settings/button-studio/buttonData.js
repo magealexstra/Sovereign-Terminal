@@ -97,10 +97,6 @@ export const PREBUILT_CATEGORIES = {
     { label: '/clear',  value: '/clear\n' }
   ]},
   KEY: { name: 'Keyboard Shortcuts - KEY', items: [
-    { label: 'PgUp',        value: '\x1b[5~' },
-    { label: 'PgDn',        value: '\x1b[6~' },
-    { label: 'Home',        value: '\x1b[H' },
-    { label: 'End',         value: '\x1b[F' },
     { label: '|',   value: '|' },
     { label: '~',   value: '~' },
     { label: '>',   value: '>' },
@@ -112,6 +108,7 @@ export const PREBUILT_CATEGORIES = {
     { label: '`',   value: '`' },
     { label: '\\',  value: '\\' },
     { label: '/',   value: '/' },
+    { label: '-',   value: '-' },
     { label: '$',   value: '$' },
     { label: '#',   value: '#' },
     { label: 'ESC', value: '\x1b' },
@@ -142,7 +139,7 @@ export const PREBUILT_CATEGORIES = {
     { label: 'Ctrl+Right', value: '\x1b[1;5C' },
     { label: 'Shift+Tab',  value: '\x1b[Z' },
     { label: 'Backspace',  value: '\x7f' },
-    { label: 'Enter',      value: '\r' },
+    { label: '⏎',          value: '\r' },
     { label: 'F1',         value: '\x1bOP' },
     { label: 'F2',         value: '\x1bOQ' },
     { label: 'F3',         value: '\x1bOR' },
@@ -235,8 +232,7 @@ export const PREBUILT_CATEGORIES = {
     { label: '^R',       value: '\x12' },
     { label: ':%s/',     value: '\x1b:%s/' },
     { label: ':e!',      value: '\x1b:e!\n' },
-    { label: ':set nu',  value: '\x1b:set nu\n' },
-    { label: '\\x1b',    value: '\x1b' }
+    { label: ':set nu',  value: '\x1b:set nu\n' }
   ]},
   YUM: { name: 'Fedora/RHEL DNF - YUM', items: [
     { label: 'upgrade -y', value: 'sudo dnf upgrade --refresh -y\n' },
@@ -262,7 +258,7 @@ export const KEY_NAV_PRESETS = [
   { id: 'nav10', label: 'Ctrl+Right', value: '\x1b[1;5C' },
   { id: 'nav11', label: 'Shift+Tab', value: '\x1b[Z' },
   { id: 'nav12', label: 'Backspace', value: '\x7f' },
-  { id: 'nav13', label: 'Enter', value: '\r' },
+  { id: 'nav13', label: '⏎', value: '\r' },
 ];
 
 export const KEY_FN_PRESETS = [
@@ -292,6 +288,7 @@ export const KEY_SYM_PRESETS = [
   { id: 'sym9', label: '`', value: '`' },
   { id: 'sym10', label: '\\', value: '\\' },
   { id: 'sym11', label: '/', value: '/' },
+  { id: 'sym14', label: '-', value: '-' },
   { id: 'sym12', label: '$', value: '$' },
   { id: 'sym13', label: '#', value: '#' },
 ];
