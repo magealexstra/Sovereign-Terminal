@@ -23,6 +23,9 @@ const loadMacroSuiteOverrides = () => {
   return overrides;
 };
 
+// Helper to identify directional arrows and return icons
+const isGlyphSymbol = (str) => ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'].includes(str);
+
 /* ==========================================================================
    SUB-COMPONENTS FOR LAYOUT BUILDER
    ========================================================================== */
@@ -145,7 +148,7 @@ function ButtonPoolGrid({
             <button
               key={`pool-${item}-${idx}`}
               type="button"
-              className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''} ${customStyle?.shape || ''}`}
+              className={`pool-chip-item ${isSelected ? 'selected-glow' : ''} ${isLauncher ? 'launcher-chip' : ''} ${customStyle?.shape || ''} ${isGlyphSymbol(item) ? 'glyph-icon-btn' : ''}`}
               style={customStyle ? {
                 background: customStyle.bg || undefined,
                 color: customStyle.text || undefined,
@@ -191,7 +194,7 @@ function TouchBarPreviewStrip({
               <button
                 key={`bar-${item}-${idx}`}
                 type="button"
-                className={`live-bar-tile ${isSelected ? 'selected-bar-tile' : ''} ${isLauncher ? 'launcher-tile' : ''} ${customStyle?.shape || ''}`}
+                className={`live-bar-tile ${isSelected ? 'selected-bar-tile' : ''} ${isLauncher ? 'launcher-tile' : ''} ${customStyle?.shape || ''} ${isGlyphSymbol(item) ? 'glyph-icon-btn' : ''}`}
                 style={customStyle ? {
                   background: customStyle.bg || undefined,
                   color: customStyle.text || undefined,

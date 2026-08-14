@@ -51,10 +51,7 @@ const KEY_MAPPINGS = {
   'F9': '\x1b[20~', 'F10': '\x1b[21~', 'F11': '\x1b[23~', 'F12': '\x1b[24~'
 };
 
-const UNICODE_ARROWS = {
-  '\u2190': '\x1b[D', '\u2192': '\x1b[C', '\u2193': '\x1b[B', '\u2191': '\x1b[A',
-  '\u25c0': '\x1b[D', '\u25b6': '\x1b[C', '\u25bc': '\x1b[B', '\u25b2': '\x1b[A'
-};
+const isGlyphSymbol = (str) => ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'].includes(str);
 
 export default function TouchBar({ onKeyPress }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -627,7 +624,7 @@ export default function TouchBar({ onKeyPress }) {
           return (
             <button
               key={`slot-${item}-${idx}`}
-              className={`touch-btn ${btnStyle.shape || ''}`}
+              className={`touch-btn ${btnStyle.shape || ''} ${isGlyphSymbol(item) ? 'glyph-icon-btn' : ''}`}
               style={{
                 background: btnStyle.bg || undefined,
                 color: btnStyle.text || undefined,
@@ -782,7 +779,7 @@ export default function TouchBar({ onKeyPress }) {
                 return (
                   <button
                     key={macro.id}
-                    className={`macro-grid-btn ${macro.shape || ''} ${isLauncher ? 'suite-launcher-grid-btn' : ''}`}
+                    className={`macro-grid-btn ${macro.shape || ''} ${isLauncher ? 'suite-launcher-grid-btn' : ''} ${isGlyphSymbol(macro.label) ? 'glyph-icon-btn' : ''}`}
                     style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
                       background: macro.bg || undefined,
                       color: macro.text || undefined,
@@ -910,7 +907,7 @@ export default function TouchBar({ onKeyPress }) {
                 focusedRegularButtons.map(macro => (
                   <button
                     key={macro.id}
-                    className={`macro-grid-btn ${macro.shape || ''}`}
+                    className={`macro-grid-btn ${macro.shape || ''} ${isGlyphSymbol(macro.label) ? 'glyph-icon-btn' : ''}`}
                     style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
                       background: macro.bg || undefined,
                       color: macro.text || undefined,

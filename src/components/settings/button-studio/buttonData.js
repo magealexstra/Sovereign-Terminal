@@ -258,7 +258,7 @@ export const KEY_NAV_PRESETS = [
   { id: 'nav10', label: 'Ctrl+Right', value: '\x1b[1;5C' },
   { id: 'nav11', label: 'Shift+Tab', value: '\x1b[Z' },
   { id: 'nav12', label: 'Backspace', value: '\x7f' },
-  { id: 'nav13', label: '⏎', value: '\r' },
+  { id: 'nav13', label: '⏎', value: '\r', width: 2.4, height: 2.0, shape: 'rounded', bg: null, text: null, border: null },
 ];
 
 export const KEY_FN_PRESETS = [

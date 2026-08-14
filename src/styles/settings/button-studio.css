@@ -426,6 +426,12 @@
 .live-studio-btn.rounded { border-radius: 6px; }
 .live-studio-btn.pill { border-radius: 20px; }
 
+.live-studio-btn.glyph-icon-btn {
+  font-size: 1.45rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
 .bottom-palette-row {
   display: flex;
   align-items: center;

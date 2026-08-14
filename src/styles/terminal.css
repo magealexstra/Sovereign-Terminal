@@ -215,6 +215,13 @@
 .touch-btn.rounded { border-radius: 6px; }
 .touch-btn.pill { border-radius: 20px; }
 
+.touch-btn.glyph-icon-btn,
+.macro-grid-btn.glyph-icon-btn {
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
 .touch-btn.sudo-btn {
   background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
   border-color: var(--accent-highlight);
