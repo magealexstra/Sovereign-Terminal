@@ -769,7 +769,52 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.4rem;
+}
+
+.stager-footer-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stager-nav-btn {
+  background: var(--bg-earth);
+  border: 1px solid var(--border-forest);
+  color: var(--text-parchment);
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.stager-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent-violet);
+  color: var(--accent-violet);
+}
+
+.stager-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border-forest);
+  color: var(--text-muted);
+}
+
+.stager-toast-badge {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 15%, transparent);
+  border: 1px solid var(--accent-violet);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
 }
 
 .stager-action-btn {
@@ -789,6 +834,11 @@
   background: var(--bg-earth);
   border: 1px solid var(--border-forest);
   color: var(--text-muted);
+}
+
+.stager-action-btn.clear-btn:hover:not(:disabled) {
+  border-color: var(--accent-violet);
+  color: var(--text-parchment);
 }
 
 .stager-action-btn.send-btn {
