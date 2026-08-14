@@ -184,7 +184,7 @@
   height: 2.2rem;
   padding: 0 0.65rem;
   flex: 0 0 auto;
-  background: var(--bg-canopy);
+  background: var(--bg-earth);
   border: 1px solid var(--border-sage);
   border-radius: 6px;
   color: var(--text-parchment);
@@ -430,7 +430,7 @@
 
 .macro-grid-btn {
   padding: 0.65rem 0.25rem;
-  background: var(--bg-canopy);
+  background: var(--bg-earth);
   border: 1px solid var(--border-sage);
   border-radius: 6px;
   color: var(--text-parchment);

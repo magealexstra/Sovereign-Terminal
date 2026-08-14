@@ -17,7 +17,7 @@ export default function ButtonPreview({ activeBtn }) {
         style={{
           width: `${activeBtn.width}rem`,
           height: `${activeBtn.height}rem`,
-          backgroundColor: activeBtn.bg || 'var(--bg-canopy)',
+          backgroundColor: activeBtn.bg || 'var(--bg-earth)',
           color: activeBtn.text || 'var(--text-parchment)',
           borderColor: activeBtn.border || 'var(--border-sage)',
           borderWidth: '1.5px',
