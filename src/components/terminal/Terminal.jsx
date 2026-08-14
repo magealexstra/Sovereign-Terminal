@@ -46,6 +46,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const lastRowsRef = useRef(0);
 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const connectRef = useRef(null);
 
   // Single-Pipeline Guarded Resize Handshake
   const sendResizeHandshake = (force = false) => {
@@ -108,37 +109,65 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   }, [theme]);
 
   // Re-fit, focus, and scroll when this session becomes the active visible tab.
-  // Two-stage: rAF catches the immediate layout, setTimeout(50) catches cases where
-  // display:flex hasn't reflowed yet by the first animation frame.
+  // Checks WebSocket readiness and reconnects if connection was lost while inactive.
   useEffect(() => {
-    if (isActive && fitAddonInstance.current && xtermInstance.current) {
-      const runFit = (force = false) => {
-        try {
-          if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
+    if (isActive) {
+      const isSocketDead = !socketRef.current ||
+        socketRef.current.readyState === WebSocket.CLOSED ||
+        socketRef.current.readyState === WebSocket.CLOSING;
 
-          if (xtermInstance.current) {
-            try {
-              xtermInstance.current.clearTextureAtlas();
-            } catch (e) {}
-          }
+      if (isSocketDead && connectRef.current) {
+        connectRef.current();
+      }
 
-          fitAddonInstance.current.fit();
-          xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
-          xtermInstance.current.scrollToBottom();
-          xtermInstance.current.focus();
+      if (fitAddonInstance.current && xtermInstance.current) {
+        const runFit = (force = false) => {
+          try {
+            if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
 
-          sendResizeHandshake(force);
-        } catch (e) {}
-      };
+            if (xtermInstance.current) {
+              try {
+                xtermInstance.current.clearTextureAtlas();
+              } catch (e) {}
+            }
 
-      runFit(true);
-      const timer = setTimeout(() => runFit(true), 150);
+            fitAddonInstance.current.fit();
+            xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
+            xtermInstance.current.scrollToBottom();
+            xtermInstance.current.focus();
 
-      return () => {
-        clearTimeout(timer);
-      };
+            sendResizeHandshake(force);
+          } catch (e) {}
+        };
+
+        runFit(true);
+        const timer = setTimeout(() => runFit(true), 150);
+
+        return () => {
+          clearTimeout(timer);
+        };
+      }
     }
   }, [isActive, session?.id, isKeyboardOpen]);
+
+  // Handle browser/device visibility changes (e.g. mobile unlock or returning from another tab/app)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isActiveRef.current) {
+        const isSocketDead = !socketRef.current ||
+          socketRef.current.readyState === WebSocket.CLOSED ||
+          socketRef.current.readyState === WebSocket.CLOSING;
+        if (isSocketDead && connectRef.current) {
+          connectRef.current();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     const handleGlobalFocus = () => {
@@ -357,6 +386,10 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
     const connect = () => {
       if (!isMounted) return;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
       const el = terminalRef.current;
       if (!el || el.clientHeight === 0) {
         // Container not painted yet — delay connect until next layout frame
@@ -364,11 +397,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         return;
       }
 
+      if (socketRef.current) {
+        try {
+          if (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING) {
+            socketRef.current.close();
+          }
+        } catch (e) {}
+      }
+
       const sock = new WebSocket(wsUrl);
       socketRef.current = sock;
 
       sock.onopen = () => {
         reconnectAttempts = 0;
+        performFit();
+        sendResizeHandshake(true);
       };
 
       sock.onmessage = (event) => {
@@ -377,7 +420,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             const parsed = JSON.parse(event.data);
             if (parsed.type === 'ready') {
               performFit();
-              sendResizeHandshake();
+              sendResizeHandshake(true);
               return;
             }
           } catch (e) {}
@@ -390,7 +433,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       sock.onclose = () => {
         // Bail out if component unmounted or a newer socket has superseded this one
         if (!isMounted || socketRef.current !== sock) return;
-        if (reconnectAttempts < maxReconnects) {
+        if (isActiveRef.current && reconnectAttempts < maxReconnects) {
           reconnectAttempts++;
           const delay = Math.min(reconnectAttempts * 1000, 5000);
           term.writeln(
@@ -398,10 +441,15 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             ` (${reconnectAttempts}/${maxReconnects})]\x1b[0m`
           );
           reconnectTimeout = setTimeout(connect, delay);
-        } else {
-          term.writeln('\r\n\x1b[31m[Could not reconnect. Close and reopen this tab to try again.]\x1b[0m');
+        } else if (isActiveRef.current) {
+          term.writeln('\r\n\x1b[31m[Could not reconnect. Reopen this tab or switch views to reconnect.]\x1b[0m');
         }
       };
+    };
+
+    connectRef.current = () => {
+      reconnectAttempts = 0;
+      connect();
     };
 
     connect();
