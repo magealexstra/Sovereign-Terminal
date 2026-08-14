@@ -552,10 +552,36 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
 
 
+  const ensureLivePrompt = useCallback(() => {
+    if (!isActiveRef.current) return;
+    try {
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send('\x1b');
+      }
+      if (xtermInstance.current) {
+        xtermInstance.current.scrollToBottom();
+        xtermInstance.current.clearSelection();
+      }
+    } catch (e) {
+      console.error('ensureLivePrompt error:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleStagerOpen = () => {
+      if (isActiveRef.current) {
+        ensureLivePrompt();
+      }
+    };
+    window.addEventListener('sovereign_open_stager', handleStagerOpen);
+    return () => window.removeEventListener('sovereign_open_stager', handleStagerOpen);
+  }, [ensureLivePrompt]);
+
   useEffect(() => {
     if (!isActiveRef.current) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
-    const input = voiceInputRef.current;
+    const input = voiceInput;
     if (input) {
+      ensureLivePrompt();
       if (typeof input === 'object') {
         const { text, executeImmediately } = input;
         injectingRef.current = true;
@@ -588,7 +614,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         }
       }
     }
-  }, [voiceInput]);
+  }, [voiceInput, ensureLivePrompt]);
 
 
   // Buffer extraction handlers for CopyCard

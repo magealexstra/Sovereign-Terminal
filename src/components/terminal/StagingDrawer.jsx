@@ -72,12 +72,15 @@ export default function StagingDrawer({
     }
   }, [initialText]);
 
-  // Focus Lock: Ensure textarea receives focus immediately upon opening
+  // Focus Lock: Ensure textarea receives focus immediately upon opening and prompt is prepared
   useEffect(() => {
     if (isOpen) {
+      window.dispatchEvent(new CustomEvent('sovereign_open_stager'));
       const timerId = setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
+          const len = textareaRef.current.value.length;
+          textareaRef.current.setSelectionRange(len, len);
         }
       }, 50);
       return () => clearTimeout(timerId);
