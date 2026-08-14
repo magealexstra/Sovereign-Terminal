@@ -328,8 +328,8 @@ export default function App() {
 
   const handleSaveFile = async (filepath) => {
     const doc = openDocuments.find((d) => d.path === filepath);
-    if (!doc) return;
-    if (doc.virtual) return;
+    if (!doc) return false;
+    if (doc.virtual) return false;
 
     try {
       const res = await fetch(`/api/fs/save`, {
@@ -341,16 +341,19 @@ export default function App() {
         setOpenDocuments((prev) =>
           prev.map((d) => (d.path === filepath ? { ...d, isModified: false } : d))
         );
+        return true;
       }
+      return false;
     } catch (e) {
       console.error('Save error:', e);
+      return false;
     }
   };
 
   const handleGitCommit = async (filepath) => {
     await handleSaveFile(filepath);
     const commitDoc = openDocuments.find((d) => d.path === filepath);
-    if (!commitDoc || commitDoc.virtual) return;
+    if (!commitDoc || commitDoc.virtual) return null;
     try {
       const res = await fetch(`/api/fs/git-commit`, {
         method: 'POST',
@@ -360,10 +363,18 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         showSessionToast(data.message);
+        return data;
       }
+      return null;
     } catch (e) {
       console.error('Git commit error:', e);
+      return null;
     }
+  };
+
+  const handleRunScript = (command) => {
+    handleTerminalInput({ text: command, executeImmediately: true });
+    setActiveMainTab('terminal');
   };
 
   const handleInspectText = (text) => {
@@ -679,6 +690,7 @@ export default function App() {
                 onSaveFile={handleSaveFile}
                 onGitCommit={handleGitCommit}
                 onSaveAs={handleSaveAs}
+                onRunScript={handleRunScript}
                 suggestedSaveDir={suggestedSaveDir}
               />
             )}

@@ -356,6 +356,18 @@
   font-weight: 700;
 }
 
+.editor-touch-btn.run {
+  background: color-mix(in srgb, var(--accent-mana) 20%, transparent);
+  border-color: var(--accent-mana);
+  color: var(--text-parchment);
+  font-weight: 700;
+}
+
+.editor-touch-btn.run:hover:not(:disabled) {
+  background: var(--accent-mana);
+  color: var(--bg-earth);
+}
+
 .editor-touch-btn.save {
   background: var(--status-active);
   color: var(--bg-earth);

@@ -10,7 +10,7 @@ import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { xml } from '@codemirror/lang-xml';
 import { sql } from '@codemirror/lang-sql';
-import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2, Search } from 'lucide-react';
+import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2, Search, Play } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
 import { openSearchPanel, searchKeymap, search } from '@codemirror/search';
@@ -75,7 +75,7 @@ function MarkdownPreview({ content }) {
   return <div className="markdown-preview-pane">{elements}</div>;
 }
 
-export default function CodeEditor({ activeSession, openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal, onSaveAs, suggestedSaveDir }) {
+export default function CodeEditor({ activeSession, openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal, onSaveAs, onRunScript, suggestedSaveDir }) {
   const { theme, editorFontSizePx } = useApp();
   const { toast: editorToast, showToast: triggerToast } = useToast(2000);
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
@@ -85,11 +85,42 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
   const editorViewRef = useRef(null);
   const [saveAsModal, setSaveAsModal] = useState(false);
   const [saveAsPath, setSaveAsPath]   = useState('');
+  const [runConfirmModal, setRunConfirmModal] = useState(null);
 
   const activeDoc = openDocuments.find((doc) => doc.path === activeFilePath) || openDocuments[0];
 
   const isMarkdown   = activeDoc?.name?.toLowerCase().endsWith('.md');
   const isVirtualDoc = activeDoc?.virtual === true;
+
+  const buildRunCommand = (filepath) => {
+    if (!filepath) return null;
+    const fn = filepath.toLowerCase();
+    if (fn.endsWith('.py') || fn.endsWith('.mpy') || fn.endsWith('.upy')) return `python3 "${filepath}"`;
+    if (fn.endsWith('.js') || fn.endsWith('.mjs') || fn.endsWith('.cjs')) return `node "${filepath}"`;
+    if (fn.endsWith('.sh') || fn.endsWith('.bash')) return `bash "${filepath}"`;
+    if (fn.endsWith('.ts') || fn.endsWith('.tsx')) return `npx tsx "${filepath}"`;
+    return `bash "${filepath}"`;
+  };
+
+  const executeFile = (filepath) => {
+    const cmd = buildRunCommand(filepath);
+    if (cmd && onRunScript) {
+      onRunScript(cmd);
+    }
+  };
+
+  const handleRunClick = () => {
+    if (!activeDoc) return;
+    if (isVirtualDoc) {
+      handleOpenSaveAs();
+      return;
+    }
+    if (activeDoc.isModified) {
+      setRunConfirmModal(activeDoc.path);
+      return;
+    }
+    executeFile(activeDoc.path);
+  };
 
   const getLanguageExtension = (filename) => {
     if (!filename) return [markdown()];
@@ -362,8 +393,28 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
       {/* Expanded Code Editor Touch Bar */}
       <div className="editor-touch-bar">
         <button
+          className="editor-touch-btn run"
+          onClick={handleRunClick}
+          disabled={isVirtualDoc}
+          style={{ opacity: isVirtualDoc ? 0.35 : 1 }}
+          title={isVirtualDoc ? 'Save inspect buffer to file before running' : 'Run file in active terminal'}
+        >
+          <Play size={14} />
+          <span>RUN</span>
+        </button>
+
+        <button
           className="editor-touch-btn save"
-          onClick={() => isVirtualDoc ? handleOpenSaveAs() : onSaveFile(activeDoc.path)}
+          onClick={async () => {
+            if (isVirtualDoc) {
+              handleOpenSaveAs();
+            } else {
+              const ok = await onSaveFile(activeDoc.path);
+              if (ok !== false) {
+                triggerToast(`Saved ${activeDoc.path.split('/').pop()}`);
+              }
+            }
+          }}
           title={isVirtualDoc ? 'Save buffer as a new file' : 'Save file'}
         >
           <Save size={14} />
@@ -372,13 +423,18 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
 
         <button
           className="editor-touch-btn commit"
-          onClick={() => onGitCommit(activeDoc.path)}
+          onClick={async () => {
+            const res = await onGitCommit(activeDoc.path);
+            if (res?.message) {
+              triggerToast(res.message);
+            }
+          }}
           disabled={isVirtualDoc}
           style={{ opacity: isVirtualDoc ? 0.35 : 1 }}
           title={isVirtualDoc ? 'Save the file first before committing' : 'Save and commit to git'}
         >
           <GitCommit size={14} />
-          <span>SAVE &amp; COMMIT</span>
+          <span>COMMIT</span>
         </button>
 
         {isMarkdown && (
@@ -423,6 +479,34 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
           <Clipboard size={14} />
         </button>
       </div>
+
+      {/* Save & Run Confirmation Modal */}
+      {runConfirmModal && (
+        <div className="explorer-modal-overlay" onClick={() => setRunConfirmModal(null)}>
+          <div className="explorer-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Save &amp; Run Script</h3>
+            <p>Save changes to <strong>{runConfirmModal.split('/').pop()}</strong> before running?</p>
+            <div className="modal-btn-row" style={{ marginTop: '0.75rem' }}>
+              <button
+                className="submit"
+                onClick={async () => {
+                  const fileToRun = runConfirmModal;
+                  setRunConfirmModal(null);
+                  const ok = await onSaveFile(fileToRun);
+                  if (ok !== false) {
+                    triggerToast(`Saved ${fileToRun.split('/').pop()}`);
+                  }
+                  executeFile(fileToRun);
+                }}
+              >
+                <Play size={13} />
+                <span>Save &amp; Run</span>
+              </button>
+              <button onClick={() => setRunConfirmModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Unsaved File Close Check Safeguard Modal */}
       {closeConfirmModal && (

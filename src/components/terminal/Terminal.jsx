@@ -561,10 +561,10 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         injectingRef.current = true;
         try {
           if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            socketRef.current.send(text);
             if (executeImmediately) {
-              socketRef.current.send('\r');
+              socketRef.current.send(text + '\r');
             } else {
+              socketRef.current.send(text);
               setTimeout(() => {
                 if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
                   socketRef.current.send(' \x7f');
