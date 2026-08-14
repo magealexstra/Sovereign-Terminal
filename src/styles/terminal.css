@@ -310,7 +310,7 @@
   max-height: calc(var(--visual-viewport-height, 100dvh) - 2rem);
   display: flex;
   flex-direction: column;
-  background: var(--bg-earth);
+  background: var(--bg-canopy);
   border: 1px solid var(--border-sage);
   border-radius: 12px;
   padding: 1rem;
