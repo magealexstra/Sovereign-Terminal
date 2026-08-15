@@ -8,11 +8,11 @@ This document serves as the complete reference manual for all pre-built command 
 
 The TouchBar macro engine, preset libraries, and customization tools are implemented across the following source code components:
 
-* **[buttonData.js](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/settings/button-studio/buttonData.js)**: Defines the static preset arrays (`PREBUILT_CATEGORIES`), default TouchBar slots (`DEFAULT_BUTTONS`), and mobile operator key bundles (`KEY_NAV_PRESETS`, `KEY_FN_PRESETS`, `KEY_SYM_PRESETS`, `KEY_MODE_PRESETS`, `KEY_LINE_PRESETS`).
-* **[TouchBar.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/terminal/TouchBar.jsx)**: Renders the persistent bottom TouchBar, master red `MACROS` drawer, voice dictation engine, and command execution handlers.
-* **[ButtonStudio.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/settings/ButtonStudio.jsx)**: Provides the interactive Button Studio UI (Settings -> Sub-Tab 2) for creating, sizing, coloring, and editing individual macro buttons.
-* **[LayoutBuilder.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/settings/LayoutBuilder.jsx)**: Provides the 2-tap slot assignment interface (Settings -> Sub-Tab 3) for reordering and configuring TouchBar button layouts.
-* **[StagingDrawer.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/terminal/StagingDrawer.jsx)**: Anchored command staging drawer for reviewing, editing, and appending text (spoken or typed) prior to shell execution.
+* **[`buttonData.js`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/settings/button-studio/buttonData.js)**: Defines the static preset arrays (`PREBUILT_CATEGORIES`), default TouchBar slots (`DEFAULT_BUTTONS`), and mobile operator key bundles (`KEY_NAV_PRESETS`, `KEY_FN_PRESETS`, `KEY_SYM_PRESETS`, `KEY_MODE_PRESETS`, `KEY_LINE_PRESETS`).
+* **[`TouchBar.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/terminal/TouchBar.jsx)**: Renders the persistent bottom TouchBar, master red `MACROS` drawer, voice dictation engine, and command execution handlers.
+* **[`ButtonStudio.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/settings/ButtonStudio.jsx)**: Provides the interactive Button Studio UI (Settings -> Sub-Tab 2) for creating, sizing, coloring, and editing individual macro buttons.
+* **[`LayoutBuilder.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/settings/LayoutBuilder.jsx)**: Provides the 2-tap slot assignment interface (Settings -> Sub-Tab 3) for reordering and configuring TouchBar button layouts.
+* **[`StagingDrawer.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/terminal/StagingDrawer.jsx)**: Anchored command staging drawer with persistent FIFO history and footer arrow navigation.
 
 ---
 

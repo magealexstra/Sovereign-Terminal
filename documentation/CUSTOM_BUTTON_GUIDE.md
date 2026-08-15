@@ -13,10 +13,10 @@ TouchBar buttons inject raw bytes directly into the terminal PTY WebSockets stre
 * **Backend Profile Sync**: Automatically backed up to the server profile when authenticated.
 
 ### Source Code References
-* **[buttonData.js](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/settings/button-studio/buttonData.js)**: Contains static preset definitions (`PREBUILT_CATEGORIES`), default TouchBar layout (`DEFAULT_BUTTONS`), and pre-built key arrays (`KEY_NAV_PRESETS`, `KEY_FN_PRESETS`, `KEY_SYM_PRESETS`, `KEY_MODE_PRESETS`, `KEY_LINE_PRESETS`).
-* **[ButtonStudio.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/settings/ButtonStudio.jsx)**: The interactive visual button builder (Settings -> Sub-Tab 2).
-* **[LayoutBuilder.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/settings/LayoutBuilder.jsx)**: The 2-tap slot assignment interface (Settings -> Sub-Tab 3).
-* **[TouchBar.jsx](file:///home/magealexstra/TheWorkshop/Projects/Sovereign_Terminal/src/components/terminal/TouchBar.jsx)**: TouchBar rendering engine, macro drawer UI, and command execution handlers.
+* **[`buttonData.js`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/settings/button-studio/buttonData.js)**: Contains static preset definitions (`PREBUILT_CATEGORIES`), default TouchBar layout (`DEFAULT_BUTTONS`), and pre-built key arrays (`KEY_NAV_PRESETS`, `KEY_FN_PRESETS`, `KEY_SYM_PRESETS`, `KEY_MODE_PRESETS`, `KEY_LINE_PRESETS`).
+* **[`ButtonStudio.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/settings/ButtonStudio.jsx)**: The interactive visual button builder (Settings -> Sub-Tab 2).
+* **[`LayoutBuilder.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/settings/LayoutBuilder.jsx)**: The 2-tap slot assignment interface (Settings -> Sub-Tab 3).
+* **[`TouchBar.jsx`](file:///Heimr/Verdand/the_weaver_shack/sovereign_terminal/src/components/terminal/TouchBar.jsx)**: TouchBar rendering engine, macro drawer UI, and command execution handlers.
 
 ---
 
