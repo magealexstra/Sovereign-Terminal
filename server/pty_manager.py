@@ -289,7 +289,7 @@ def set_pty_size(fd, rows, cols):
 
 
 @router.websocket("/ws/terminal")
-async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = ""):
+async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: str = "", takeover: str = "false"):
     if not SESSION_REGEX.match(session):
         await websocket.close(code=1008, reason="Invalid session name")
         return
@@ -330,8 +330,12 @@ async def websocket_terminal(websocket: WebSocket, session: str = "main", cwd: s
                 await websocket.close(code=1011, reason="Host tmux server is offline. Please start it on the host.")
                 return
 
-        # Attach to existing session (-A) if available, or create new one if not.
-        cmd = _get_tmux_base() + ["new-session", "-A", "-D", "-s", session, "-c", target_cwd]
+        # Attach to existing session (-A). Use -D (detach other clients) ONLY if takeover is requested.
+        is_takeover = takeover.lower() in ("true", "1", "yes")
+        if is_takeover:
+            cmd = _get_tmux_base() + ["new-session", "-A", "-D", "-s", session, "-c", target_cwd]
+        else:
+            cmd = _get_tmux_base() + ["new-session", "-A", "-s", session, "-c", target_cwd]
     else:
         cmd = [shutil.which("bash") or "/bin/sh"]
 

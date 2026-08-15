@@ -15,6 +15,17 @@ import React, { useState, useEffect } from 'react';
  * @param {string|null} activeTerminalPath  Current CWD tracked by the terminal (used for inheritCwd).
  * @param {function}    showToast           showToast(msg) from useToast() — replaces alert().
  */
+export function formatSessionDisplayName(sessionId) {
+  if (!sessionId) return 'term';
+  if (sessionId.startsWith('session-')) {
+    return `S-${sessionId.replace('session-', '')}`;
+  }
+  if (sessionId.startsWith('S-')) {
+    return sessionId;
+  }
+  return sessionId;
+}
+
 /**
  * Read previously saved session IDs from localStorage.
  * Returns a sessions array  [{ id, name }]  if valid data exists, null otherwise.
@@ -26,7 +37,7 @@ function _restoreSessionsFromStorage() {
     if (!raw) return null;
     const ids = JSON.parse(raw);
     if (!Array.isArray(ids) || ids.length === 0) return null;
-    return ids.map((id, i) => ({ id: String(id), name: `term-${i + 1}` }));
+    return ids.map((id) => ({ id: String(id), name: formatSessionDisplayName(String(id)) }));
   } catch {
     return null;
   }
@@ -51,14 +62,25 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.sessions && data.sessions.length > 0) {
-          // Live tmux sessions found — attach to all of them.
-          const loadedSessions = data.sessions.map((id, index) => ({
-            id: id,
-            name: `term-${index + 1}`
-          }));
-          sessionCounterRef.current = loadedSessions.length;
-          setSessions(loadedSessions);
-          setActiveSession(loadedSessions[0].id);
+          const details = data.detail || [];
+          const freeSessions = data.sessions.filter((id) => {
+            const d = details.find((item) => item.name === id);
+            return d ? !d.attached : true;
+          });
+
+          if (freeSessions.length > 0) {
+            const loadedSessions = freeSessions.map((id) => ({
+              id: id,
+              name: formatSessionDisplayName(id)
+            }));
+            sessionCounterRef.current = loadedSessions.length;
+            setSessions(loadedSessions);
+            setActiveSession(loadedSessions[0].id);
+          } else {
+            const freshId = initialSessionId.current;
+            setSessions([{ id: freshId, name: formatSessionDisplayName(freshId) }]);
+            setActiveSession(freshId);
+          }
         } else {
           // No live sessions (cold start, container restart, or tmux wiped).
           // Check localStorage for session IDs saved during the previous run.
@@ -71,7 +93,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
             setSessions(restored);
             setActiveSession(restored[0].id);
           } else {
-            setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
+            setSessions([{ id: initialSessionId.current, name: formatSessionDisplayName(initialSessionId.current) }]);
             setActiveSession(initialSessionId.current);
           }
         }
@@ -84,7 +106,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
           setSessions(restored);
           setActiveSession(restored[0].id);
         } else {
-          setSessions([{ id: initialSessionId.current, name: 'term-1' }]);
+          setSessions([{ id: initialSessionId.current, name: formatSessionDisplayName(initialSessionId.current) }]);
           setActiveSession(initialSessionId.current);
         }
       });
@@ -102,6 +124,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
   useEffect(() => {
     const handleAttachEvent = (e) => {
       const targetSession = e.detail?.sessionName;
+      const forceTakeover = e.detail?.forceTakeover === true;
       if (!targetSession) return;
 
       setSessions((prev) => {
@@ -116,7 +139,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
           return prev;
         }
 
-        const newSessionObj = { id: targetSession, name: targetSession, initialCwd: rootDir };
+        const newSessionObj = { id: targetSession, name: formatSessionDisplayName(targetSession), initialCwd: rootDir, forceTakeover };
         setActiveSession(targetSession);
         return [...prev, newSessionObj];
       });
@@ -134,7 +157,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
     }
     const newId = `session-${Date.now().toString(36).substring(4)}`;
     sessionCounterRef.current += 1;
-    const sessionName = `term-${sessionCounterRef.current}`;
+    const sessionName = formatSessionDisplayName(newId);
     let targetCwd = rootDir;
 
     if (typeof inheritCwdOrPath === 'string') {
@@ -165,7 +188,7 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
         // Last tab closed — auto-create a fresh replacement so there's always a terminal
         sessionCounterRef.current += 1;
         const freshId = `session-${Date.now().toString(36).substring(4)}`;
-        const fresh = { id: freshId, name: `term-${sessionCounterRef.current}`, initialCwd: rootDir };
+        const fresh = { id: freshId, name: formatSessionDisplayName(freshId), initialCwd: rootDir };
         setActiveSession(freshId);
         return [fresh];
       }

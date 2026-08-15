@@ -382,7 +382,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const sessionId = session?.id || 'main';
     const cwdParam = session?.initialCwd ? `&cwd=${encodeURIComponent(session.initialCwd)}` : '';
-    const wsUrl = `${protocol}//${window.location.host}/ws/terminal?session=${sessionId}${cwdParam}`;
+    const takeoverParam = session?.forceTakeover ? '&takeover=true' : '';
+    const wsUrl = `${protocol}//${window.location.host}/ws/terminal?session=${sessionId}${cwdParam}${takeoverParam}`;
 
     let reconnectAttempts = 0;
     const maxReconnects = 10;
@@ -597,6 +598,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
                 }
               }, 1000);
             }
+          } else {
+            showToast('Terminal reconnecting — please retry');
           }
         } catch (e) {
           console.error('Injection error:', e);
@@ -611,10 +614,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       } else {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
           socketRef.current.send(input);
+        } else {
+          showToast('Terminal reconnecting — please retry');
         }
       }
     }
-  }, [voiceInput, ensureLivePrompt]);
+  }, [voiceInput, ensureLivePrompt, showToast]);
 
 
   // Buffer extraction handlers for CopyCard

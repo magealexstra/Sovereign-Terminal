@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, Terminal as TermIcon, X, Zap, Link2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { formatSessionDisplayName } from '../../hooks/useSessions';
 
 export default function TmuxManager() {
   const { tmuxSettings, setTmuxSettings, syncUserSettingsToServer, setActiveMainTab } = useApp();
@@ -30,10 +31,13 @@ export default function TmuxManager() {
     };
   }, []);
 
+  const selectedObj = detail.find((s) => s.name === selectedSession);
+  const isAttachedElsewhere = selectedObj?.attached === true;
+
   const handleAttach = () => {
     if (!selectedSession) return;
     window.dispatchEvent(new CustomEvent('sovereign_attach_session', {
-      detail: { sessionName: selectedSession }
+      detail: { sessionName: selectedSession, forceTakeover: isAttachedElsewhere }
     }));
     if (setActiveMainTab) {
       setActiveMainTab('terminal');
@@ -168,13 +172,19 @@ export default function TmuxManager() {
               Sweep Zombies
             </button>
             <button
-              className={`tmux-attach-btn${selectedSession ? ' active' : ''}`}
+              className={`tmux-attach-btn${selectedSession ? (isAttachedElsewhere ? ' takeover' : ' active') : ''}`}
               onClick={handleAttach}
               disabled={!selectedSession}
-              title={selectedSession ? `Attach session "${selectedSession}" as terminal tab` : 'Select a session row below to attach'}
+              title={
+                !selectedSession
+                  ? 'Select a session row below to attach'
+                  : isAttachedElsewhere
+                  ? `Disconnect other device and take over session "${selectedSession}"`
+                  : `Attach session "${selectedSession}" as terminal tab`
+              }
             >
               <Link2 size={11} />
-              Attach
+              {isAttachedElsewhere ? 'Takeover' : 'Attach'}
             </button>
           </div>
         </div>
@@ -191,7 +201,7 @@ export default function TmuxManager() {
               onClick={() => setSelectedSession(selectedSession === sess.name ? null : sess.name)}
             >
               <TermIcon size={12} style={{ color: selectedSession === sess.name ? 'var(--accent-mana)' : 'var(--text-muted)', flexShrink: 0 }} />
-              <span className="tmux-sess-name">{sess.name}</span>
+              <span className="tmux-sess-name">{formatSessionDisplayName(sess.name)}</span>
               <span className={`tmux-badge${sess.attached ? ' attached' : ' detached'}`}>
                 {sess.attached ? 'attached' : 'detached'}
               </span>

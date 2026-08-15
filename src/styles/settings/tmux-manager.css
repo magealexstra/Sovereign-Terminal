@@ -170,6 +170,15 @@
 .tmux-attach-btn.active:hover {
   background: color-mix(in srgb, var(--accent-highlight) 15%, transparent);
 }
+.tmux-attach-btn.takeover {
+  cursor: pointer;
+  border-color: var(--status-warning);
+  color: var(--status-warning);
+  background: color-mix(in srgb, var(--status-warning) 12%, var(--bg-canopy));
+}
+.tmux-attach-btn.takeover:hover {
+  background: color-mix(in srgb, var(--status-warning) 22%, var(--bg-canopy));
+}
 
 .tmux-sweep-btn {
   border-color: var(--border-forest);
