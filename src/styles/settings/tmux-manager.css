@@ -22,7 +22,11 @@
   padding: 0.65rem 0.9rem;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
-  border-radius: 8px;
+  border-top: 1px solid var(--border-sage);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .tmux-status-left {
@@ -198,8 +202,12 @@
   flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
-  border-radius: 8px;
+  border-top: 1px solid var(--border-sage);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .tmux-session-row {
@@ -240,9 +248,10 @@
   flex-shrink: 0;
 }
 .tmux-badge.attached {
-  color: var(--status-active);
-  border-color: var(--status-active);
-  background: color-mix(in srgb, var(--status-active) 15%, transparent);
+  color: var(--status-confirm);
+  border-color: var(--status-confirm);
+  background: color-mix(in srgb, var(--status-confirm) 15%, transparent);
+  filter: brightness(1.45) saturate(1.3);
 }
 .tmux-badge.detached {
   color: var(--text-dim);
@@ -291,8 +300,12 @@
 .tmux-settings-card {
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
-  border-radius: 8px;
+  border-top: 1px solid var(--border-sage);
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .tmux-setting-row {

@@ -17,9 +17,35 @@
   background: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--editor-bg-lightness, 18%)),
-    var(--editor-mix-color, var(--text-parchment)) var(--editor-bg-lightness, 18%)
+    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 18%)
   );
   overflow: hidden;
+}
+
+/* ── Scrollbar Suppression — Explorer ────────────────────────────────────── */
+/* Covers all in-flow scrollable areas (file tree, editor, markdown preview). */
+/* scrollbar-width does not inherit, so the * descendant selector is required. */
+
+.file-explorer-container,
+.file-explorer-container * {
+  scrollbar-width: none;
+}
+
+.file-explorer-container *::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fixed-position overlays render outside the container — suppress independently */
+.ctx-sheet,
+.explorer-modal-card,
+.explorer-modal-overlay * {
+  scrollbar-width: none;
+}
+
+.ctx-sheet::-webkit-scrollbar,
+.explorer-modal-card::-webkit-scrollbar,
+.explorer-modal-overlay *::-webkit-scrollbar {
+  display: none;
 }
 
 .explorer-header-wrapper {
@@ -98,6 +124,7 @@
   padding: 0.5rem;
   user-select: none;
   -webkit-user-select: none;
+  background: var(--bg-grove);
 }
 
 .tree-item {
@@ -114,7 +141,7 @@
 }
 
 .tree-item:active {
-  background: color-mix(in srgb, var(--text-parchment) 5%, transparent);
+  background: color-mix(in srgb, var(--text-parchment) 8%, transparent);
 }
 
 .tree-item.selected {
@@ -172,7 +199,7 @@
   display: flex;
   align-items: center;
   background: var(--bg-canopy);
-  border-bottom: 1px solid var(--border-forest);
+  border-bottom: 1px solid var(--border-sage);
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
@@ -291,7 +318,7 @@
   background-color: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--editor-bg-lightness, 18%)),
-    var(--editor-mix-color, var(--text-parchment)) var(--editor-bg-lightness, 18%)
+    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 18%)
   ) !important;
 }
 
@@ -299,7 +326,7 @@
   background-color: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--editor-bg-lightness, 18%)),
-    var(--editor-mix-color, var(--text-parchment)) var(--editor-bg-lightness, 18%)
+    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 18%)
   ) !important;
 }
 
@@ -307,28 +334,11 @@
   overflow: auto !important;
   height: 100% !important;
   -webkit-overflow-scrolling: touch !important;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-forest) var(--bg-earth);
+  scrollbar-width: none;
 }
 
 .cm-scroller::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-
-.cm-scroller::-webkit-scrollbar-track {
-  background: var(--bg-earth);
-}
-
-.cm-scroller::-webkit-scrollbar-thumb {
-  background: var(--border-forest);
-  border-radius: 4px;
-  border: 1px solid var(--bg-canopy);
-}
-
-.cm-scroller::-webkit-scrollbar-thumb:active,
-.cm-scroller::-webkit-scrollbar-thumb:active {
-  background: var(--accent-mana);
+  display: none;
 }
 
 /* Code Editor Touch Bar & Consolidated Action Buttons */
@@ -386,9 +396,9 @@
 }
 
 .editor-touch-btn.save {
-  background: var(--status-active);
+  background: var(--status-confirm);
   color: var(--bg-earth);
-  border-color: var(--status-active);
+  border-color: var(--status-confirm);
 }
 
 .editor-touch-btn.commit {

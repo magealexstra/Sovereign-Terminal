@@ -10,6 +10,7 @@
   --bg-earth: #111d29;           /* Nordic Void — Base background */
   --bg-canopy: #142126;          /* Nordic Card — Surface panels & headers */
   --bg-panel: #19292f;
+  --bg-grove: var(--bg-canopy);  /* Nordic Pine — Content zone (file explorer, living surfaces) */
   --bg-panel-hover: rgba(30, 45, 58, 0.88);
 
   --border-forest: #2A3B4C;      /* Nordic Pine — Standard container borders */
@@ -25,7 +26,8 @@
   --accent-glow: rgba(78, 144, 163, 0.25);
   --accent-mana-faint: rgba(71, 118, 145, 0.18);
 
-  --status-active: #4C7864;      /* Nordic Sage Green — Connected/Saved indicator */
+  --status-active: #4C7864;      /* Nordic Sage Green — Running/connected indicator */
+  --status-confirm: #4d8c5e;     /* ANSI Bright Green — Save, create & confirmed-session actions */
   --status-warning: #ba9922;     /* Amber — Modified file dot & warnings */
   --status-danger: #db0437;      /* Aggressive Magenta — Error & macro alert */
 

@@ -200,7 +200,7 @@ export default function TmuxManager() {
               className={`tmux-session-row${selectedSession === sess.name ? ' selected' : ''}`}
               onClick={() => setSelectedSession(selectedSession === sess.name ? null : sess.name)}
             >
-              <TermIcon size={12} style={{ color: selectedSession === sess.name ? 'var(--accent-mana)' : 'var(--text-muted)', flexShrink: 0 }} />
+              <TermIcon size={12} style={{ color: selectedSession === sess.name ? 'var(--accent-mana)' : sess.attached ? 'var(--status-confirm)' : 'var(--text-muted)', flexShrink: 0 }} />
               <span className="tmux-sess-name">{formatSessionDisplayName(sess.name)}</span>
               <span className={`tmux-badge${sess.attached ? ' attached' : ' detached'}`}>
                 {sess.attached ? 'attached' : 'detached'}

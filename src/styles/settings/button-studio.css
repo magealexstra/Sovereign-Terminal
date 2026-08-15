@@ -17,19 +17,11 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: 0.25rem;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-forest) var(--bg-earth);
+  scrollbar-width: none;
 }
 
 .touch-studio-mobile-window::-webkit-scrollbar {
-  width: 6px;
-}
-.touch-studio-mobile-window::-webkit-scrollbar-track {
-  background: var(--bg-earth);
-}
-.touch-studio-mobile-window::-webkit-scrollbar-thumb {
-  background: var(--border-forest);
-  border-radius: 4px;
+  display: none;
 }
 
 .studio-top-row {
@@ -38,9 +30,13 @@
   gap: 0.4rem;
   background: var(--bg-panel);
   padding: 0.5rem;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid var(--border-forest);
+  border-top: 1px solid var(--border-sage);
   flex-shrink: 0;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* Studio Header Action Row — CREATE / RESET / DELETE / SAVE buttons */
@@ -74,12 +70,12 @@
 }
 
 .studio-action-btn--create {
-  border-color: var(--status-active);
+  border-color: var(--status-confirm);
   color: var(--text-parchment);
 }
 
 .studio-action-btn--create:active {
-  background: var(--status-active);
+  background: var(--status-confirm);
   color: var(--bg-earth);
 }
 
@@ -104,12 +100,12 @@
 }
 
 .studio-action-btn--save {
-  border-color: var(--accent-highlight);
+  border-color: var(--status-confirm);
   color: var(--text-parchment);
 }
 
 .studio-action-btn--save:active {
-  background: var(--accent-highlight);
+  background: var(--status-confirm);
   color: var(--bg-earth);
 }
 
@@ -139,7 +135,7 @@
   gap: 0.2rem;
   flex-shrink: 0;
   padding: 0.3rem 0.6rem;
-  background: var(--status-active);
+  background: var(--status-confirm);
   color: var(--bg-earth);
   border: none;
   border-radius: 12px;
@@ -173,9 +169,13 @@
   box-sizing: border-box;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
-  border-radius: 8px;
+  border-top: 1px solid var(--border-sage);
+  border-radius: 12px;
   padding: 0.35rem;
   overflow: hidden;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .region-box.left { grid-column: 1; grid-row: 1; }
@@ -473,8 +473,12 @@
   gap: 0.4rem;
   background: var(--bg-panel);
   border: 1px solid var(--border-forest);
-  border-radius: 8px;
+  border-top: 1px solid var(--border-sage);
+  border-radius: 12px;
   padding: 0.5rem;
+  box-shadow:
+    0 4px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .target-layer-row {
@@ -523,6 +527,7 @@
   padding: 0.4rem;
   overflow-y: auto;
   scrollbar-width: none;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .swatch-group-title {
@@ -564,6 +569,7 @@
   border: 1px solid var(--border-forest);
   border-radius: 8px;
   padding: 0.4rem;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .large-audition-box {
@@ -603,7 +609,6 @@
 .audition-hex-input {
   flex: 1;
   padding: 0.2rem 0.3rem;
-  background: var(--bg-canopy);
   border: 1px solid var(--border-forest);
   border-radius: 4px;
   color: var(--text-parchment);
@@ -624,7 +629,7 @@
   justify-content: center;
   gap: 0.2rem;
   padding: 0.25rem 0.2rem;
-  background: var(--status-active);
+  background: var(--status-confirm);
   border: none;
   border-radius: 10px;
   color: var(--bg-earth);
@@ -660,7 +665,7 @@
   justify-content: center;
   gap: 0.25rem;
   padding: 0.3rem 0.4rem;
-  background: var(--accent-mana);
+  background: var(--status-confirm);
   border: none;
   border-radius: 8px;
   color: var(--bg-earth);
@@ -673,5 +678,5 @@
 }
 
 .studio-save-btn.saved {
-  background: var(--status-active);
+  background: var(--status-confirm);
 }

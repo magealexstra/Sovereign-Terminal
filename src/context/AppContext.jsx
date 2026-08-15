@@ -224,6 +224,7 @@ export function AppProvider({ children }) {
     root.style.setProperty('--bg-earth',          theme.bgEarth);
     root.style.setProperty('--bg-canopy',         theme.bgCanopy);
     root.style.setProperty('--bg-panel',          theme.bgPanel || 'rgba(31, 45, 58, 0.85)');
+    root.style.setProperty('--bg-grove',          theme.bgGrove || theme.bgCanopy);
     root.style.setProperty('--border-forest',     theme.borderForest);
     root.style.setProperty('--border-sage',       theme.borderSage || theme.accentMana);
     root.style.setProperty('--text-parchment',    theme.textParchment);
@@ -232,6 +233,7 @@ export function AppProvider({ children }) {
     root.style.setProperty('--accent-mana',       theme.accentMana);
     root.style.setProperty('--accent-highlight',  theme.accentHighlight);
     root.style.setProperty('--status-active',     theme.statusActive  || '#4C7864');
+    root.style.setProperty('--status-confirm',    theme.brightGreen   || '#4d8c5e');
     root.style.setProperty('--status-danger',     theme.statusDanger  || '#FF003C');
     root.style.setProperty('--status-warning',    theme.statusWarning || '#fbbf24');
     root.style.setProperty('--accent-violet',     theme.accentViolet  || '#B48EAD');
@@ -243,11 +245,11 @@ export function AppProvider({ children }) {
 
     // Surface brightness lightness ratios & mix target colors
     root.style.setProperty('--terminal-bg-lightness', terminalBgLightness);
-    root.style.setProperty('--terminal-mix-color',    terminalMixColor || 'var(--text-parchment)');
+    root.style.setProperty('--terminal-mix-color',    terminalMixColor || '#FFFFFF');
     root.style.setProperty('--editor-bg-lightness',   editorBgLightness);
-    root.style.setProperty('--editor-mix-color',      editorMixColor || 'var(--text-parchment)');
+    root.style.setProperty('--editor-mix-color',      editorMixColor || '#FFFFFF');
     root.style.setProperty('--input-bg-lightness',    inputBgLightness);
-    root.style.setProperty('--input-mix-color',       inputMixColor || 'var(--text-parchment)');
+    root.style.setProperty('--input-mix-color',       inputMixColor || '#FFFFFF');
     root.style.setProperty('--input-scale-multiplier', `${inputScaleMultiplier}`);
 
     document.body.style.backgroundColor = theme.bgEarth;

@@ -44,7 +44,38 @@
   }
 }
 
-/* Sub-Tab Action Buttons (Files/Editor and Settings Sub-Tabs) */
+/* ── Scrollbar Suppression ──────────────────────────────────────────────────── */
+/* Hides all scrollbar chrome inside the settings UI while keeping scroll         */
+/* functionality intact. scrollbar-width does NOT inherit, so we use the *        */
+/* descendant selector to reach every overflow container in one rule.             */
+
+.settings-master-container,
+.settings-manager-workspace,
+.settings-master-container *,
+.settings-manager-workspace * {
+  scrollbar-width: none;
+}
+
+.settings-master-container *::-webkit-scrollbar,
+.settings-manager-workspace *::-webkit-scrollbar {
+  display: none;
+}
+
+/* Theme-customize and Surface modals may render outside the settings container   */
+.theme-modal-card,
+.surface-modal-card,
+.explorer-modal-overlay * {
+  scrollbar-width: none;
+}
+
+.theme-modal-card::-webkit-scrollbar,
+.surface-modal-card::-webkit-scrollbar,
+.explorer-modal-overlay *::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Sub-Tab Action Buttons ─────────────────────────────────────────────────── */
+/* (Files/Editor and Settings Sub-Tabs) */
 .subtab-btn {
   display: inline-flex;
   align-items: center;
@@ -153,6 +184,6 @@
   background: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--input-bg-lightness, 14%)),
-    var(--input-mix-color, var(--text-parchment)) var(--input-bg-lightness, 14%)
+    var(--input-mix-color, #FFFFFF) var(--input-bg-lightness, 14%)
   );
 }

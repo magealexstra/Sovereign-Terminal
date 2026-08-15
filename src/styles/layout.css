@@ -52,7 +52,7 @@
   background: var(--bg-panel);
   backdrop-filter: blur(12px);
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border-forest);
+  border-bottom: 1px solid var(--border-sage);
   z-index: 30;
   flex-shrink: 0;
   position: relative;

@@ -16,7 +16,7 @@
   background-color: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
-    var(--terminal-mix-color, var(--text-parchment)) var(--terminal-bg-lightness, 18%)
+    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 18%)
   );
   overflow: hidden;
   display: flex;
@@ -34,7 +34,7 @@
   background-color: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
-    var(--terminal-mix-color, var(--text-parchment)) var(--terminal-bg-lightness, 18%)
+    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 18%)
   );
   touch-action: manipulation;
 }
@@ -65,7 +65,7 @@
   background-color: color-mix(
     in srgb,
     var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
-    var(--terminal-mix-color, var(--text-parchment)) var(--terminal-bg-lightness, 18%)
+    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 18%)
   ) !important;
   overflow-y: auto !important;
 }
