@@ -68,9 +68,13 @@ Located at the bottom of the screen is the customizable TouchBar, engineered for
 
 ## Section 4: File Explorer & Code Editor (Tab 2)
 
-Tab 2 provides a touch-optimized file workspace with two sub-tabs:
+Tab 2 provides a touch-optimized file workspace with three sub-tabs:
 
 * **File Explorer (`Files` Sub-Tab):** Synchronizes automatically with your terminal session's working directory (`cwd`). Supports browsing, creating, deleting, and selecting files.
+* **File Viewer (`Viewer` Sub-Tab):** Provides built-in media playback directly in the browser:
+  * Touch-enabled image viewing with pinch-to-zoom and pan support.
+  * Native HTML5 video and audio playback featuring advanced `Plyr` controls.
+  * Integrated PDF document viewing.
 * **Code Editor (`Editor` Sub-Tab):** Multi-document CodeMirror editor featuring:
   * **Language Badges & Tab Navigation:** Color-coded document tabs for code files and virtual `Inspect` tabs generated via the `CopyCard`.
   * **Touch Scrolling:** Smooth momentum scrolling optimized for mobile and tablet touch displays.
