@@ -134,7 +134,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             fitAddonInstance.current.fit();
             xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
             xtermInstance.current.scrollToBottom();
-            xtermInstance.current.focus();
+            if (!document.body.querySelector('.staging-drawer-container') && !document.body.querySelector('.macro-modal-overlay')) {
+              xtermInstance.current.focus();
+            }
 
             sendResizeHandshake(force);
           } catch (e) {}
@@ -677,6 +679,24 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   return (
     <div
       className="terminal-wrapper"
+      onPointerDownCapture={(e) => {
+        if (e.target.closest('.copy-card-container')) return;
+        const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
+        const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
+        if (tapMode === 'stager' || isStagerOpen) {
+          // Intercept touch before xterm can focus .xterm-helper-textarea
+          e.stopPropagation();
+        }
+      }}
+      onTouchStartCapture={(e) => {
+        if (e.target.closest('.copy-card-container')) return;
+        const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
+        const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
+        if (tapMode === 'stager' || isStagerOpen) {
+          // Intercept touch before xterm can focus .xterm-helper-textarea
+          e.stopPropagation();
+        }
+      }}
       onClick={(e) => {
         if (e.target.closest('.copy-card-container')) return;
         const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
@@ -689,7 +709,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             window.dispatchEvent(new CustomEvent('sovereign_open_stager'));
           }
         } else {
-          xtermInstance.current?.focus();
+          if (!document.body.querySelector('.staging-drawer-container') && !document.body.querySelector('.macro-modal-overlay')) {
+            xtermInstance.current?.focus();
+          }
         }
       }}
     >

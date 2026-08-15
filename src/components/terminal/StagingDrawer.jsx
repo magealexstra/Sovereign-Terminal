@@ -72,13 +72,18 @@ export default function StagingDrawer({
     }
   }, [initialText]);
 
-  // Focus Lock: Ensure textarea receives focus immediately upon opening and prompt is prepared
+  // Focus Lock & Trap: Ensure textarea receives focus immediately upon opening and prompt is prepared
   useEffect(() => {
     if (isOpen) {
       window.dispatchEvent(new CustomEvent('sovereign_open_stager'));
+      if (textareaRef.current) {
+        textareaRef.current.focus({ preventScroll: true });
+        const len = textareaRef.current.value.length;
+        textareaRef.current.setSelectionRange(len, len);
+      }
       const timerId = setTimeout(() => {
         if (textareaRef.current) {
-          textareaRef.current.focus();
+          textareaRef.current.focus({ preventScroll: true });
           const len = textareaRef.current.value.length;
           textareaRef.current.setSelectionRange(len, len);
         }
@@ -87,6 +92,20 @@ export default function StagingDrawer({
     } else {
       setHistoryIndex(-1);
     }
+  }, [isOpen]);
+
+  // Focus Trapping: Prevent xterm helper textarea from stealing focus while Stager is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleFocusIn = (e) => {
+      if (e.target && (e.target.classList.contains('xterm-helper-textarea') || e.target.closest('.terminal-container'))) {
+        if (textareaRef.current && document.activeElement !== textareaRef.current) {
+          textareaRef.current.focus({ preventScroll: true });
+        }
+      }
+    };
+    document.addEventListener('focusin', handleFocusIn);
+    return () => document.removeEventListener('focusin', handleFocusIn);
   }, [isOpen]);
 
   const toggleTwoStep = () => {
@@ -215,8 +234,10 @@ export default function StagingDrawer({
   return (
     <div
       className="staging-drawer-container"
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
       onClick={() => {
-        if (textareaRef.current) textareaRef.current.focus();
+        if (textareaRef.current) textareaRef.current.focus({ preventScroll: true });
       }}
     >
       <div className="staging-drawer-header">
