@@ -77,13 +77,20 @@ export default function CopyCard({
 
     // Defer by one frame so the tap that opened the panel doesn't
     // immediately re-trigger this handler on the same event cycle.
+    // listenerAttached guards against the race where cancelAnimationFrame
+    // fires before the frame executes — without it, the frame could attach
+    // handleOutside AFTER cleanup, leaving an orphaned document listener.
+    let listenerAttached = false;
     const frame = requestAnimationFrame(() => {
       document.addEventListener('pointerdown', handleOutside);
+      listenerAttached = true;
     });
 
     return () => {
       cancelAnimationFrame(frame);
-      document.removeEventListener('pointerdown', handleOutside);
+      if (listenerAttached) {
+        document.removeEventListener('pointerdown', handleOutside);
+      }
     };
   }, [isExpanded]);
 

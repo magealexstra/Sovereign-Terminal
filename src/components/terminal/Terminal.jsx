@@ -27,13 +27,16 @@ const extractBufferRange = (buffer, startLine, endLine) => {
 };
 
 export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText, rootDir }) {
-  const { theme, fontSizeTerminal, tmuxSettings } = useApp();
+  const { theme, fontSizeTerminal, tmuxSettings, terminalBgLightness, terminalMixColor } = useApp();
   const { toast, showToast } = useToast();
   const terminalRef = useRef(null);
   const xtermInstance = useRef(null);
   const fitAddonInstance = useRef(null);
   const socketRef = useRef(null);
+  const isSwipingRef = useRef(false);
   const selectionTimer = useRef(null);
+  const fontTimerRef = useRef(null);
+  const termTextareaBlurHandlerRef = useRef(null);
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
   const voiceInputRef = useRef(voiceInput);
@@ -94,19 +97,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     if (xtermInstance.current) {
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
       if (fitAddonInstance.current && socketRef.current?.readyState === WebSocket.OPEN) {
-        setTimeout(() => {
+        if (fontTimerRef.current) clearTimeout(fontTimerRef.current);
+        fontTimerRef.current = setTimeout(() => {
           sendResizeHandshake(true);
         }, 100);
       }
     }
+    return () => { if (fontTimerRef.current) clearTimeout(fontTimerRef.current); };
   }, [fontSizeTerminal]);
 
-  // Live color theme updates
+  // Live color theme & surface mix updates
   useEffect(() => {
     if (xtermInstance.current) {
-      xtermInstance.current.options.theme = getTermTheme(theme);
+      xtermInstance.current.options.theme = getTermTheme(theme, terminalBgLightness, terminalMixColor);
     }
-  }, [theme]);
+  }, [theme, terminalBgLightness, terminalMixColor]);
 
   // Re-fit, focus, and scroll when this session becomes the active visible tab.
   // Checks WebSocket readiness and reconnects if connection was lost while inactive.
@@ -196,7 +201,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       fontSize: fontSizeTerminal || 14,
       lineHeight: 1.2,
       scrollback: 5000,
-      theme: getTermTheme(theme),
+      theme: getTermTheme(theme, terminalBgLightness, terminalMixColor),
       allowProposedApi: true,
     });
 
@@ -244,7 +249,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       // Force Gboard to drop composition buffer and predictive text ribbon
       term.textarea.setAttribute('inputmode', 'email');
 
-      term.textarea.addEventListener('blur', (e) => {
+      const handleTextareaBlur = (e) => {
         if (injectingRef.current) return;
         // Do NOT reclaim focus if Master Macro Modal, Command Stager, or Copy Card is active in DOM
         if (document.body.querySelector('.macro-modal-overlay') || 
@@ -264,7 +269,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             if (term.textarea) term.focus();
           }, 10);
         }
-      });
+      };
+      term.textarea.addEventListener('blur', handleTextareaBlur);
+      termTextareaBlurHandlerRef.current = handleTextareaBlur;
     }
 
     xtermInstance.current = term;
@@ -296,7 +303,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
 
     // Debounced Copy-on-Select Clipboard Handler
-    term.onSelectionChange(() => {
+    // Store the IDisposable so we can call .dispose() in cleanup.
+    const selectionDisposable = term.onSelectionChange(() => {
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
       selectionTimer.current = setTimeout(() => {
         const selection = term.getSelection();
@@ -310,7 +318,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }, 300);
     });
 
-    term.onScroll(() => {
+    const scrollDisposable = term.onScroll(() => {
       if (term.buffer && term.buffer.active) {
         const isScrolledUp = term.buffer.active.viewportY < term.buffer.active.baseY;
         setShowScrollBottom(isScrolledUp);
@@ -335,6 +343,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     // preventing the browser default on touchmove does not break them.
     const SCROLL_SENSITIVITY = 36; // px per scroll tick (matches ttyd-mobile)
     let touchStartYLocal = 0;
+    let touchStartYForSwipe = 0; // closure-local anchor for swipe displacement check
     let touchAccumLocal = 0;
 
     const sendMouseScroll = (up) => {
@@ -348,7 +357,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const handleTouchStart = (e) => {
       if (e.touches.length === 1) {
         touchStartYLocal = e.touches[0].clientY;
+        touchStartYForSwipe = e.touches[0].clientY;
         touchAccumLocal = 0;
+        isSwipingRef.current = false;
       }
     };
 
@@ -358,6 +369,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       // the browser would chain any unhandled pan gesture to the document.
       e.preventDefault();
       if (e.touches.length !== 1) return;
+
+      const totalDiffY = Math.abs(e.touches[0].clientY - touchStartYForSwipe);
+      if (totalDiffY > 8) {
+        isSwipingRef.current = true;
+      }
+
       const diffY = touchStartYLocal - e.touches[0].clientY;
       touchAccumLocal += diffY;
       touchStartYLocal = e.touches[0].clientY;
@@ -373,7 +390,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }
     };
 
-    const handleTouchEnd = () => { touchAccumLocal = 0; };
+    const handleTouchEnd = () => {
+      touchAccumLocal = 0;
+      setTimeout(() => {
+        isSwipingRef.current = false;
+      }, 150);
+    };
 
     const containerEl = terminalRef.current;
     containerEl.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -543,11 +565,18 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       clearTimeout(resizeDebounce);
       if (parseDebounceTimer) clearTimeout(parseDebounceTimer);
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
+      if (fontTimerRef.current) clearTimeout(fontTimerRef.current);
+      try { selectionDisposable.dispose(); } catch (e) {}
+      try { scrollDisposable.dispose(); } catch (e) {}
       try { parseDisposable.dispose(); } catch (e) {}
       resizeObserver.disconnect();
+      if (term.textarea && termTextareaBlurHandlerRef.current) {
+        term.textarea.removeEventListener('blur', termTextareaBlurHandlerRef.current);
+      }
       containerEl.removeEventListener('touchstart', handleTouchStart);
       containerEl.removeEventListener('touchmove', handleTouchMove);
       containerEl.removeEventListener('touchend', handleTouchEnd);
+      try { term.clearTextureAtlas(); } catch (e) {}
       if (socketRef.current) socketRef.current.close();
       try { term.dispose(); } catch (e) {}
     };
@@ -558,6 +587,15 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const ensureLivePrompt = useCallback(() => {
     if (!isActiveRef.current) return;
     try {
+      // Only send \x1b (tmux copy-mode exit) if xterm's buffer shows the user
+      // is actually scrolled up into history. Sending it unconditionally would
+      // forward a raw Escape to whatever process is running at the live prompt
+      // (e.g., AGY-CLI), which interprets it as a cancel/interrupt signal.
+      const buf = xtermInstance.current?.buffer?.active;
+      const isScrolledUp = buf && buf.viewportY < buf.baseY;
+      if (isScrolledUp && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send('\x1b');
+      }
       if (xtermInstance.current) {
         xtermInstance.current.scrollToBottom();
         xtermInstance.current.clearSelection();
@@ -666,35 +704,26 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   }, [onInspectText, showToast]);
 
   const scrollToBottom = () => {
-    if (xtermInstance.current) {
-      xtermInstance.current.scrollToBottom();
-      setShowScrollBottom(false);
-    }
+    ensureLivePrompt();
+    setShowScrollBottom(false);
   };
 
   return (
     <div
       className="terminal-wrapper"
       onPointerDownCapture={(e) => {
-        if (e.target.closest('.copy-card-container')) return;
+        if (e.target.closest('.copy-card-container') || e.target.closest('.scroll-bottom-btn')) return;
         const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
         const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
         if (tapMode === 'stager' || isStagerOpen) {
-          // Intercept touch before xterm can focus .xterm-helper-textarea
+          // Intercept pointer before xterm can focus .xterm-helper-textarea
           e.stopPropagation();
         }
       }}
-      onTouchStartCapture={(e) => {
-        if (e.target.closest('.copy-card-container')) return;
-        const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
-        const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
-        if (tapMode === 'stager' || isStagerOpen) {
-          // Intercept touch before xterm can focus .xterm-helper-textarea
-          e.stopPropagation();
-        }
-      }}
+
       onClick={(e) => {
-        if (e.target.closest('.copy-card-container')) return;
+        if (isSwipingRef.current) return;
+        if (e.target.closest('.copy-card-container') || e.target.closest('.scroll-bottom-btn')) return;
         const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
         if (tapMode === 'stager') {
           const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
@@ -707,6 +736,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         } else {
           if (!document.body.querySelector('.staging-drawer-container') && !document.body.querySelector('.macro-modal-overlay')) {
             xtermInstance.current?.focus();
+            xtermInstance.current?.scrollToBottom();
           }
         }
       }}

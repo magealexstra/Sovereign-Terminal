@@ -7,27 +7,27 @@
 
 :root {
   /* Vitni Nordic Forest Theme Tokens (Default System Palette) */
-  --bg-earth: #0A1118;           /* Nordic Void — Base background */
-  --bg-canopy: #141E26;          /* Nordic Card — Surface panels & headers */
-  --bg-panel: rgba(20, 30, 38, 0.78);
+  --bg-earth: #111d29;           /* Nordic Void — Base background */
+  --bg-canopy: #142126;          /* Nordic Card — Surface panels & headers */
+  --bg-panel: #19292f;
   --bg-panel-hover: rgba(30, 45, 58, 0.88);
 
   --border-forest: #2A3B4C;      /* Nordic Pine — Standard container borders */
-  --border-sage: #5E81AC;        /* Nordic Glacier — Active focus borders */
+  --border-sage: #477691;        /* Nordic Glacier — Active focus borders */
 
   --text-parchment: #E6EDF0;     /* Pastel Snow — Primary high-contrast text */
   --text-muted: #A3B1B8;         /* Wool Grey — Secondary sub-headers & icons */
-  --text-dim: #4C566A;           /* Polar Dusk — Disabled & low-contrast text */
+  --text-dim: #5f6c85;           /* Polar Dusk — Disabled & low-contrast text */
 
-  --accent-mana: #5E81AC;        /* Glacier Blue — Primary brand accent */
-  --accent-highlight: #88C0D0;   /* Polar Ice Cyan — Active tab/pill highlight */
-  --accent-violet: #B48EAD;      /* Nordic Frost Violet — Staging drawer accent */
-  --accent-glow: rgba(136, 192, 208, 0.25);
-  --accent-mana-faint: rgba(94, 129, 172, 0.18);
+  --accent-mana: #477691;        /* Glacier Blue — Primary brand accent */
+  --accent-highlight: #4e90a3;   /* Polar Ice Cyan — Active tab/pill highlight */
+  --accent-violet: #916489;      /* Nordic Frost Violet — Staging drawer accent */
+  --accent-glow: rgba(78, 144, 163, 0.25);
+  --accent-mana-faint: rgba(71, 118, 145, 0.18);
 
   --status-active: #4C7864;      /* Nordic Sage Green — Connected/Saved indicator */
-  --status-warning: #fbbf24;     /* Amber — Modified file dot & warnings */
-  --status-danger: #FF003C;      /* Aggressive Magenta — Error & macro alert */
+  --status-warning: #ba9922;     /* Amber — Modified file dot & warnings */
+  --status-danger: #db0437;      /* Aggressive Magenta — Error & macro alert */
 
   --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;

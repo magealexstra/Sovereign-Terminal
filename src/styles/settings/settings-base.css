@@ -140,3 +140,19 @@
   border-color: var(--accent-highlight) !important;
   box-shadow: 0 0 5px var(--accent-glow) !important;
 }
+
+/* Dynamic Input & Modal Surface Brightness Rules */
+.micro-input,
+.micro-textarea,
+.search-input-box input,
+.color-input-group input[type="text"],
+.audition-hex-input,
+.theme-name-input-group input,
+.tmux-num-input,
+.modal-input {
+  background: color-mix(
+    in srgb,
+    var(--bg-earth) calc(100% - var(--input-bg-lightness, 14%)),
+    var(--input-mix-color, var(--text-parchment)) var(--input-bg-lightness, 14%)
+  );
+}

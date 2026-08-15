@@ -13,7 +13,11 @@
   height: 100%;
   flex: 1 1 0%;
   min-height: 0;
-  background-color: var(--bg-earth);
+  background-color: color-mix(
+    in srgb,
+    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
+    var(--terminal-mix-color, var(--text-parchment)) var(--terminal-bg-lightness, 18%)
+  );
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -27,7 +31,11 @@
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
-  background-color: var(--bg-earth);
+  background-color: color-mix(
+    in srgb,
+    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
+    var(--terminal-mix-color, var(--text-parchment)) var(--terminal-bg-lightness, 18%)
+  );
   touch-action: manipulation;
 }
 
@@ -54,7 +62,11 @@
 
 /* Custom Scrollbar for xterm Viewport */
 .terminal-container .xterm-viewport {
-  background-color: var(--bg-earth) !important;
+  background-color: color-mix(
+    in srgb,
+    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
+    var(--terminal-mix-color, var(--text-parchment)) var(--terminal-bg-lightness, 18%)
+  ) !important;
   overflow-y: auto !important;
 }
 

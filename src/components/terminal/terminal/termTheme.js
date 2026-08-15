@@ -18,12 +18,44 @@ export const addAlpha = (color, opacityHex = '66') => {
   return '#88C0D0' + opacityHex;
 };
 
-export const getTermTheme = (currentTheme) => ({
-  background: currentTheme?.bgEarth || '#141E26',
-  foreground: currentTheme?.textParchment || '#E6EDF0',
-  cursor: currentTheme?.accentHighlight || '#88C0D0',
-  cursorAccent: currentTheme?.bgEarth || '#141E26',
-  selectionBackground: addAlpha(currentTheme?.accentHighlight || '#88C0D0', '66'),
+export const computeColorMix = (baseHex, mixHex, lightnessPercent = 18) => {
+  const parseHex = (hex, fallbackHex) => {
+    if (typeof hex !== 'string') return parseHex(fallbackHex, '111d29');
+    let cleaned = hex.trim().replace('#', '');
+    if (cleaned.length === 3) {
+      cleaned = cleaned.split('').map(c => c + c).join('');
+    }
+    if (!/^[0-9A-Fa-f]{6}$/.test(cleaned)) {
+      cleaned = fallbackHex.replace('#', '');
+    }
+    const num = parseInt(cleaned, 16);
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+  };
+
+  const rawNum = typeof lightnessPercent === 'string'
+    ? parseFloat(lightnessPercent.replace('%', ''))
+    : Number(lightnessPercent);
+  const numericLightness = isNaN(rawNum) ? 18 : rawNum;
+  const ratio = Math.max(0, Math.min(1, numericLightness / 100));
+
+  const baseRgb = parseHex(baseHex, '111d29');
+  const mixRgb = parseHex(mixHex, 'E6EDF0');
+
+  const blendedRgb = baseRgb.map((b, i) => Math.round(b * (1 - ratio) + mixRgb[i] * ratio));
+  return '#' + blendedRgb.map(c => Math.max(0, Math.min(255, c)).toString(16).padStart(2, '0')).join('');
+};
+
+export const getTermTheme = (currentTheme, lightness = 18, mixColor) => {
+  const baseBg = currentTheme?.bgEarth || '#111d29';
+  const targetMix = mixColor || currentTheme?.textParchment || '#E6EDF0';
+  const computedBg = computeColorMix(baseBg, targetMix, lightness);
+
+  return {
+    background: computedBg,
+    foreground: currentTheme?.textParchment || '#E6EDF0',
+    cursor: currentTheme?.accentHighlight || '#4e90a3',
+    cursorAccent: computedBg,
+    selectionBackground: addAlpha(currentTheme?.accentHighlight || '#4e90a3', '66'),
   black:         currentTheme?.black         || '#3B4252',
   red:           currentTheme?.red           || '#BF616A',
   green:         currentTheme?.green         || '#A3BE8C',
@@ -40,4 +72,5 @@ export const getTermTheme = (currentTheme) => ({
   brightMagenta: currentTheme?.brightMagenta || '#B48EAD',
   brightCyan:    currentTheme?.brightCyan    || '#8FBCBB',
   brightWhite:   currentTheme?.brightWhite   || '#ECEFF4',
-});
+  };
+};

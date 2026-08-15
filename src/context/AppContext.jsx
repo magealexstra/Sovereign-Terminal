@@ -26,6 +26,14 @@ export function AppProvider({ children }) {
   const [tmuxSettings, setTmuxSettingsState] = useState(DEFAULT_TMUX_SETTINGS);
   const [terminalScaleMultiplier, setTerminalScaleMultiplier] = useState(1.0);
   const [editorScaleMultiplier, setEditorScaleMultiplier] = useState(1.0);
+  const [inputScaleMultiplier, setInputScaleMultiplier] = useState(1.0);
+
+  const [terminalBgLightness, setTerminalBgLightness] = useState('18%');
+  const [terminalMixColor, setTerminalMixColor] = useState(null);
+  const [editorBgLightness, setEditorBgLightness] = useState('18%');
+  const [editorMixColor, setEditorMixColor] = useState(null);
+  const [inputBgLightness, setInputBgLightness] = useState('14%');
+  const [inputMixColor, setInputMixColor] = useState(null);
 
   // Authenticated user identity — set by App.jsx after verify/login resolves.
   // Token users land on 'admin'; PAM users get their Linux username.
@@ -109,6 +117,17 @@ export function AppProvider({ children }) {
     if (typeof settings.editorScaleMultiplier === 'number' && settings.editorScaleMultiplier > 0) {
       setEditorScaleMultiplier(settings.editorScaleMultiplier);
     }
+    if (typeof settings.inputScaleMultiplier === 'number' && settings.inputScaleMultiplier > 0) {
+      setInputScaleMultiplier(settings.inputScaleMultiplier);
+    }
+
+    // Surface brightness & mix target color persistence
+    if (settings.terminalBgLightness) setTerminalBgLightness(settings.terminalBgLightness);
+    if (settings.terminalMixColor !== undefined) setTerminalMixColor(settings.terminalMixColor);
+    if (settings.editorBgLightness) setEditorBgLightness(settings.editorBgLightness);
+    if (settings.editorMixColor !== undefined) setEditorMixColor(settings.editorMixColor);
+    if (settings.inputBgLightness) setInputBgLightness(settings.inputBgLightness);
+    if (settings.inputMixColor !== undefined) setInputMixColor(settings.inputMixColor);
   };
 
   // ── Theme Setter ──────────────────────────────────────────────────────────
@@ -221,9 +240,23 @@ export function AppProvider({ children }) {
     root.style.setProperty('--device-baseline-px', `${deviceBaselinePx}px`);
     root.style.setProperty('--font-size-terminal', `${terminalFontSizePx}px`);
     root.style.setProperty('--font-size-editor',   `${editorFontSizePx}px`);
+
+    // Surface brightness lightness ratios & mix target colors
+    root.style.setProperty('--terminal-bg-lightness', terminalBgLightness);
+    root.style.setProperty('--terminal-mix-color',    terminalMixColor || 'var(--text-parchment)');
+    root.style.setProperty('--editor-bg-lightness',   editorBgLightness);
+    root.style.setProperty('--editor-mix-color',      editorMixColor || 'var(--text-parchment)');
+    root.style.setProperty('--input-bg-lightness',    inputBgLightness);
+    root.style.setProperty('--input-mix-color',       inputMixColor || 'var(--text-parchment)');
+    root.style.setProperty('--input-scale-multiplier', `${inputScaleMultiplier}`);
+
     document.body.style.backgroundColor = theme.bgEarth;
     document.body.style.color = theme.textParchment;
-  }, [theme, deviceBaselinePx, terminalFontSizePx, editorFontSizePx]);
+  }, [
+    theme, deviceBaselinePx, terminalFontSizePx, editorFontSizePx,
+    terminalBgLightness, terminalMixColor, editorBgLightness, editorMixColor,
+    inputBgLightness, inputMixColor, inputScaleMultiplier
+  ]);
 
   // ── Server Sync ───────────────────────────────────────────────────────────
   // Builds the canonical settings payload, POSTs to server, then mirrors the
@@ -253,6 +286,13 @@ export function AppProvider({ children }) {
         tmux:                   tmuxRaw          ? JSON.parse(tmuxRaw)          : null,
         terminalScaleMultiplier,   // from React state closure
         editorScaleMultiplier,     // from React state closure
+        inputScaleMultiplier,
+        terminalBgLightness,
+        terminalMixColor,
+        editorBgLightness,
+        editorMixColor,
+        inputBgLightness,
+        inputMixColor,
         ...partialSettings         // overrides for values set in the same render cycle
       };
 
@@ -303,10 +343,24 @@ export function AppProvider({ children }) {
     setTheme(DEFAULT_THEME_PRESETS.VitniNordic, 'VitniNordic');
     setTerminalScaleMultiplier(1.0);
     setEditorScaleMultiplier(1.0);
+    setInputScaleMultiplier(1.0);
+    setTerminalBgLightness('18%');
+    setTerminalMixColor(null);
+    setEditorBgLightness('18%');
+    setEditorMixColor(null);
+    setInputBgLightness('14%');
+    setInputMixColor(null);
     syncUserSettingsToServer({
       activeThemeKey: 'VitniNordic',
       terminalScaleMultiplier: 1.0,
-      editorScaleMultiplier: 1.0
+      editorScaleMultiplier: 1.0,
+      inputScaleMultiplier: 1.0,
+      terminalBgLightness: '18%',
+      terminalMixColor: null,
+      editorBgLightness: '18%',
+      editorMixColor: null,
+      inputBgLightness: '14%',
+      inputMixColor: null
     });
   };
 
@@ -341,6 +395,20 @@ export function AppProvider({ children }) {
         setTerminalScaleMultiplier,
         editorScaleMultiplier,
         setEditorScaleMultiplier,
+        inputScaleMultiplier,
+        setInputScaleMultiplier,
+        terminalBgLightness,
+        setTerminalBgLightness,
+        terminalMixColor,
+        setTerminalMixColor,
+        editorBgLightness,
+        setEditorBgLightness,
+        editorMixColor,
+        setEditorMixColor,
+        inputBgLightness,
+        setInputBgLightness,
+        inputMixColor,
+        setInputMixColor,
         tmuxSettings,
         setTmuxSettings,
         terminalFontSizePx,

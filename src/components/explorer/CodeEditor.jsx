@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -92,6 +92,55 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
   const isMarkdown   = activeDoc?.name?.toLowerCase().endsWith('.md');
   const isVirtualDoc = activeDoc?.virtual === true;
 
+  // Memoize the CodeMirror theme so EditorView.theme() is only called when the
+  // palette or font size actually changes. Without this, a new theme object (and
+  // a new <style> block injected by CodeMirror into the document head) is created
+  // on every render — the source of the +4,746 CSSStyleRule accumulation in
+  // heap snapshots.
+  const editorTheme = useMemo(() => EditorView.theme({
+    '&': {
+      height: '100%',
+      backgroundColor: theme?.bgEarth || '#0A1118',
+      color: theme?.textParchment || '#E6EDF0',
+      fontFamily: "'IBM Plex Mono', monospace",
+      fontSize: `${editorFontSizePx || 14}px`
+    },
+    '.cm-content': {
+      caretColor: theme?.accentHighlight || '#88C0D0',
+      fontSize: `${editorFontSizePx || 14}px`,
+      paddingBottom: 'calc(100vh - var(--visual-viewport-height) + 45px)',
+      userSelect: 'text',
+      webkitUserSelect: 'text'
+    },
+    '.cm-line': {
+      userSelect: 'text',
+      webkitUserSelect: 'text'
+    },
+    '&.cm-focused .cm-cursor': {
+      borderLeftColor: theme?.accentHighlight || '#88C0D0'
+    },
+    '.cm-gutters': {
+      backgroundColor: theme?.bgCanopy || '#141E26',
+      color: theme?.textMuted || '#A3B1B8',
+      borderRight: '1px solid ' + (theme?.borderForest || '#2A3B4C')
+    },
+    '.cm-scroller': {
+      overflow: 'auto !important',
+      height: '100% !important',
+      overscrollBehavior: 'none'
+    }
+  }, { dark: true }), [theme, editorFontSizePx]);
+
+  // Memoize the extensions array so CodeMirror's extension tree is only
+  // reconciled when the active file type or word-wrap setting changes.
+  const editorExtensions = useMemo(() => [
+    ...getLanguageExtension(activeDoc?.path),
+    ...(isWordWrap ? [EditorView.lineWrapping] : []),
+    search({ top: true }),
+    cmKeymap.of(searchKeymap),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [activeDoc?.path, isWordWrap]);
+
   const buildRunCommand = (filepath) => {
     if (!filepath) return null;
     const fn = filepath.toLowerCase();
@@ -122,7 +171,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
     executeFile(activeDoc.path);
   };
 
-  const getLanguageExtension = (filename) => {
+  function getLanguageExtension(filename) {
     if (!filename) return [markdown()];
     const fn = filename.toLowerCase();
     if (fn.endsWith('.js') || fn.endsWith('.jsx') || fn.endsWith('.ts') || fn.endsWith('.tsx')) return [javascript({ jsx: true })];
@@ -136,7 +185,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
     if (fn.endsWith('.xml') || fn.endsWith('.svg')) return [xml()];
     if (fn.endsWith('.sql')) return [sql()];
     return [];
-  };
+  }
 
   /**
    * Returns true for any file that should never open in the text editor.
@@ -346,45 +395,8 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
             value={activeDoc.content || ''}
             height="100%"
             onCreateEditor={(view) => { editorViewRef.current = view; }}
-            theme={EditorView.theme({
-              '&': {
-                height: '100%',
-                backgroundColor: theme?.bgEarth || '#0A1118',
-                color: theme?.textParchment || '#E6EDF0',
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: `${editorFontSizePx || 14}px`
-              },
-              '.cm-content': {
-                caretColor: theme?.accentHighlight || '#88C0D0',
-                fontSize: `${editorFontSizePx || 14}px`,
-                paddingBottom: 'calc(100vh - var(--visual-viewport-height) + 45px)',
-                userSelect: 'text',
-                webkitUserSelect: 'text'
-              },
-              '.cm-line': {
-                userSelect: 'text',
-                webkitUserSelect: 'text'
-              },
-              '&.cm-focused .cm-cursor': {
-                borderLeftColor: theme?.accentHighlight || '#88C0D0'
-              },
-              '.cm-gutters': {
-                backgroundColor: theme?.bgCanopy || '#141E26',
-                color: theme?.textMuted || '#A3B1B8',
-                borderRight: '1px solid ' + (theme?.borderForest || '#2A3B4C')
-              },
-              '.cm-scroller': {
-                overflow: 'auto !important',
-                height: '100% !important',
-                overscrollBehavior: 'none'
-              }
-            }, { dark: true })}
-            extensions={[
-              ...getLanguageExtension(activeDoc.path),
-              ...(isWordWrap ? [EditorView.lineWrapping] : []),
-              search({ top: true }),
-              cmKeymap.of(searchKeymap),
-            ]}
+            theme={editorTheme}
+            extensions={editorExtensions}
             onChange={(value) => onContentChange(activeDoc.path, value)}
           />
         )}

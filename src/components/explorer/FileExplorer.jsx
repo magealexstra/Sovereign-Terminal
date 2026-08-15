@@ -80,6 +80,16 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
     return () => window.removeEventListener('storage', loadDest);
   }, []);
 
+  // Clear any in-flight long-press timer when the component unmounts
+  // to prevent a stale callback from firing against an unmounted tree.
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
+
   const fetchDirectory = async (targetPath) => {
     const fetchId = ++fetchIdRef.current;
     setLoading(true);

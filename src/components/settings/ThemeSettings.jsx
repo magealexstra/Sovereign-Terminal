@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Palette, Check, Settings, X, RefreshCw, Type, Plus, Save, CheckCircle2, Trash2 } from 'lucide-react';
+import { Palette, Check, Settings, X, Plus, Save, Trash2, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import TypographyPreviewSection from './TypographyPreviewSection';
+import SurfaceSettingsModal from './SurfaceSettingsModal';
 
 // Base-16 terminal color slots with display labels
 const TERMINAL_COLOR_KEYS = [
@@ -43,21 +43,12 @@ export default function ThemeSettings() {
     saveCustomTheme,
     deleteCustomTheme,
     resetToDefault,
-    syncUserSettingsToServer,
-    deviceBaselinePx,
-    terminalScaleMultiplier,
-    setTerminalScaleMultiplier,
-    editorScaleMultiplier,
-    setEditorScaleMultiplier,
   } = useApp();
 
   const [editingTheme, setEditingTheme] = useState(null);
   const [customName, setCustomName] = useState('My Sovereign Custom');
   const [selectedColorKey, setSelectedColorKey] = useState(null);
-
-  const [localTerminalScale, setLocalTerminalScale] = useState(terminalScaleMultiplier || 1.0);
-  const [localEditorScale, setLocalEditorScale] = useState(editorScaleMultiplier || 1.0);
-  const [appliedToast, setAppliedToast] = useState(false);
+  const [showSurfaceModal, setShowSurfaceModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const appliedToastTimerRef = useRef(null);
@@ -74,31 +65,6 @@ export default function ThemeSettings() {
     };
   }, []);
 
-  const localTerminalPx = Math.round(deviceBaselinePx * localTerminalScale);
-  const localEditorPx   = Math.round(deviceBaselinePx * localEditorScale);
-
-  const handleApplyFontSettings = () => {
-    setTerminalScaleMultiplier(localTerminalScale);
-    setEditorScaleMultiplier(localEditorScale);
-    // Pass values as partialSettings to avoid stale closure — React state
-    // won't have propagated yet when syncUserSettingsToServer reads its closure.
-    syncUserSettingsToServer({
-      terminalScaleMultiplier: localTerminalScale,
-      editorScaleMultiplier:   localEditorScale
-    }).catch(err => console.error('Server sync error:', err));
-    setAppliedToast(true);
-    if (appliedToastTimerRef.current) {
-      clearTimeout(appliedToastTimerRef.current);
-    }
-    appliedToastTimerRef.current = setTimeout(() => setAppliedToast(false), 2500);
-  };
-
-  const handleResetFonts = () => {
-    setLocalTerminalScale(1.0);
-    setLocalEditorScale(1.0);
-    setTerminalScaleMultiplier(1.0);
-    setEditorScaleMultiplier(1.0);
-  };
 
   const openCustomizeModal = (t) => {
     setCustomName(t.name);
@@ -161,6 +127,17 @@ export default function ThemeSettings() {
           </button>
         </div>
 
+        <div className="surface-launcher-row" style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+          <button
+            type="button"
+            className="surface-modal-launcher-btn"
+            onClick={() => setShowSurfaceModal(true)}
+          >
+            <SlidersHorizontal size={14} color="var(--accent-highlight)" />
+            <span>Surface &amp; Typography Settings</span>
+          </button>
+        </div>
+
         <div className="native-theme-grid">
           {Object.entries(themes || {}).map(([key, t]) => {
             const isActive = theme && theme.name === t.name;
@@ -202,67 +179,10 @@ export default function ThemeSettings() {
         </div>
       </div>
 
-      {/* ── 2. Typography & Live Previews ──────────────────────────────────── */}
-      <div className="theme-section">
-        <div className="section-header-compact">
-          <Type size={14} color="var(--status-active)" />
-          <span>Typography & Live Previews</span>
-          {appliedToast && (
-            <span className="applied-toast-badge">
-              <CheckCircle2 size={12} /> Applied Live
-            </span>
-          )}
-        </div>
-
-        <div className="font-controls-grid">
-          <div className="font-control-card">
-            <div className="font-control-label">
-              <span>Terminal Font Scale</span>
-              <strong>{Math.round(localTerminalScale * 100)}% ({localTerminalPx}px)</strong>
-            </div>
-            <input
-              type="range"
-              min="0.6" max="2.0" step="0.05"
-              value={localTerminalScale}
-              onChange={(e) => setLocalTerminalScale(Number(e.target.value))}
-              className="font-slider"
-            />
-          </div>
-
-          <div className="font-control-card">
-            <div className="font-control-label">
-              <span>Editor Font Scale</span>
-              <strong>{Math.round(localEditorScale * 100)}% ({localEditorPx}px)</strong>
-            </div>
-            <input
-              type="range"
-              min="0.6" max="2.0" step="0.05"
-              value={localEditorScale}
-              onChange={(e) => setLocalEditorScale(Number(e.target.value))}
-              className="font-slider"
-            />
-          </div>
-        </div>
-
-        <TypographyPreviewSection
-          theme={theme}
-          localTerminalScale={localTerminalScale}
-          localTerminalPx={localTerminalPx}
-          localEditorScale={localEditorScale}
-          localEditorPx={localEditorPx}
-        />
-
-        <div className="font-action-btn-row">
-          <button type="button" className="font-reset-btn" onClick={handleResetFonts}>
-            <RefreshCw size={12} />
-            <span>Reset Default (100%)</span>
-          </button>
-          <button type="button" className="font-apply-btn" onClick={handleApplyFontSettings}>
-            <CheckCircle2 size={12} />
-            <span>Implement Font Settings</span>
-          </button>
-        </div>
-      </div>
+      <SurfaceSettingsModal
+        isOpen={showSurfaceModal}
+        onClose={() => setShowSurfaceModal(false)}
+      />
 
       {/* ── 3. Theme Customizer Modal ───────────────────────────────────────── */}
       {editingTheme && (

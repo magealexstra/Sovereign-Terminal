@@ -266,17 +266,29 @@ _socket_path = os.environ.get("TMUX_SOCKET_PATH")
 if os.environ.get("DEPLOYMENT_MODE") != "pass-through":
     _socket_path = None
 
+_project_tmux_conf = Path(__file__).parent / "tmux.conf"
+_conf_args = ["-f", str(_project_tmux_conf)] if _project_tmux_conf.exists() else []
+
 def _get_tmux_base():
-    return [_tmux_bin, "-S", _socket_path] if _socket_path else [_tmux_bin]
+    cmd = [_tmux_bin]
+    if _conf_args:
+        cmd.extend(_conf_args)
+    if _socket_path:
+        cmd.extend(["-S", _socket_path])
+    return cmd
 
 def _get_tmux_base_str():
-    return f"{_tmux_bin} -S '{_socket_path}'" if _socket_path else _tmux_bin
+    conf_str = f" -f '{_project_tmux_conf}'" if _project_tmux_conf.exists() else ""
+    sock_str = f" -S '{_socket_path}'" if _socket_path else ""
+    return f"{_tmux_bin}{conf_str}{sock_str}"
 
 # Pre-warm the tmux server at module load time if we are in pass-through mode and the socket is missing.
 # Wait, if we are in sandbox mode, we definitely want to pre-warm the isolated server!
 # So we run start-server unconditionally if we are in sandbox mode, or if pass-through has no socket set.
 if _tmux_bin and (os.environ.get("DEPLOYMENT_MODE") != "pass-through" or not os.environ.get("TMUX_SOCKET_PATH")):
     subprocess.run(_get_tmux_base() + ["start-server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    if _project_tmux_conf.exists():
+        subprocess.run(_get_tmux_base() + ["source-file", str(_project_tmux_conf)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
 
 
 def set_pty_size(fd, rows, cols):

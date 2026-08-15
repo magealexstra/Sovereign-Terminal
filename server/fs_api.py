@@ -120,8 +120,14 @@ def get_directory_tree(path: str = SOVEREIGN_ROOT):
     except PermissionError:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    items.sort(key=lambda x: (not x["isDir"], x["name"].lower()))
-    return {"currentPath": str(p), "items": items}
+    seen_paths = set()
+    unique_items = []
+    for item in items:
+        if item["path"] not in seen_paths:
+            seen_paths.add(item["path"])
+            unique_items.append(item)
+    unique_items.sort(key=lambda x: (not x["isDir"], x["name"].lower()))
+    return {"currentPath": str(p), "items": unique_items}
 
 @router.get("/read")
 def read_file(path: str):
