@@ -35,7 +35,15 @@ export default function ButtonStudio() {
     return { label: 'CUST', value: 'set number of lines to copy (50)' };
   });
 
-  const [selectedId, setSelectedId] = useState('b4');
+  const [selectedId, setSelectedId] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sovereign_buttons');
+      const list = saved ? JSON.parse(saved) : DEFAULT_BUTTONS;
+      return list?.[0]?.id || 'b1';
+    } catch {
+      return 'b1';
+    }
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   const isEditingCust = selectedId === 'cust-button';
@@ -52,20 +60,28 @@ export default function ButtonStudio() {
     border: 'var(--accent-mana)',
   };
 
-  const activeBtn = (isEditingCust
+  const rawBtn = isEditingCust
     ? {
         id: 'cust-button',
         label: custButton?.label || 'CUST',
         value: custButton?.value || 'set number of lines to copy (50)',
-        width: 3.2,
-        height: 2.0,
-        shape: 'pill',
-        bg: 'var(--bg-earth)',
-        text: 'var(--text-parchment)',
-        border: 'var(--status-danger)',
+        width: custButton?.width,
+        height: custButton?.height,
+        shape: custButton?.shape || 'pill',
+        bg: custButton?.bg || 'var(--bg-earth)',
+        text: custButton?.text || 'var(--text-parchment)',
+        border: custButton?.border || 'var(--status-danger)',
         isCust: true,
       }
-    : (buttons.find((b) => b.id === selectedId) || buttons[0] || defaultFallbackBtn)) || defaultFallbackBtn;
+    : (buttons.find((b) => b.id === selectedId) || buttons[0] || defaultFallbackBtn);
+
+  const activeBtn = {
+    ...defaultFallbackBtn,
+    ...(rawBtn || {}),
+    width: typeof rawBtn?.width === 'number' && !isNaN(rawBtn.width) ? rawBtn.width : 3.2,
+    height: typeof rawBtn?.height === 'number' && !isNaN(rawBtn.height) ? rawBtn.height : 2.0,
+    shape: rawBtn?.shape || 'rounded',
+  };
 
   // Target Color Layer Selection: 'text' | 'bg' | 'border'
   const [targetLayer, setTargetLayer] = useState('bg');
@@ -328,30 +344,28 @@ export default function ButtonStudio() {
             />
           </div>
 
-          {/* Executable Command Toggle Switch (Tactile Sovereign Pill Bar) */}
+          {/* Executable Command State Button (Tactile Sovereign Single-State Toggle) */}
           {!isEditingCust && (
-            <div className="executable-toggle-group">
+            <div className="executable-toggle-section">
               <label className="field-label">Execution Mode</label>
-              <div className="executable-toggle-bar">
-                <button
-                  type="button"
-                  className={`executable-pill ${activeBtn.isExecutable !== false ? 'active' : ''}`}
-                  onClick={() => updateActiveBtn({ isExecutable: true })}
-                  title="Execute command immediately in terminal PTY"
-                >
-                  <Zap size={11} />
-                  <span>EXECUTE</span>
-                </button>
-                <button
-                  type="button"
-                  className={`executable-pill ${activeBtn.isExecutable === false ? 'active' : ''}`}
-                  onClick={() => updateActiveBtn({ isExecutable: false })}
-                  title="Route command to Command Stager for editing before sending"
-                >
-                  <Edit3 size={11} />
-                  <span>STAGE</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className={`studio-state-btn ${activeBtn.isExecutable !== false ? 'exec' : 'stage'}`}
+                onClick={() => updateActiveBtn({ isExecutable: activeBtn.isExecutable === false })}
+                title={activeBtn.isExecutable !== false ? 'Direct Execution (Tap to switch to Stage mode)' : 'Stager Staging (Tap to switch to Direct Execution)'}
+              >
+                {activeBtn.isExecutable !== false ? (
+                  <>
+                    <Zap size={12} color="var(--status-active)" />
+                    <span>EXECUTE</span>
+                  </>
+                ) : (
+                  <>
+                    <Edit3 size={12} color="var(--accent-violet)" />
+                    <span>STAGE</span>
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>
