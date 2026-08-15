@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Mic, MicOff, KeyRound, Trash2, Zap, X, Edit3, Terminal } from 'lucide-react';
+import { Mic, MicOff, Trash2, Zap, X, Edit3, Terminal } from 'lucide-react';
 import StagingDrawer from './StagingDrawer';
 import { 
   PREBUILT_CATEGORIES,
@@ -560,7 +560,6 @@ export default function TouchBar({ onKeyPress }) {
 
         {sessionStorage.getItem('sovereign_sudo_password') && (
           <button className="touch-btn sudo-btn" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={handleSudoMacro} title="Quick Sudo Password Entry">
-            <KeyRound size={14} />
             <span>(***)</span>
           </button>
         )}
