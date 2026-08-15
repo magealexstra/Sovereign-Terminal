@@ -558,9 +558,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const ensureLivePrompt = useCallback(() => {
     if (!isActiveRef.current) return;
     try {
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        socketRef.current.send('\x1b');
-      }
       if (xtermInstance.current) {
         xtermInstance.current.scrollToBottom();
         xtermInstance.current.clearSelection();
@@ -584,7 +581,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     if (!isActiveRef.current) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
     const input = voiceInput;
     if (input) {
-      ensureLivePrompt();
       if (typeof input === 'object') {
         const { text, executeImmediately } = input;
         injectingRef.current = true;
