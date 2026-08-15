@@ -183,7 +183,7 @@
 .modal-input {
   background: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--input-bg-lightness, 14%)),
-    var(--input-mix-color, #FFFFFF) var(--input-bg-lightness, 14%)
+    var(--bg-earth) calc(100% - var(--input-bg-lightness, 6%)),
+    var(--input-mix-color, #FFFFFF) var(--input-bg-lightness, 6%)
   );
 }

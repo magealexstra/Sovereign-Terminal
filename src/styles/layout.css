@@ -211,7 +211,7 @@
   font-family: var(--font-sans);
   font-weight: 600;
   color: var(--text-muted);
-  background: transparent;
+  background: var(--bg-canopy);
 
   /* Explicit touch boundaries: Dull border ring */
   border: 1px solid var(--border-forest);

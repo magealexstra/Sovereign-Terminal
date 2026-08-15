@@ -28,11 +28,11 @@ export function AppProvider({ children }) {
   const [editorScaleMultiplier, setEditorScaleMultiplier] = useState(1.0);
   const [inputScaleMultiplier, setInputScaleMultiplier] = useState(1.0);
 
-  const [terminalBgLightness, setTerminalBgLightness] = useState('18%');
-  const [terminalMixColor, setTerminalMixColor] = useState(null);
-  const [editorBgLightness, setEditorBgLightness] = useState('18%');
-  const [editorMixColor, setEditorMixColor] = useState(null);
-  const [inputBgLightness, setInputBgLightness] = useState('14%');
+  const [terminalBgLightness, setTerminalBgLightness] = useState('6%');
+  const [terminalMixColor, setTerminalMixColor] = useState('#FFFFFF');
+  const [editorBgLightness, setEditorBgLightness] = useState('6%');
+  const [editorMixColor, setEditorMixColor] = useState('#FFFFFF');
+  const [inputBgLightness, setInputBgLightness] = useState('6%');
   const [inputMixColor, setInputMixColor] = useState(null);
 
   // Authenticated user identity — set by App.jsx after verify/login resolves.
@@ -342,26 +342,27 @@ export function AppProvider({ children }) {
 
   // ── Reset to Defaults ─────────────────────────────────────────────────────
   const resetToDefault = () => {
+    setDeviceBaselinePx(16);
     setTheme(DEFAULT_THEME_PRESETS.VitniNordic, 'VitniNordic');
     setTerminalScaleMultiplier(1.0);
     setEditorScaleMultiplier(1.0);
     setInputScaleMultiplier(1.0);
-    setTerminalBgLightness('18%');
-    setTerminalMixColor(null);
-    setEditorBgLightness('18%');
-    setEditorMixColor(null);
-    setInputBgLightness('14%');
+    setTerminalBgLightness('6%');
+    setTerminalMixColor('#FFFFFF');
+    setEditorBgLightness('6%');
+    setEditorMixColor('#FFFFFF');
+    setInputBgLightness('6%');
     setInputMixColor(null);
     syncUserSettingsToServer({
       activeThemeKey: 'VitniNordic',
       terminalScaleMultiplier: 1.0,
       editorScaleMultiplier: 1.0,
       inputScaleMultiplier: 1.0,
-      terminalBgLightness: '18%',
-      terminalMixColor: null,
-      editorBgLightness: '18%',
-      editorMixColor: null,
-      inputBgLightness: '14%',
+      terminalBgLightness: '6%',
+      terminalMixColor: '#FFFFFF',
+      editorBgLightness: '6%',
+      editorMixColor: '#FFFFFF',
+      inputBgLightness: '6%',
       inputMixColor: null
     });
   };

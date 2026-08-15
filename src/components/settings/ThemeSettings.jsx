@@ -327,12 +327,14 @@ export default function ThemeSettings() {
             )}
 
             {/* Actions */}
-            <div className="modal-btn-row" style={{ marginTop: '0.75rem' }}>
-              <button className="submit" onClick={handleSaveModal}>
+            <div className="modal-btn-row surface-modal-footer" style={{ marginTop: '0.75rem' }}>
+              <button type="button" className="btn-surface-reset" onClick={resetToDefault}>
+                Reset Default
+              </button>
+              <button type="button" className="btn-surface-save" onClick={handleSaveModal}>
                 <Save size={13} />
                 <span>Save & Add to Presets</span>
               </button>
-              <button onClick={resetToDefault}>Reset Default</button>
             </div>
 
           </div>

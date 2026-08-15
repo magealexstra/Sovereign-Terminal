@@ -16,8 +16,8 @@
   min-height: 0;
   background: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--editor-bg-lightness, 18%)),
-    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 18%)
+    var(--bg-earth) calc(100% - var(--editor-bg-lightness, 6%)),
+    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 6%)
   );
   overflow: hidden;
 }
@@ -317,16 +317,16 @@
   inset: 0 !important;
   background-color: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--editor-bg-lightness, 18%)),
-    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 18%)
+    var(--bg-earth) calc(100% - var(--editor-bg-lightness, 6%)),
+    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 6%)
   ) !important;
 }
 
 .cm-editor .cm-gutters {
   background-color: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--editor-bg-lightness, 18%)),
-    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 18%)
+    var(--bg-earth) calc(100% - var(--editor-bg-lightness, 6%)),
+    var(--editor-mix-color, #FFFFFF) var(--editor-bg-lightness, 6%)
   ) !important;
 }
 

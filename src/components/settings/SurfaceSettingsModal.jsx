@@ -30,32 +30,35 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
   const [activeSubTab, setActiveSubTab] = useState('terminal'); // 'terminal' | 'editor' | 'input'
 
   // Uncommitted local draft state
-  const [draftTermLightness, setDraftTermLightness] = useState(terminalBgLightness || '18%');
+  const [draftTermLightness, setDraftTermLightness] = useState(terminalBgLightness || '6%');
   const [draftTermMixColor, setDraftTermMixColor]   = useState(terminalMixColor);
   const [draftTermScale, setDraftTermScale]         = useState(terminalScaleMultiplier || 1.0);
 
-  const [draftEdLightness, setDraftEdLightness]     = useState(editorBgLightness || '18%');
+  const [draftEdLightness, setDraftEdLightness]     = useState(editorBgLightness || '6%');
   const [draftEdMixColor, setDraftEdMixColor]       = useState(editorMixColor);
   const [draftEdScale, setDraftEdScale]             = useState(editorScaleMultiplier || 1.0);
 
-  const [draftInLightness, setDraftInLightness]     = useState(inputBgLightness || '14%');
+  const [draftInLightness, setDraftInLightness]     = useState(inputBgLightness || '6%');
   const [draftInMixColor, setDraftInMixColor]       = useState(inputMixColor);
   const [draftInScale, setDraftInScale]             = useState(inputScaleMultiplier || 1.0);
+
+  const [selectedSwatchKey, setSelectedSwatchKey]   = useState(null);
 
   // Sync draft state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setDraftTermLightness(terminalBgLightness || '18%');
+      setDraftTermLightness(terminalBgLightness || '6%');
       setDraftTermMixColor(terminalMixColor);
       setDraftTermScale(terminalScaleMultiplier || 1.0);
 
-      setDraftEdLightness(editorBgLightness || '18%');
+      setDraftEdLightness(editorBgLightness || '6%');
       setDraftEdMixColor(editorMixColor);
       setDraftEdScale(editorScaleMultiplier || 1.0);
 
-      setDraftInLightness(inputBgLightness || '14%');
+      setDraftInLightness(inputBgLightness || '6%');
       setDraftInMixColor(inputMixColor);
       setDraftInScale(inputScaleMultiplier || 1.0);
+      setSelectedSwatchKey(null);
     }
   }, [
     isOpen,
@@ -66,14 +69,14 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // Active theme swatches for quick mix-target selection
+  // Active theme swatches for quick mix-target selection (6 distinct curated slots)
   const themeSwatches = [
-    { label: 'Parchment', hex: theme?.textParchment || '#E6EDF0' },
-    { label: 'Mana',      hex: theme?.accentMana || '#5E81AC' },
-    { label: 'Highlight', hex: theme?.accentHighlight || '#88C0D0' },
-    { label: 'Br.Cyan',   hex: theme?.brightCyan || '#88C0D0' },
-    { label: 'Br.Blue',   hex: theme?.brightBlue || '#81A1C1' },
-    { label: 'White',     hex: '#FFFFFF' },
+    { key: 'textParchment',   label: 'Parchment', hex: theme?.textParchment || '#E6EDF0' },
+    { key: 'accentMana',      label: 'Mana',      hex: theme?.accentMana || '#5E81AC' },
+    { key: 'accentHighlight', label: 'Highlight', hex: theme?.accentHighlight || '#88C0D0' },
+    { key: 'accentViolet',    label: 'Violet',    hex: theme?.accentViolet || '#B48EAD' },
+    { key: 'statusActive',    label: 'Sage',      hex: theme?.statusActive || '#A3BE8C' },
+    { key: 'white',           label: 'White',     hex: '#FFFFFF' },
   ];
 
   // Helper getters/setters for active sub-tab
@@ -117,15 +120,15 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
   // Tab-scoped Reset (reverts active sub-tab only)
   const handleResetActiveTab = () => {
     if (activeSubTab === 'terminal') {
-      setDraftTermLightness('18%');
+      setDraftTermLightness('6%');
       setDraftTermMixColor(null);
       setDraftTermScale(1.0);
     } else if (activeSubTab === 'editor') {
-      setDraftEdLightness('18%');
+      setDraftEdLightness('6%');
       setDraftEdMixColor(null);
       setDraftEdScale(1.0);
     } else {
-      setDraftInLightness('14%');
+      setDraftInLightness('6%');
       setDraftInMixColor(null);
       setDraftInScale(1.0);
     }
@@ -254,7 +257,10 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
                 type="text"
                 className="audition-hex-input"
                 value={activeEffectiveMixColor}
-                onChange={(e) => setActiveMixColor(e.target.value)}
+                onChange={(e) => {
+                  setActiveMixColor(e.target.value);
+                  setSelectedSwatchKey(null);
+                }}
                 placeholder="#HEX"
                 maxLength={7}
               />
@@ -263,20 +269,31 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
                 type="color"
                 className="audition-native-picker"
                 value={activeEffectiveMixColor.startsWith('#') ? activeEffectiveMixColor : '#E6EDF0'}
-                onChange={(e) => setActiveMixColor(e.target.value)}
+                onChange={(e) => {
+                  setActiveMixColor(e.target.value);
+                  setSelectedSwatchKey(null);
+                }}
               />
 
               <div className="mix-swatch-strip">
-                {themeSwatches.map((swatch, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={`mix-swatch-dot ${getActiveMixColor() === swatch.hex ? 'selected' : ''}`}
-                    style={{ backgroundColor: swatch.hex }}
-                    onClick={() => setActiveMixColor(swatch.hex)}
-                    title={`Set mix target to ${swatch.label} (${swatch.hex})`}
-                  />
-                ))}
+                {themeSwatches.map((swatch) => {
+                  const isSelected = selectedSwatchKey
+                    ? selectedSwatchKey === swatch.key && getActiveMixColor() === swatch.hex
+                    : getActiveMixColor() === swatch.hex;
+                  return (
+                    <button
+                      key={swatch.key}
+                      type="button"
+                      className={`mix-swatch-dot ${isSelected ? 'selected' : ''}`}
+                      style={{ backgroundColor: swatch.hex }}
+                      onClick={() => {
+                        setActiveMixColor(swatch.hex);
+                        setSelectedSwatchKey(swatch.key);
+                      }}
+                      title={`Set mix target to ${swatch.label} (${swatch.hex})`}
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>

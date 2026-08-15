@@ -15,8 +15,8 @@
   min-height: 0;
   background-color: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
-    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 18%)
+    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 6%)),
+    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 6%)
   );
   overflow: hidden;
   display: flex;
@@ -33,8 +33,8 @@
   overflow: hidden;
   background-color: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
-    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 18%)
+    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 6%)),
+    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 6%)
   );
   touch-action: manipulation;
 }
@@ -64,8 +64,8 @@
 .terminal-container .xterm-viewport {
   background-color: color-mix(
     in srgb,
-    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 18%)),
-    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 18%)
+    var(--bg-earth) calc(100% - var(--terminal-bg-lightness, 6%)),
+    var(--terminal-mix-color, #FFFFFF) var(--terminal-bg-lightness, 6%)
   ) !important;
   overflow-y: auto !important;
 }
@@ -207,10 +207,14 @@
   overflow-y: hidden;
   white-space: nowrap;
   flex-shrink: 0;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
   user-select: none;
+}
+
+.touch-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .touch-btn {
