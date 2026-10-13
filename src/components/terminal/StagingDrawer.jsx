@@ -5,7 +5,7 @@ import { X, Edit3 } from 'lucide-react';
  * StagingDrawer — TouchBar-Anchored Decoupled Command & Dictation Staging Drawer
  *
  * Positioned immediately above the bottom TouchBar (bottom: 3.5rem).
- * Glides smoothly above mobile soft keyboards using visual viewport geometry.
+ * The parent container tracks the soft keyboard, so the drawer rides above it.
  * Capped at 45dvh max height with internal overflow scrolling.
  *
  * Transmission Modes:
@@ -60,7 +60,6 @@ export default function StagingDrawer({
     setTapTarget(next);
     try {
       localStorage.setItem('sovereign_stager_tap_redirect', next);
-      window.dispatchEvent(new Event('storage'));
     } catch {}
   };
 

@@ -109,10 +109,7 @@ export default function TouchBar({ onKeyPress }) {
   }, [showStager]);
 
   useEffect(() => {
-    const handleOpenStager = (e) => {
-      if (e.detail?.text) setStagerText(e.detail.text);
-      setShowStager(true);
-    };
+    const handleOpenStager = () => setShowStager(true);
     const handleCloseStager = () => setShowStager(false);
     window.addEventListener('sovereign_open_stager', handleOpenStager);
     window.addEventListener('sovereign_close_stager', handleCloseStager);
@@ -144,23 +141,6 @@ export default function TouchBar({ onKeyPress }) {
   };
 
   const SUB_LABELS = {
-    CUST: 'CUST',
-    AGY: 'AGY',
-    CLD: 'CLD',
-    HMS: 'HMS',
-    VIM: 'VIM',
-    TXT: 'TXT',
-    FILE: 'FILE',
-    APT: 'APT',
-    PAC: 'PAC',
-    YUM: 'YUM',
-    DOC: 'DOC',
-    GIT: 'GIT',
-    SYS: 'SYS',
-    NET: 'NET',
-    PY: 'PY',
-    NPM: 'NPM',
-    TMX: 'TMX',
     KEY_NAV: 'NAV',
     KEY_FN: 'FN',
     KEY_SYM: 'SYM',
@@ -168,7 +148,7 @@ export default function TouchBar({ onKeyPress }) {
     KEY_LINE: 'LINE'
   };
 
-  // Inline mic-error toast — replaces browser alert() for non-blocking UX
+  // Inline mic-error toast (non-blocking)
   const [micToast, setMicToast] = useState(null);
   const showMicToast = (msg) => {
     if (!isMountedRef.current) return;
@@ -962,7 +942,7 @@ export default function TouchBar({ onKeyPress }) {
         </div>
       )}
 
-      {/* Mic error toast — non-blocking replacement for alert() */}
+      {/* Mic error toast (non-blocking) */}
       {micToast && (
         <div className="copy-toast" style={{ bottom: '4.5rem', top: 'auto' }}>
           <span>{micToast}</span>

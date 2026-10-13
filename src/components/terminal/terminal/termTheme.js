@@ -1,7 +1,7 @@
 /**
  * Helper to generate xterm theme object from AppContext palette.
  */
-export const addAlpha = (color, opacityHex = '66') => {
+const addAlpha = (color, opacityHex = '66') => {
   if (typeof color !== 'string') return '#88C0D0' + opacityHex;
   const trimmed = color.trim();
   if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) {
@@ -18,7 +18,7 @@ export const addAlpha = (color, opacityHex = '66') => {
   return '#88C0D0' + opacityHex;
 };
 
-export const computeColorMix = (baseHex, mixHex, lightnessPercent = 18) => {
+const computeColorMix = (baseHex, mixHex, lightnessPercent = 18) => {
   const parseHex = (hex, fallbackHex) => {
     if (typeof hex !== 'string') return parseHex(fallbackHex, '111d29');
     let cleaned = hex.trim().replace('#', '');

@@ -1,6 +1,6 @@
 /**
  * Clipboard write helper — tries modern Clipboard API first (requires HTTPS or localhost),
- * then falls back to legacy textarea trick (for plain-HTTP deployments).
+ * otherwise copies through a hidden textarea (for plain-HTTP deployments).
  */
 export const writeToClipboard = (text) => {
   if (navigator.clipboard && window.isSecureContext) {

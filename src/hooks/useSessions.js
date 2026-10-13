@@ -1,27 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
 /**
- * useSessions — manages the tmux terminal session tab state.
- *
- * Returns:
- *   sessions            {Array}    List of { id, name, initialCwd? } objects.
- *   activeSession       {string}   ID of the currently visible session.
- *   voiceInput          {string}   Ephemeral string sent to the active Terminal via prop.
- *   setActiveSession    {function} Select a session tab by ID.
- *   handleAddSession    {function} Add a new session (inheritCwd = false).
- *   handleCloseSession  {function} Close a session by ID (auto-creates replacement if last).
- *   handleTerminalInput {function} Send a command string to the terminal (macro or voice).
- *
- * @param {string|null} activeTerminalPath  Current CWD tracked by the terminal (used for inheritCwd).
- * @param {function}    showToast           showToast(msg) from useToast() — replaces alert().
+ * Display name for a tmux session id: a generated `session-<suffix>` id
+ * becomes `S-<suffix>`, any other id is shown as is.
  */
 export function formatSessionDisplayName(sessionId) {
   if (!sessionId) return 'term';
   if (sessionId.startsWith('session-')) {
     return `S-${sessionId.replace('session-', '')}`;
-  }
-  if (sessionId.startsWith('S-')) {
-    return sessionId;
   }
   return sessionId;
 }
@@ -43,10 +29,25 @@ function _restoreSessionsFromStorage() {
   }
 }
 
+/**
+ * useSessions: manages the tmux terminal session tab state.
+ *
+ * Returns:
+ *   sessions            {Array}    List of { id, name, initialCwd? } objects.
+ *   activeSession       {string}   ID of the currently visible session.
+ *   voiceInput          {string|object}  Ephemeral input sent to the active Terminal via prop:
+ *                                  a string, or { text, executeImmediately }.
+ *   setActiveSession    {function} Select a session tab by ID.
+ *   handleAddSession    {function} Add a new session. Argument: true to inherit the active
+ *                                  session's cwd, or a path string to start there.
+ *   handleCloseSession  {function} Close a session by ID (auto-creates replacement if last).
+ *   handleTerminalInput {function} Send a command string to the terminal (macro or voice).
+ *
+ * @param {string|null} activeTerminalPath  Current CWD tracked by the terminal (used when inheriting the cwd).
+ * @param {function}    showToast           showToast(msg) from useToast().
+ * @param {string}      rootDir             Starting directory for new sessions.
+ */
 export function useSessions(activeTerminalPath, showToast, rootDir) {
-  // Counter only ever increments — prevents duplicate names after close+add cycles
-  const sessionCounterRef = React.useRef(1);
-
   // Give the first session a unique ID so it never collides with a stale
   // tmux session of the same name across page reloads.
   const initialSessionId = React.useRef(
@@ -73,7 +74,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
               id: id,
               name: formatSessionDisplayName(id)
             }));
-            sessionCounterRef.current = loadedSessions.length;
             setSessions(loadedSessions);
             setActiveSession(loadedSessions[0].id);
           } else {
@@ -89,7 +89,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
           // either way tab names stay stable across restarts on this device.
           const restored = _restoreSessionsFromStorage();
           if (restored) {
-            sessionCounterRef.current = restored.length;
             setSessions(restored);
             setActiveSession(restored[0].id);
           } else {
@@ -102,7 +101,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
         // Server unreachable — same fallback: prefer localStorage over fresh random.
         const restored = _restoreSessionsFromStorage();
         if (restored) {
-          sessionCounterRef.current = restored.length;
           setSessions(restored);
           setActiveSession(restored[0].id);
         } else {
@@ -151,12 +149,11 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
 
   const handleAddSession = async (inheritCwdOrPath = false) => {
     if (sessions.length >= 5) {
-      // Use toast instead of browser alert() for non-blocking UX
+      // Non-blocking toast
       if (showToast) showToast('Max 5 sessions — close a tab to add another.');
       return;
     }
     const newId = `session-${Date.now().toString(36).substring(4)}`;
-    sessionCounterRef.current += 1;
     const sessionName = formatSessionDisplayName(newId);
     let targetCwd = rootDir;
 
@@ -186,7 +183,6 @@ export function useSessions(activeTerminalPath, showToast, rootDir) {
 
       if (filtered.length === 0) {
         // Last tab closed — auto-create a fresh replacement so there's always a terminal
-        sessionCounterRef.current += 1;
         const freshId = `session-${Date.now().toString(36).substring(4)}`;
         const fresh = { id: freshId, name: formatSessionDisplayName(freshId), initialCwd: rootDir };
         setActiveSession(freshId);

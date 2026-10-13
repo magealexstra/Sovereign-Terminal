@@ -4,12 +4,11 @@ import { parseCopyLines } from '../../utils/parseCopyLines';
 /**
  * CopyCard — Right-Edge Collapsible Copy Suite
  *
- * Collapsed state: a persistent 6px tri-color bar flush against the right edge
+ * Collapsed state: a persistent tri-color bar flush against the right edge
  * of the terminal. The bar is always visible and tracks the keyboard via the
- * parent flex layout (same positioning context as the original panel).
+ * parent flex layout.
  *
- * Expanded state: the full button panel slides out to the left of the bar,
- * visually identical to the original floating panel.
+ * Expanded state: the full button panel slides out to the left of the bar.
  *
  * Collapse triggers:
  *   - Tap COPY / ALL / CUST  → action fires then auto-collapses
