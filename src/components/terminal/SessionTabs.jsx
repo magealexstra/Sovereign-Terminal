@@ -1,7 +1,9 @@
 import React from 'react';
 import { Terminal, Plus, FolderDown, X } from 'lucide-react';
+import { MAX_SESSIONS } from '../../hooks/useSessions';
 
 export default function SessionTabs({ sessions, activeSession, onSelectSession, onAddSession, onCloseSession, rootDir }) {
+  const atLimit = sessions.length >= MAX_SESSIONS;
   return (
     <div className="session-tabs-bar">
       <div className="session-tabs-scroll-container">
@@ -34,9 +36,9 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
           type="button"
           className="add-session-pill-btn"
           onClick={() => onAddSession(false)}
-          disabled={sessions.length >= 5}
-          title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : `New Session at Root Dir (${rootDir})`}
-          style={{ opacity: sessions.length >= 5 ? 0.4 : 1, cursor: sessions.length >= 5 ? 'not-allowed' : 'pointer' }}
+          disabled={atLimit}
+          title={atLimit ? `Max ${MAX_SESSIONS} parallel sessions reached` : `New Session at Root Dir (${rootDir})`}
+          style={{ opacity: atLimit ? 0.4 : 1, cursor: atLimit ? 'not-allowed' : 'pointer' }}
         >
           <Plus size={14} />
         </button>
@@ -44,14 +46,14 @@ export default function SessionTabs({ sessions, activeSession, onSelectSession, 
         {/* Button 2: New Session in Current Working Directory */}
         <button
           type="button"
-          className="add-session-pill-btn inherit-cwd"
+          className="add-session-pill-btn"
           onClick={() => onAddSession(true)}
-          disabled={sessions.length >= 5}
-          title={sessions.length >= 5 ? 'Max 5 parallel sessions reached' : 'New Session in Current Working Directory'}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', opacity: sessions.length >= 5 ? 0.4 : 1, cursor: sessions.length >= 5 ? 'not-allowed' : 'pointer' }}
+          disabled={atLimit}
+          title={atLimit ? `Max ${MAX_SESSIONS} parallel sessions reached` : 'New Session in Current Working Directory'}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', opacity: atLimit ? 0.4 : 1, cursor: atLimit ? 'not-allowed' : 'pointer' }}
         >
           <Plus size={14} />
-          <FolderDown size={14} color={sessions.length >= 5 ? 'var(--text-muted)' : 'var(--accent-mana)'} />
+          <FolderDown size={14} color={atLimit ? 'var(--text-muted)' : 'var(--accent-mana)'} />
         </button>
       </div>
     </div>

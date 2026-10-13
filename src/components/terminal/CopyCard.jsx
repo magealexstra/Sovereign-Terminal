@@ -21,6 +21,8 @@ import { parseCopyLines } from '../../utils/parseCopyLines';
  * Keyboard retention: every interactive element inside this component carries
  * onPointerDown + onMouseDown preventDefault to prevent xterm textarea blur.
  */
+const DEFAULT_CUST_CONFIG = { label: 'CUST', value: 'set number of lines to copy (50)' };
+
 export default function CopyCard({
   onCopyLastOutput,
   onCopyScreenBuffer,
@@ -41,22 +43,26 @@ export default function CopyCard({
   // Dynamic CUST button label & parsed line count from localStorage
   const [custConfig, setCustConfig] = useState(() => {
     try {
-      const saved = localStorage.getItem('sovereign_cust_button');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return { label: 'CUST', value: 'set number of lines to copy (50)' };
+      const saved = JSON.parse(localStorage.getItem('sovereign_cust_button'));
+      if (saved && typeof saved === 'object') return saved;
+    } catch {
+      // Unreadable saved config: the default below is used.
+    }
+    return DEFAULT_CUST_CONFIG;
   });
 
   useEffect(() => {
     const handleStorageChange = () => {
       try {
-        const saved = localStorage.getItem('sovereign_cust_button');
-        if (saved) setCustConfig(JSON.parse(saved));
-        
+        const saved = JSON.parse(localStorage.getItem('sovereign_cust_button'));
+        if (saved && typeof saved === 'object') setCustConfig(saved);
+
         const d = localStorage.getItem('sovereign_copy_destination');
         if (d === 'code') setDestinationMode('code');
         else if (d === 'clip') setDestinationMode('clip');
-      } catch {}
+      } catch {
+        // Unreadable saved settings: the values shown stay as they are.
+      }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -98,8 +104,11 @@ export default function CopyCard({
     setDestinationMode(nextMode);
     try {
       localStorage.setItem('sovereign_copy_destination', nextMode);
+      // The file explorer listens for this event to re-read the destination.
       window.dispatchEvent(new Event('storage'));
-    } catch {}
+    } catch {
+      // Storage is unavailable; the choice applies until the page reloads.
+    }
   };
 
   const parsedLines = parseCopyLines(custConfig.value);

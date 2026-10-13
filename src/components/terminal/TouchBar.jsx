@@ -10,53 +10,87 @@ import {
   KEY_LINE_PRESETS
 } from '../settings/button-studio/buttonData';
 
+// Special keys are looked up by label before anything else. Their escape sequences come from the
+// button presets so each is defined once; the old arrow glyphs and names are kept as aliases for
+// labels saved on buttons and layouts.
+const PRESET_KEY_VALUES = Object.fromEntries(
+  [...KEY_NAV_PRESETS, ...KEY_FN_PRESETS, ...KEY_SYM_PRESETS, ...KEY_MODE_PRESETS].map((b) => [b.label, b.value])
+);
+const keysFromPresets = (labels) => Object.fromEntries(labels.map((label) => [label, PRESET_KEY_VALUES[label]]));
+const aliasesOf = (presetLabel, aliases) => Object.fromEntries(aliases.map((alias) => [alias, PRESET_KEY_VALUES[presetLabel]]));
+
 const KEY_MAPPINGS = {
-  'ESC': '\x1b',
-  'TAB': '\t',
-  'DEL': '\x1b[3~',
+  ...keysFromPresets([
+    'ESC', 'TAB', 'DEL', '-', '|', '~', '/',
+    'PgUp', 'PgDn', 'Home', 'End', 'Ctrl+Left', 'Ctrl+Right', 'Shift+Tab', 'Backspace', '⏎',
+    ...Array.from({ length: 12 }, (_, i) => `F${i + 1}`),
+  ]),
   '^C': '\x03',
   '^Z': '\x1a',
-  '-': '-',
-  '|': '|',
-  '~': '~',
-  '/': '/',
   'sudo': 'sudo ',
   'exit': 'exit\n',
-  'ArrowUp': '\x1b[A',
-  'ArrowDown': '\x1b[B',
-  'ArrowLeft': '\x1b[D',
-  'ArrowRight': '\x1b[C',
-  '▲ Up': '\x1b[A',
-  '▼ Down': '\x1b[B',
-  '◀ Left': '\x1b[D',
-  '► Right': '\x1b[C',
-  '▶ Right': '\x1b[C',
-  '▲': '\x1b[A',
-  '▼': '\x1b[B',
-  '◀': '\x1b[D',
-  '►': '\x1b[C',
-  '▶': '\x1b[C',
-  '◄': '\x1b[D',
-  '←': '\x1b[D',
-  '→': '\x1b[C',
-  '↓': '\x1b[B',
-  '↑': '\x1b[A',
-  'PgUp': '\x1b[5~',
-  'PgDn': '\x1b[6~',
-  'Home': '\x1b[H',
-  'End': '\x1b[F',
-  'Ctrl+Left': '\x1b[1;5D',
-  'Ctrl+Right': '\x1b[1;5C',
-  'Shift+Tab': '\x1b[Z',
-  'Backspace': '\x7f',
-  'Enter': '\r',
-  '⏎': '\r',
-  'F1': '\x1bOP', 'F2': '\x1bOQ', 'F3': '\x1bOR', 'F4': '\x1bOS',
-  'F5': '\x1b[15~', 'F6': '\x1b[17~', 'F7': '\x1b[18~', 'F8': '\x1b[19~',
-  'F9': '\x1b[20~', 'F10': '\x1b[21~', 'F11': '\x1b[23~', 'F12': '\x1b[24~'
+  'Enter': PRESET_KEY_VALUES['⏎'],
+  ...aliasesOf('▲', ['ArrowUp', '▲ Up', '↑']),
+  ...aliasesOf('▼', ['ArrowDown', '▼ Down', '↓']),
+  ...aliasesOf('◀', ['ArrowLeft', '◀ Left', '◄', '←']),
+  ...aliasesOf('▶', ['ArrowRight', '► Right', '▶ Right', '►', '→']),
+  ...keysFromPresets(['▲', '▼', '◀', '▶']),
 };
 
 const isGlyphSymbol = (str) => ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'].includes(str);
+
+const getSavedSudo = () => {
+  try {
+    return sessionStorage.getItem('sovereign_sudo_password');
+  } catch {
+    return null;
+  }
+};
+
+// The macro modal's group tabs and the suites under each.
+const GROUPS = {
+  AI: { label: 'AI', suites: ['AGY', 'CLD', 'HMS'] },
+  EDIT: { label: 'EDIT', suites: ['VIM', 'TXT', 'FILE'] },
+  PKG: { label: 'PKG', suites: ['APT', 'PAC', 'YUM'] },
+  SYS: { label: 'SYS', suites: ['DOC', 'GIT', 'SYS', 'NET', 'PY', 'NPM', 'TMX'] },
+  KEY: { label: 'KEY', suites: ['KEY_NAV', 'KEY_FN', 'KEY_SYM', 'KEY_MODE', 'KEY_LINE'] },
+};
+
+// Display names for the keyboard suites in the sub-suite bar; other suites show their own key.
+const SUB_LABELS = {
+  KEY_NAV: 'NAV',
+  KEY_FN: 'FN',
+  KEY_SYM: 'SYM',
+  KEY_MODE: 'MODE',
+  KEY_LINE: 'LINE'
+};
+
+// The built-in command suites by name, with an id on each button; the keyboard suites come from the presets.
+const commandSuites = {
+  AGY: PREBUILT_CATEGORIES.AGY.items.map((item, idx) => ({ id: `agy${idx}`, ...item })),
+  CLD: PREBUILT_CATEGORIES.CLD.items.map((item, idx) => ({ id: `cld${idx}`, ...item })),
+  HMS: PREBUILT_CATEGORIES.HMS.items.map((item, idx) => ({ id: `hms${idx}`, ...item })),
+
+  VIM: PREBUILT_CATEGORIES.VIM.items.map((item, idx) => ({ id: `vim${idx + 1}`, ...item })),
+  FILE: PREBUILT_CATEGORIES.FILE.items.map((item, idx) => ({ id: `file${idx + 1}`, ...item })),
+  TXT: PREBUILT_CATEGORIES.TXT.items.map((item, idx) => ({ id: `txt${idx + 1}`, ...item })),
+  APT: PREBUILT_CATEGORIES.APT.items.map((item, idx) => ({ id: `apt${idx + 1}`, ...item })),
+  PAC: PREBUILT_CATEGORIES.PAC.items.map((item, idx) => ({ id: `pac${idx + 1}`, ...item })),
+  YUM: PREBUILT_CATEGORIES.YUM.items.map((item, idx) => ({ id: `yum${idx + 1}`, ...item })),
+  DOC: PREBUILT_CATEGORIES.DOC.items.map((item, idx) => ({ id: `doc${idx + 1}`, ...item })),
+  GIT: PREBUILT_CATEGORIES.GIT.items.map((item, idx) => ({ id: `git${idx + 1}`, ...item })),
+  SYS: PREBUILT_CATEGORIES.SYS.items.map((item, idx) => ({ id: `sys${idx + 1}`, ...item })),
+  NET: PREBUILT_CATEGORIES.NET.items.map((item, idx) => ({ id: `net${idx + 1}`, ...item })),
+  PY: PREBUILT_CATEGORIES.PY.items.map((item, idx) => ({ id: `py${idx + 1}`, ...item })),
+  NPM: PREBUILT_CATEGORIES.NPM.items.map((item, idx) => ({ id: `npm${idx + 1}`, ...item })),
+  TMX: PREBUILT_CATEGORIES.TMX.items.map((item, idx) => ({ id: `tmx${idx + 1}`, ...item })),
+
+  KEY_NAV: KEY_NAV_PRESETS,
+  KEY_FN: KEY_FN_PRESETS,
+  KEY_SYM: KEY_SYM_PRESETS,
+  KEY_MODE: KEY_MODE_PRESETS,
+  KEY_LINE: KEY_LINE_PRESETS
+};
 
 export default function TouchBar({ onKeyPress }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -76,14 +110,16 @@ export default function TouchBar({ onKeyPress }) {
     setMacroTarget(target);
     try {
       localStorage.setItem('sovereign_macro_target', target);
-    } catch {}
+    } catch {
+      // Storage is unavailable; the choice applies until the page reloads.
+    }
   };
   const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
   const micToastTimerRef = useRef(null);
   const isMountedRef = useRef(true);
 
-  // Speech recognition cleanup on unmount
+  // Stops speech recognition and the mic toast timer on unmount
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -92,7 +128,9 @@ export default function TouchBar({ onKeyPress }) {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
-        } catch (e) {}
+        } catch {
+          // Recognition had already stopped.
+        }
       }
       if (micToastTimerRef.current) {
         clearTimeout(micToastTimerRef.current);
@@ -132,23 +170,7 @@ export default function TouchBar({ onKeyPress }) {
 
 
 
-  const GROUPS = {
-    AI: { label: 'AI', suites: ['AGY', 'CLD', 'HMS'] },
-    EDIT: { label: 'EDIT', suites: ['VIM', 'TXT', 'FILE'] },
-    PKG: { label: 'PKG', suites: ['APT', 'PAC', 'YUM'] },
-    SYS: { label: 'SYS', suites: ['DOC', 'GIT', 'SYS', 'NET', 'PY', 'NPM', 'TMX'] },
-    KEY: { label: 'KEY', suites: ['KEY_NAV', 'KEY_FN', 'KEY_SYM', 'KEY_MODE', 'KEY_LINE'] },
-  };
-
-  const SUB_LABELS = {
-    KEY_NAV: 'NAV',
-    KEY_FN: 'FN',
-    KEY_SYM: 'SYM',
-    KEY_MODE: 'MODE',
-    KEY_LINE: 'LINE'
-  };
-
-  // Inline mic-error toast (non-blocking)
+  // Short-lived inline message above the bar (mic errors, a missing sudo password)
   const [micToast, setMicToast] = useState(null);
   const showMicToast = (msg) => {
     if (!isMountedRef.current) return;
@@ -170,13 +192,16 @@ export default function TouchBar({ onKeyPress }) {
         if (Array.isArray(parsed)) return parsed.filter(item => !PURGED_LAUNCHERS.includes(item));
         if (parsed.bottom && Array.isArray(parsed.bottom)) return parsed.bottom.filter(item => !PURGED_LAUNCHERS.includes(item));
       }
-    } catch {}
+    } catch {
+      // An unreadable saved layout falls back to the default keys.
+    }
     return ['ESC', 'TAB', '^C', '-', '/'];
   });
 
-  // Listen for layout changes across tabs / settings
+  // Re-reads the layout when it is saved here (settings) or in another tab
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleStorageChange = (e) => {
+      if (e.key && e.key !== 'sovereign_layout_slots') return;
       try {
         const saved = localStorage.getItem('sovereign_layout_slots');
         if (saved) {
@@ -184,45 +209,17 @@ export default function TouchBar({ onKeyPress }) {
           if (Array.isArray(parsed)) setActiveSlots(parsed.filter(item => !PURGED_LAUNCHERS.includes(item)));
           else if (parsed.bottom && Array.isArray(parsed.bottom)) setActiveSlots(parsed.bottom.filter(item => !PURGED_LAUNCHERS.includes(item)));
         }
-      } catch {}
+      } catch {
+        // An unreadable saved layout keeps the one already shown.
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Categorized Command Toolkits (Abbreviated 3-Char Badges & AI/CLI Suites)
-  const commandSuites = {
-    // 0-indexed suites
-    AGY: PREBUILT_CATEGORIES.AGY.items.map((item, idx) => ({ id: `agy${idx}`, ...item })),
-    CLD: PREBUILT_CATEGORIES.CLD.items.map((item, idx) => ({ id: `cld${idx}`, ...item })),
-    HMS: PREBUILT_CATEGORIES.HMS.items.map((item, idx) => ({ id: `hms${idx}`, ...item })),
-    
-    // 1-indexed suites
-    VIM: PREBUILT_CATEGORIES.VIM.items.map((item, idx) => ({ id: `vim${idx + 1}`, ...item })),
-    FILE: PREBUILT_CATEGORIES.FILE.items.map((item, idx) => ({ id: `file${idx + 1}`, ...item })),
-    TXT: PREBUILT_CATEGORIES.TXT.items.map((item, idx) => ({ id: `txt${idx + 1}`, ...item })),
-    APT: PREBUILT_CATEGORIES.APT.items.map((item, idx) => ({ id: `apt${idx + 1}`, ...item })),
-    PAC: PREBUILT_CATEGORIES.PAC.items.map((item, idx) => ({ id: `pac${idx + 1}`, ...item })),
-    YUM: PREBUILT_CATEGORIES.YUM.items.map((item, idx) => ({ id: `yum${idx + 1}`, ...item })),
-    DOC: PREBUILT_CATEGORIES.DOC.items.map((item, idx) => ({ id: `doc${idx + 1}`, ...item })),
-    GIT: PREBUILT_CATEGORIES.GIT.items.map((item, idx) => ({ id: `git${idx + 1}`, ...item })),
-    SYS: PREBUILT_CATEGORIES.SYS.items.map((item, idx) => ({ id: `sys${idx + 1}`, ...item })),
-    NET: PREBUILT_CATEGORIES.NET.items.map((item, idx) => ({ id: `net${idx + 1}`, ...item })),
-    PY: PREBUILT_CATEGORIES.PY.items.map((item, idx) => ({ id: `py${idx + 1}`, ...item })),
-    NPM: PREBUILT_CATEGORIES.NPM.items.map((item, idx) => ({ id: `npm${idx + 1}`, ...item })),
-    TMX: PREBUILT_CATEGORIES.TMX.items.map((item, idx) => ({ id: `tmx${idx + 1}`, ...item })),
-    
-    // Imported keyboard shortcuts
-    KEY_NAV: KEY_NAV_PRESETS,
-    KEY_FN: KEY_FN_PRESETS,
-    KEY_SYM: KEY_SYM_PRESETS,
-    KEY_MODE: KEY_MODE_PRESETS,
-    KEY_LINE: KEY_LINE_PRESETS
-  };
-
-  // --- A3: Label-to-value resolver ---
-  // Resolution order: sovereign_buttons (custom) → commandSuites → PREBUILT_CATEGORIES → fallback
+  // Label-to-value resolver. Resolution order: custom buttons, then the built-in suites, then the
+  // prebuilt categories, then the label itself as a command.
   const resolveLabel = (label, id, customButtonsOverride) => {
     const btns = customButtonsOverride || customButtons;
     // 1. Check custom buttons first (so customized built-ins override defaults)
@@ -269,7 +266,7 @@ export default function TouchBar({ onKeyPress }) {
     return { id: id || `res-${label}`, label, value: `${label}\n` };
   };
 
-  // --- A1 + A2: Suite data loader ---
+  // Loads custom buttons, per-suite label overrides and custom macro suites from localStorage
   const loadSuiteData = () => {
     let btns = [];
     try {
@@ -280,7 +277,7 @@ export default function TouchBar({ onKeyPress }) {
       setCustomButtons([]);
     }
 
-    // A1: Load persisted overrides for each built-in suite
+    // Saved label overrides for each built-in suite
     const overrides = {};
     Object.keys(commandSuites).forEach(suiteKey => {
       try {
@@ -293,11 +290,13 @@ export default function TouchBar({ onKeyPress }) {
             );
           }
         }
-      } catch {}
+      } catch {
+        // A suite with unreadable saved overrides keeps its built-in buttons.
+      }
     });
     setSuiteOverrides(overrides);
 
-    // A2: Load custom macro suites (sovereign_buttons entries where value === 'macro')
+    // Custom macro suites are the custom buttons whose value is 'macro'
     try {
       // Build style lookup map for all custom button visual properties
       const styleMap = {};
@@ -328,7 +327,9 @@ export default function TouchBar({ onKeyPress }) {
               }));
             }
           }
-        } catch {}
+        } catch {
+          // A suite with unreadable saved labels is left out.
+        }
       });
 
       // Provide default CUST suite containing all custom buttons
@@ -346,13 +347,18 @@ export default function TouchBar({ onKeyPress }) {
     }
   };
 
-  // Load on mount and reload on any storage change
+  // Loads on mount and reloads when the button or suite data is saved here (settings) or elsewhere.
+  // A storage event for any other key is ignored.
   useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key && e.key !== 'sovereign_buttons' && !e.key.startsWith('sovereign_macro_suite_')) return;
+      loadSuiteData();
+    };
     loadSuiteData();
-    window.addEventListener('storage', loadSuiteData);
+    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('sovereign_custom_buttons_updated', loadSuiteData);
     return () => {
-      window.removeEventListener('storage', loadSuiteData);
+      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('sovereign_custom_buttons_updated', loadSuiteData);
     };
   }, []);
@@ -397,14 +403,19 @@ export default function TouchBar({ onKeyPress }) {
     setShowMacroModal(true);
   };
 
-  // Gboard / Android-Style Continuous Voice Dictation Handler
+  // Continuous voice dictation: a new recognition session starts each time one ends, until the mic is tapped off.
+  // Only the session held in recognitionRef may restart listening, so a quick off-and-on cannot leave two running.
   const toggleVoice = () => {
     if (isRecordingRef.current) {
       // User explicitly tapped mic button to turn OFF
       isRecordingRef.current = false;
       if (isMountedRef.current) setIsRecording(false);
       if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (e) {}
+        try { recognitionRef.current.abort(); } catch {
+          // Recognition had already stopped.
+        }
+        // Cleared so the aborted session's late end event cannot restart listening or flip the button
+        recognitionRef.current = null;
       }
       return;
     }
@@ -455,11 +466,11 @@ export default function TouchBar({ onKeyPress }) {
         };
 
         recognition.onend = () => {
-          if (!isMountedRef.current) return;
-          // Gboard mode: If user hasn't explicitly tapped mic OFF, automatically loop-restart!
+          if (!isMountedRef.current || recognitionRef.current !== recognition) return;
+          // Restart unless the user tapped the mic off
           if (isRecordingRef.current) {
             setTimeout(() => {
-              if (isRecordingRef.current && isMountedRef.current) {
+              if (isRecordingRef.current && isMountedRef.current && recognitionRef.current === recognition) {
                 startListeningSession();
               }
             }, 100);
@@ -474,6 +485,7 @@ export default function TouchBar({ onKeyPress }) {
         console.error('Failed to start speech recognition session:', err);
         isRecordingRef.current = false;
         if (isMountedRef.current) setIsRecording(false);
+        showMicToast('Could not start voice dictation.');
       }
     };
 
@@ -481,7 +493,7 @@ export default function TouchBar({ onKeyPress }) {
   };
 
   const handleSudoMacro = () => {
-    const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
+    const savedSudo = getSavedSudo();
     if (savedSudo && onKeyPress) {
       onKeyPress(`${savedSudo}\n`);
     }
@@ -500,7 +512,7 @@ export default function TouchBar({ onKeyPress }) {
     if (knownValue) return knownValue;
 
     if (itemKey.toLowerCase().includes('sudo')) {
-      const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
+      const savedSudo = getSavedSudo();
       if (!savedSudo) return null;
       return `${savedSudo}\n`;
     }
@@ -508,16 +520,43 @@ export default function TouchBar({ onKeyPress }) {
     return resolveLabel(itemKey).value;
   };
 
+  // Sends a resolved payload to the terminal. A null payload (a sudo button with no saved password)
+  // sends nothing and says so.
+  const sendPayload = (payload) => {
+    if (payload === null) {
+      showMicToast('No saved sudo password.');
+      return;
+    }
+    onKeyPress(payload);
+  };
+
+  // Routes a tapped macro either into the stager text or straight to the terminal, per the macro target.
+  // A macro marked not executable is sent without its trailing newline.
+  const handleMacroPress = (macro) => {
+    if (macroTarget === 'stager') {
+      const valToAppend = macro.value ? macro.value.replace(/\n$/, '') : macro.label;
+      setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
+      setShowStager(true);
+    } else {
+      sendPayload((macro.isExecutable === false)
+        ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
+        : getCommandPayload(macro.label, macro.value));
+    }
+  };
+
+  // Read once per render; it decides whether the sudo password button and sudo slots show
+  const savedSudo = getSavedSudo();
+
   return (
     <>
       {/* TouchBar-Anchored Decoupled Command & Dictation Staging Drawer */}
       <StagingDrawer
         isOpen={showStager}
         onClose={() => setShowStager(false)}
-        initialText={stagerText}
+        text={stagerText}
+        onTextChange={setStagerText}
         onSend={(payload) => {
           if (onKeyPress) onKeyPress(payload);
-          setStagerText('');
         }}
       />
 
@@ -537,7 +576,7 @@ export default function TouchBar({ onKeyPress }) {
         </button>
 
         <button
-          className="touch-btn stager-launcher-btn"
+          className="touch-btn"
           onPointerDown={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => setShowStager((prev) => !prev)}
@@ -547,7 +586,7 @@ export default function TouchBar({ onKeyPress }) {
           <Edit3 size={15} />
         </button>
 
-        {sessionStorage.getItem('sovereign_sudo_password') && (
+        {savedSudo && (
           <button className="touch-btn sudo-btn" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()} onClick={handleSudoMacro} title="Quick Sudo Password Entry">
             <span>(***)</span>
           </button>
@@ -575,7 +614,7 @@ export default function TouchBar({ onKeyPress }) {
             );
           }
 
-          if (item.toLowerCase().includes('sudo') && !sessionStorage.getItem('sovereign_sudo_password')) {
+          if (item.toLowerCase().includes('sudo') && !KEY_MAPPINGS[item] && !savedSudo) {
             return null;
           }
 
@@ -644,7 +683,7 @@ export default function TouchBar({ onKeyPress }) {
                   setShowStager(true);
                   return;
                 }
-                onKeyPress(getCommandPayload(item));
+                sendPayload(getCommandPayload(item));
               }}
             >
               {item}
@@ -781,7 +820,7 @@ export default function TouchBar({ onKeyPress }) {
                 return (
                   <button
                     key={macro.id}
-                    className={`macro-grid-btn ${macro.shape || ''} ${isLauncher ? 'suite-launcher-grid-btn' : ''} ${isGlyphSymbol(macro.label) ? 'glyph-icon-btn' : ''}`}
+                    className={`macro-grid-btn ${macro.shape || ''} ${isGlyphSymbol(macro.label) ? 'glyph-icon-btn' : ''}`}
                     style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
                       background: macro.bg || undefined,
                       color: macro.text || undefined,
@@ -799,16 +838,7 @@ export default function TouchBar({ onKeyPress }) {
                         setPrimaryGroup(targetGroup);
                         setSelectedSuite(macro.label);
                       } else {
-                        if (macroTarget === 'stager') {
-                          const valToAppend = macro.value ? macro.value.replace(/\n$/, '') : macro.label;
-                          setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
-                          setShowStager(true);
-                        } else {
-                          const payload = (macro.isExecutable === false)
-                            ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
-                            : getCommandPayload(macro.label, macro.value);
-                          onKeyPress(payload);
-                        }
+                        handleMacroPress(macro);
                         setShowMacroModal(false);
                       }
                     }}
@@ -920,16 +950,7 @@ export default function TouchBar({ onKeyPress }) {
                     onPointerDown={(e) => e.preventDefault()}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
-                      if (macroTarget === 'stager') {
-                        const valToAppend = macro.value ? macro.value.replace(/\n$/, '') : macro.label;
-                        setStagerText(prev => (prev && prev.trim().length > 0 ? `${prev} ${valToAppend}` : valToAppend));
-                        setShowStager(true);
-                      } else {
-                        const payload = (macro.isExecutable === false)
-                          ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
-                          : getCommandPayload(macro.label, macro.value);
-                        onKeyPress(payload);
-                      }
+                      handleMacroPress(macro);
                       setShowFocusedSuiteModal(false);
                     }}
                   >

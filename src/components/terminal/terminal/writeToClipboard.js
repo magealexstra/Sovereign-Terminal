@@ -15,11 +15,17 @@ export const writeToClipboard = (text) => {
     ta.setAttribute('tabindex', '-1');
     ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
     document.body.appendChild(ta);
-    ta.select();
-    ta.setSelectionRange(0, text.length);
-    const ok = document.execCommand('copy');
-    if (ta.blur) ta.blur();
-    document.body.removeChild(ta);
+    let ok = false;
+    try {
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      ok = document.execCommand('copy');
+    } catch {
+      // Treated as a failed copy below.
+    } finally {
+      if (ta.blur) ta.blur();
+      document.body.removeChild(ta);
+    }
     if (ok) {
       resolve();
     } else {

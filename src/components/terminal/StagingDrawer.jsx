@@ -8,6 +8,9 @@ import { X, Edit3 } from 'lucide-react';
  * The parent container tracks the soft keyboard, so the drawer rides above it.
  * Capped at 45dvh max height with internal overflow scrolling.
  *
+ * The text is owned by the parent (`text`, `onTextChange`) so macros and dictation add to the same
+ * text the user is typing, and it survives the drawer being closed and reopened.
+ *
  * Transmission Modes:
  *   - Direct Mode (Default): Sends text + '\n' to execute command immediately.
  *   - Two-Step Mode: Places text onto terminal prompt without '\n' for manual Enter.
@@ -15,7 +18,8 @@ import { X, Edit3 } from 'lucide-react';
 export default function StagingDrawer({
   isOpen,
   onClose,
-  initialText = '',
+  text,
+  onTextChange,
   onSend,
 }) {
   const textareaRef = useRef(null);
@@ -25,20 +29,30 @@ export default function StagingDrawer({
     onPointerDown: (e) => { e.stopPropagation(); e.preventDefault(); },
     onMouseDown:   (e) => { e.stopPropagation(); e.preventDefault(); },
   };
-  const [stagingText, setStagingText] = useState(initialText);
-  const [history, setHistory] = useState(() => {
+  const readSavedHistory = () => {
     try {
       const saved = localStorage.getItem('sovereign_stager_history');
-      return saved ? JSON.parse(saved) : [];
+      const list = saved ? JSON.parse(saved) : [];
+      return Array.isArray(list) ? list : [];
     } catch {
       return [];
     }
-  });
+  };
+  const [history, setHistory] = useState(readSavedHistory);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const draftTextRef = useRef('');
   const [historyToast, setHistoryToast] = useState('');
   const longPressTimerRef = useRef(null);
+  const toastTimerRef = useRef(null);
   const isLongPressRef = useRef(false);
+  // The last text this component passed up; any other change to `text` came from outside.
+  const lastEmittedRef = useRef(text);
+  const stagingText = text;
+
+  const setStagingText = (value) => {
+    lastEmittedRef.current = value;
+    onTextChange(value);
+  };
 
   const [isTwoStepMode, setIsTwoStepMode] = useState(() => {
     try {
@@ -63,37 +77,43 @@ export default function StagingDrawer({
     } catch {}
   };
 
-  // Sync initialText when dictation updates
+  // Text changed from outside (a macro, dictation) ends any history browsing.
   useEffect(() => {
-    if (initialText) {
-      setStagingText(initialText);
+    if (text !== lastEmittedRef.current) {
+      lastEmittedRef.current = text;
       setHistoryIndex(-1);
     }
-  }, [initialText]);
+  }, [text]);
 
-  // Focus Lock & Trap: Ensure textarea receives focus immediately upon opening and prompt is prepared
+  // Timers that outlive the drawer must not fire after it unmounts (a held Clear would wipe history).
+  useEffect(() => () => {
+    clearTimeout(longPressTimerRef.current);
+    clearTimeout(toastTimerRef.current);
+  }, []);
+
+  // Puts the caret at the end of the text and focuses the textarea.
+  const focusAtEnd = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+  };
+
+  // On open, focuses the textarea at once and again after 50 ms, since the terminal's own focus
+  // handling can take focus back right after the open event, and prepares the terminal prompt.
   useEffect(() => {
     if (isOpen) {
       window.dispatchEvent(new CustomEvent('sovereign_open_stager'));
-      if (textareaRef.current) {
-        textareaRef.current.focus({ preventScroll: true });
-        const len = textareaRef.current.value.length;
-        textareaRef.current.setSelectionRange(len, len);
-      }
-      const timerId = setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus({ preventScroll: true });
-          const len = textareaRef.current.value.length;
-          textareaRef.current.setSelectionRange(len, len);
-        }
-      }, 50);
+      focusAtEnd();
+      const timerId = setTimeout(focusAtEnd, 50);
       return () => clearTimeout(timerId);
     } else {
       setHistoryIndex(-1);
     }
   }, [isOpen]);
 
-  // Focus Trapping: Prevent xterm helper textarea from stealing focus while Stager is open
+  // Keeps the xterm helper textarea from taking focus while the drawer is open
   useEffect(() => {
     if (!isOpen) return;
     const handleFocusIn = (e) => {
@@ -175,8 +195,7 @@ export default function StagingDrawer({
     const cleanText = stagingText.trim();
 
     try {
-      const saved = localStorage.getItem('sovereign_stager_history');
-      const list = saved ? JSON.parse(saved) : [];
+      const list = readSavedHistory();
       if (list.length === 0 || list[list.length - 1] !== cleanText) {
         list.push(cleanText);
         if (list.length > 1000) {
@@ -185,7 +204,9 @@ export default function StagingDrawer({
         localStorage.setItem('sovereign_stager_history', JSON.stringify(list));
         setHistory(list);
       }
-    } catch {}
+    } catch {
+      // The command is still sent; only the history entry is lost when storage is unavailable.
+    }
 
     setHistoryIndex(-1);
     draftTextRef.current = '';
@@ -196,17 +217,24 @@ export default function StagingDrawer({
 
   const startClearPress = () => {
     isLongPressRef.current = false;
+    clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = setTimeout(() => {
       isLongPressRef.current = true;
       try {
         localStorage.removeItem('sovereign_stager_history');
-      } catch {}
+      } catch {
+        setHistoryToast('Could not clear stager history');
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setHistoryToast(''), 2000);
+        return;
+      }
       setHistory([]);
       setHistoryIndex(-1);
       draftTextRef.current = '';
       setStagingText('');
       setHistoryToast('Stager history cleared');
-      setTimeout(() => setHistoryToast(''), 2000);
+      clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => setHistoryToast(''), 2000);
     }, 3000);
   };
 
@@ -249,7 +277,7 @@ export default function StagingDrawer({
         <div className="staging-drawer-controls">
           <button
             type="button"
-            className={`stager-mode-toggle tap-target ${tapTarget === 'stager' ? 'stager' : 'xterm'}`}
+            className={`stager-mode-toggle ${tapTarget === 'stager' ? 'stager' : 'xterm'}`}
             {...noBlur}
             onClick={(e) => {
               e.stopPropagation();
@@ -275,7 +303,7 @@ export default function StagingDrawer({
 
           <button
             type="button"
-            className="stager-icon-btn close-btn"
+            className="stager-icon-btn"
             onClick={(e) => {
               e.stopPropagation();
               onClose();
@@ -303,7 +331,6 @@ export default function StagingDrawer({
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck="false"
-        autoFocus
       />
 
       <div className="staging-drawer-footer">
@@ -311,11 +338,13 @@ export default function StagingDrawer({
           type="button"
           className="stager-action-btn clear-btn"
           {...noBlur}
-          onTouchStart={startClearPress}
-          onTouchEnd={cancelClearPress}
-          onMouseDown={startClearPress}
-          onMouseUp={cancelClearPress}
-          onMouseLeave={cancelClearPress}
+          onPointerDown={(e) => {
+            noBlur.onPointerDown(e);
+            startClearPress();
+          }}
+          onPointerUp={cancelClearPress}
+          onPointerLeave={cancelClearPress}
+          onPointerCancel={cancelClearPress}
           onClick={handleClearClick}
           disabled={!stagingText && history.length === 0}
           title="Tap to clear current text. Hold for 3s to wipe history."
@@ -326,7 +355,7 @@ export default function StagingDrawer({
         <div className="stager-footer-nav-group">
           <button
             type="button"
-            className="stager-nav-btn glyph-icon-btn"
+            className="stager-nav-btn"
             {...noBlur}
             onClick={(e) => {
               e.stopPropagation();
@@ -340,7 +369,7 @@ export default function StagingDrawer({
 
           <button
             type="button"
-            className="stager-nav-btn glyph-icon-btn"
+            className="stager-nav-btn"
             {...noBlur}
             onClick={(e) => {
               e.stopPropagation();

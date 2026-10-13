@@ -1,6 +1,12 @@
-/**
- * Helper to generate xterm theme object from AppContext palette.
- */
+// Used when a theme (for example a saved custom one) lacks a colour.
+const FALLBACK_ANSI = {
+  black: '#3B4252', red: '#BF616A', green: '#A3BE8C', yellow: '#EBCB8B',
+  blue: '#81A1C1', magenta: '#B48EAD', cyan: '#88C0D0', white: '#E5E9F0',
+  brightBlack: '#4C566A', brightRed: '#D08770', brightGreen: '#A3BE8C', brightYellow: '#EBCB8B',
+  brightBlue: '#5E81AC', brightMagenta: '#B48EAD', brightCyan: '#8FBCBB', brightWhite: '#ECEFF4',
+};
+
+// Returns `color` with the alpha channel `opacityHex` (two hex digits) added.
 const addAlpha = (color, opacityHex = '66') => {
   if (typeof color !== 'string') return '#88C0D0' + opacityHex;
   const trimmed = color.trim();
@@ -18,10 +24,10 @@ const addAlpha = (color, opacityHex = '66') => {
   return '#88C0D0' + opacityHex;
 };
 
+// Blends `baseHex` toward `mixHex` by `lightnessPercent` (0-100) and returns the resulting hex colour.
 const computeColorMix = (baseHex, mixHex, lightnessPercent = 18) => {
   const parseHex = (hex, fallbackHex) => {
-    if (typeof hex !== 'string') return parseHex(fallbackHex, '111d29');
-    let cleaned = hex.trim().replace('#', '');
+    let cleaned = (typeof hex === 'string' ? hex : fallbackHex).trim().replace('#', '');
     if (cleaned.length === 3) {
       cleaned = cleaned.split('').map(c => c + c).join('');
     }
@@ -45,6 +51,7 @@ const computeColorMix = (baseHex, mixHex, lightnessPercent = 18) => {
   return '#' + blendedRgb.map(c => Math.max(0, Math.min(255, c)).toString(16).padStart(2, '0')).join('');
 };
 
+// Builds the xterm theme object from the app theme, the surface mix amount and the mix colour.
 export const getTermTheme = (currentTheme, lightness = 18, mixColor) => {
   const baseBg = currentTheme?.bgEarth || '#111d29';
   const targetMix = mixColor || currentTheme?.textParchment || '#E6EDF0';
@@ -56,21 +63,8 @@ export const getTermTheme = (currentTheme, lightness = 18, mixColor) => {
     cursor: currentTheme?.accentHighlight || '#4e90a3',
     cursorAccent: computedBg,
     selectionBackground: addAlpha(currentTheme?.accentHighlight || '#4e90a3', '66'),
-  black:         currentTheme?.black         || '#3B4252',
-  red:           currentTheme?.red           || '#BF616A',
-  green:         currentTheme?.green         || '#A3BE8C',
-  yellow:        currentTheme?.yellow        || '#EBCB8B',
-  blue:          currentTheme?.blue          || '#81A1C1',
-  magenta:       currentTheme?.magenta       || '#B48EAD',
-  cyan:          currentTheme?.cyan          || '#88C0D0',
-  white:         currentTheme?.white         || '#E5E9F0',
-  brightBlack:   currentTheme?.brightBlack   || '#4C566A',
-  brightRed:     currentTheme?.brightRed     || '#D08770',
-  brightGreen:   currentTheme?.brightGreen   || '#A3BE8C',
-  brightYellow:  currentTheme?.brightYellow  || '#EBCB8B',
-  brightBlue:    currentTheme?.brightBlue    || '#5E81AC',
-  brightMagenta: currentTheme?.brightMagenta || '#B48EAD',
-  brightCyan:    currentTheme?.brightCyan    || '#8FBCBB',
-  brightWhite:   currentTheme?.brightWhite   || '#ECEFF4',
+    ...Object.fromEntries(
+      Object.entries(FALLBACK_ANSI).map(([name, fallback]) => [name, currentTheme?.[name] || fallback])
+    ),
   };
 };

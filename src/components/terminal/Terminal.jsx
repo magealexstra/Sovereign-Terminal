@@ -10,7 +10,8 @@ import { writeToClipboard } from './terminal/writeToClipboard';
 import CopyCard from './CopyCard';
 import '@xterm/xterm/css/xterm.css';
 
-// Helper: extracts buffer lines and intelligently joins soft-wrapped lines
+// Reads the lines [startLine, endLine) of a terminal buffer as text, joining soft-wrapped lines
+// back into the one line they were before wrapping.
 const extractBufferRange = (buffer, startLine, endLine) => {
   let result = '';
   for (let i = startLine; i < endLine; i++) {
@@ -26,6 +27,22 @@ const extractBufferRange = (buffer, startLine, endLine) => {
   return result.trim();
 };
 
+// Where a tap on the terminal goes: 'stager' opens the command stager, anything else focuses xterm.
+const readTapMode = () => {
+  try {
+    return localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
+  } catch {
+    return 'stager';
+  }
+};
+
+// Matches a file path under the working root (or /app, ./ and ../) inside one terminal line.
+const buildLinkRegex = (rootDir) => {
+  const alternatives = ['/app', '\\./', '\\.\\./'];
+  if (rootDir) alternatives.unshift(rootDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp(`(?:${alternatives.join('|')})[^\\s:\\x1b'"]+\\.[a-zA-Z0-9]+`, 'g');
+};
+
 export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput, onOpenFile, onCwdChange, onInspectText, rootDir }) {
   const { theme, fontSizeTerminal, tmuxSettings, terminalBgLightness, terminalMixColor } = useApp();
   const { toast, showToast } = useToast();
@@ -36,11 +53,20 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const isSwipingRef = useRef(false);
   const selectionTimer = useRef(null);
   const fontTimerRef = useRef(null);
-  const termTextareaBlurHandlerRef = useRef(null);
+  const injectTimerRef = useRef(null);
+  const backspaceTimerRef = useRef(null);
+  // The lifecycle effect runs once, so it reads props and the toast function through refs to see the latest.
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
-  const voiceInputRef = useRef(voiceInput);
-  voiceInputRef.current = voiceInput;
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
+  const rootDirRef = useRef(rootDir);
+  rootDirRef.current = rootDir;
+  const onOpenFileRef = useRef(onOpenFile);
+  onOpenFileRef.current = onOpenFile;
+  const onCwdChangeRef = useRef(onCwdChange);
+  onCwdChangeRef.current = onCwdChange;
+  const lastFitKeyRef = useRef('');
   const tmuxSettingsRef = useRef(tmuxSettings);
   tmuxSettingsRef.current = tmuxSettings;
   const lastSubagentSyncRef = useRef(0);
@@ -51,7 +77,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const connectRef = useRef(null);
 
-  // Single-Pipeline Guarded Resize Handshake
+  // Fits the terminal and tells the server its size. Only the active, visible session sends; without
+  // force it sends only when the size changed.
   const sendResizeHandshake = (force = false) => {
     if (!isActiveRef.current) return;
     const sock = socketRef.current;
@@ -70,19 +97,24 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
           lastRowsRef.current = rows;
           sock.send(JSON.stringify({ type: 'resize', cols, rows, force_refresh: force }));
         }
-      } catch (e) {}
+      } catch {
+        // A failed fit or send leaves the old size in place; the next resize or tab switch retries.
+      }
     }
   };
 
-  // VisualViewport API listener — triggers fitAddon on viewport scaling
+  // Re-fits the active terminal when the visual viewport scales (soft keyboard, pinch zoom).
+  // Hidden sessions skip it; they re-fit when they become active.
   useEffect(() => {
     if (!window.visualViewport) return;
 
     const handleVisualResize = () => {
-      if (fitAddonInstance.current) {
+      if (fitAddonInstance.current && isActiveRef.current) {
         try {
           fitAddonInstance.current.fit();
-        } catch (e) {}
+        } catch {
+          // The terminal may be mid-teardown or hidden; there is nothing to fit.
+        }
       }
     };
 
@@ -92,7 +124,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     };
   }, []);
 
-  // Live font size updates: let fitAddon.fit() own the resize completely
+  // Applies a font size change and, after a short pause, refits and tells the server the new size.
   useEffect(() => {
     if (xtermInstance.current) {
       xtermInstance.current.options.fontSize = fontSizeTerminal || 14;
@@ -106,16 +138,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     return () => { if (fontTimerRef.current) clearTimeout(fontTimerRef.current); };
   }, [fontSizeTerminal]);
 
-  // Live color theme & surface mix updates
+  // Applies theme and surface-mix changes to the running terminal.
   useEffect(() => {
     if (xtermInstance.current) {
       xtermInstance.current.options.theme = getTermTheme(theme, terminalBgLightness, terminalMixColor);
     }
   }, [theme, terminalBgLightness, terminalMixColor]);
 
-  // Re-fit, focus, and scroll when this session becomes the active visible tab.
-  // Checks WebSocket readiness and reconnects if connection was lost while inactive.
+  // Re-fits, focuses and scrolls when this session becomes the active tab or the keyboard opens or closes.
+  // Reconnects if the socket was lost while inactive. The server is asked to redraw only on a tab switch;
+  // a keyboard change alters the size, which the resize message already carries.
   useEffect(() => {
+    const fitKey = `${session?.id}:${isActive}`;
+    const isSwitch = lastFitKeyRef.current !== fitKey;
+    lastFitKeyRef.current = fitKey;
+
     if (isActive) {
       const isSocketDead = !socketRef.current ||
         socketRef.current.readyState === WebSocket.CLOSED ||
@@ -130,12 +167,6 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
           try {
             if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
 
-            if (xtermInstance.current) {
-              try {
-                xtermInstance.current.clearTextureAtlas();
-              } catch (e) {}
-            }
-
             fitAddonInstance.current.fit();
             xtermInstance.current.refresh(0, xtermInstance.current.rows - 1);
             xtermInstance.current.scrollToBottom();
@@ -144,11 +175,13 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
             }
 
             sendResizeHandshake(force);
-          } catch (e) {}
+          } catch {
+            // The terminal may have been disposed since the timer was set.
+          }
         };
 
-        runFit(true);
-        const timer = setTimeout(() => runFit(true), 150);
+        runFit(isSwitch);
+        const timer = setTimeout(() => runFit(isSwitch), 150);
 
         return () => {
           clearTimeout(timer);
@@ -157,7 +190,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
   }, [isActive, session?.id, isKeyboardOpen]);
 
-  // Handle browser/device visibility changes (e.g. mobile unlock or returning from another tab/app)
+  // Reconnects a dead socket when the page becomes visible again (phone unlock, returning to the browser tab).
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isActiveRef.current) {
@@ -176,6 +209,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     };
   }, []);
 
+  // Focuses the terminal on request unless a modal or the stager is open.
   useEffect(() => {
     const handleGlobalFocus = () => {
       if (injectingRef.current) return;
@@ -213,13 +247,21 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     term.loadAddon(fitAddon);
     term.loadAddon(webLinksAddon);
 
-    // Custom File Path Link Router (rootDir/..., /app/..., ./...)
+    // File path links (working root, /app, ./ and ../). The root and the open-file callback are read
+    // through refs so a root that arrives after mount is used; the pattern is rebuilt only when it changes.
+    let linkRegex = null;
+    let linkRegexRoot = null;
     term.registerLinkProvider({
       provideLinks: (bufferLineNumber, callback) => {
         const lineText = term.buffer.active?.getLine(bufferLineNumber - 1)?.translateToString(true);
         if (!lineText) { callback([]); return; }
-        const escapedRoot = (rootDir || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(?:${escapedRoot}|/app|\\./|\\.\\./)[^\\s:\\x1b'"]+\\.[a-zA-Z0-9]+`, 'g');
+        const root = rootDirRef.current || '';
+        if (!linkRegex || linkRegexRoot !== root) {
+          linkRegex = buildLinkRegex(root);
+          linkRegexRoot = root;
+        }
+        const regex = linkRegex;
+        regex.lastIndex = 0;
         const links = [];
         let match;
         while ((match = regex.exec(lineText)) !== null) {
@@ -231,7 +273,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
               end: { x: startIdx + pathText.length, y: bufferLineNumber }
             },
             text: pathText,
-            activate: (evt, text) => { if (onOpenFile) onOpenFile(text); }
+            activate: (evt, text) => { if (onOpenFileRef.current) onOpenFileRef.current(text); }
           });
         }
         callback(links);
@@ -240,16 +282,18 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
     term.open(terminalRef.current);
 
+    let handleTextareaBlur = null;
+    let refocusTimer = null;
     if (term.textarea) {
-      // Non-disruptive attributes to disable auto-capitalization and spellcheck desync
+      // Attributes that turn off auto-capitalization, autocorrect and spellcheck on the input
       term.textarea.setAttribute('autocorrect', 'off');
       term.textarea.setAttribute('autocapitalize', 'none');
       term.textarea.setAttribute('spellcheck', 'false');
       term.textarea.setAttribute('autocomplete', 'off');
-      // Force Gboard to drop composition buffer and predictive text ribbon
+      // Makes Gboard drop its composition buffer and predictive text ribbon
       term.textarea.setAttribute('inputmode', 'email');
 
-      const handleTextareaBlur = (e) => {
+      handleTextareaBlur = (e) => {
         if (injectingRef.current) return;
         // Do NOT reclaim focus if Master Macro Modal, Command Stager, or Copy Card is active in DOM
         if (document.body.querySelector('.macro-modal-overlay') || 
@@ -261,7 +305,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         }
         if (isActiveRef.current) {
           // Reclaim focus aggressively to prevent keyboard dismissal ONLY while terminal tab is active and no modal/stager is open
-          setTimeout(() => {
+          clearTimeout(refocusTimer);
+          refocusTimer = setTimeout(() => {
             if (injectingRef.current || !isActiveRef.current) return;
             if (document.body.querySelector('.macro-modal-overlay') || 
                 document.body.querySelector('.staging-drawer-container') ||
@@ -271,28 +316,31 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         }
       };
       term.textarea.addEventListener('blur', handleTextareaBlur);
-      termTextareaBlurHandlerRef.current = handleTextareaBlur;
     }
 
     xtermInstance.current = term;
     fitAddonInstance.current = fitAddon;
 
-    // performFit: fitAddon.fit() is the single source of truth for sizing.
-    // Guard: skip if the container has zero height (display:none parent) to
-    // avoid fitting a hidden terminal and sending a bad resize to the backend.
+    // performFit: fitAddon.fit() is the single source of truth for sizing, run on the next frame and
+    // coalesced so several requests in one frame fit once. It skips a container with zero height
+    // (display:none parent) so a hidden terminal is never fitted and no bad size reaches the server.
+    let fitFrame = 0;
     const performFit = () => {
-      requestAnimationFrame(() => {
+      if (fitFrame) return;
+      fitFrame = requestAnimationFrame(() => {
+        fitFrame = 0;
         try {
-          if (!terminalRef.current || terminalRef.current.clientHeight === 0) return;
+          if (!isMounted || !terminalRef.current || terminalRef.current.clientHeight === 0) return;
           fitAddon.fit();
           term.refresh(0, term.rows - 1);
-        } catch (e) {}
+        } catch {
+          // The terminal may have been disposed between the request and the frame.
+        }
       });
     };
 
-    // Initial fit pulses — lets the DOM fully paint the flex layout before measuring
-    setTimeout(performFit, 50);
-    setTimeout(performFit, 200);
+    // Initial fit pulses let the flex layout finish painting before it is measured
+    const initialFitTimers = [setTimeout(performFit, 50), setTimeout(performFit, 200)];
 
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready
@@ -302,17 +350,16 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
         .catch(() => {});
     }
 
-    // Debounced Copy-on-Select Clipboard Handler
-    // Store the IDisposable so we can call .dispose() in cleanup.
+    // Copies the selection to the clipboard 300 ms after it stops changing.
     const selectionDisposable = term.onSelectionChange(() => {
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
       selectionTimer.current = setTimeout(() => {
         const selection = term.getSelection();
         if (selection && selection.trim().length > 0) {
           writeToClipboard(selection).then(() => {
-            showToast('Copied to Clipboard');
+            showToastRef.current('Copied to Clipboard');
           }).catch(() => {
-            showToast('Copied to Clipboard');
+            showToastRef.current('Failed to copy to clipboard');
           });
         }
       }, 300);
@@ -325,22 +372,15 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }
     });
 
-    // ── Touch Swipe-to-Scroll (ttyd pattern) ───────────────────────────────
-    // Send SGR mouse-wheel escape sequences through the live WebSocket.
-    // tmux receives these as real mouse wheel events and enters/scrolls
-    // copy-mode — the same mechanism that makes ttyd-mobile scroll work.
+    // Touch swipe-to-scroll: a swipe sends SGR mouse-wheel escape sequences through the live
+    // WebSocket. tmux receives them as real mouse wheel events and enters or scrolls copy-mode.
     //
-    // touchmove is NON-PASSIVE so we can call e.preventDefault().
-    // The terminal is an xterm canvas — the browser sees no CSS scroll
-    // container inside it. Without preventDefault, when tmux hits the
-    // bottom of its buffer and the user continues swiping, the browser
-    // immediately chains the scroll to the document and pans the page.
-    // overscroll-behavior:none only stops bounce at the edge of an
-    // existing CSS scroll container, which the canvas is not.
-    // e.preventDefault() cancels the browser's scroll gesture for the
-    // full touch sequence; our SGR codes go via WebSocket unaffected.
-    // xterm tap/focus/selection use touchstart & touchend directly, so
-    // preventing the browser default on touchmove does not break them.
+    // touchmove is non-passive so it can call preventDefault. xterm draws into plain DOM elements
+    // with no CSS scroll container of its own, so without preventDefault a swipe that reaches the end
+    // of tmux's buffer would chain to the document and pan the page. overscroll-behavior:none only
+    // stops the bounce at the edge of a real CSS scroll container. preventDefault cancels the browser's
+    // scroll gesture for the whole touch sequence while the wheel codes still go out over the socket.
+    // xterm's tap, focus and selection use touchstart and touchend, which this does not affect.
     const SCROLL_SENSITIVITY = 36; // px per scroll tick (matches ttyd-mobile)
     let touchStartYLocal = 0;
     let touchStartYForSwipe = 0; // closure-local anchor for swipe displacement check
@@ -390,9 +430,12 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }
     };
 
+    // The swipe flag stays set briefly after the finger lifts so the click that ends a swipe is ignored.
+    let swipeResetTimer = null;
     const handleTouchEnd = () => {
       touchAccumLocal = 0;
-      setTimeout(() => {
+      clearTimeout(swipeResetTimer);
+      swipeResetTimer = setTimeout(() => {
         isSwipingRef.current = false;
       }, 150);
     };
@@ -402,7 +445,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     containerEl.addEventListener('touchmove', handleTouchMove, { passive: false }); // non-passive: needs preventDefault
     containerEl.addEventListener('touchend', handleTouchEnd, { passive: true });
 
-    // ── WebSocket with auto-reconnect ────────────────────────────────────────
+    // WebSocket with automatic reconnect
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const sessionId = session?.id || 'main';
     const cwdParam = session?.initialCwd ? `&cwd=${encodeURIComponent(session.initialCwd)}` : '';
@@ -412,6 +455,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     let reconnectAttempts = 0;
     const maxReconnects = 10;
     let reconnectTimeout = null;
+    // Set when a connect was requested while the container had no height (a hidden panel). The
+    // ResizeObserver completes it as soon as the container is laid out, so nothing polls meanwhile.
+    let connectPending = false;
 
     const connect = () => {
       if (!isMounted) return;
@@ -421,24 +467,25 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }
       const el = terminalRef.current;
       if (!el || el.clientHeight === 0) {
-        // Container not painted yet — delay connect until next layout frame
-        requestAnimationFrame(() => setTimeout(connect, 50));
+        connectPending = true;
         return;
       }
+      connectPending = false;
 
       if (socketRef.current) {
         try {
           if (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING) {
             socketRef.current.close();
           }
-        } catch (e) {}
+        } catch {
+          // The old socket is being replaced; a failed close changes nothing.
+        }
       }
 
       const sock = new WebSocket(wsUrl);
       socketRef.current = sock;
 
       sock.onopen = () => {
-        reconnectAttempts = 0;
         performFit();
         sendResizeHandshake(true);
       };
@@ -448,21 +495,31 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
           try {
             const parsed = JSON.parse(event.data);
             if (parsed.type === 'ready') {
+              // The server started the shell. The retry count resets only here, not on open, so a
+              // server that accepts the socket and closes it at once still runs into the retry cap.
+              reconnectAttempts = 0;
               performFit();
               sendResizeHandshake(true);
               return;
             }
-          } catch (e) {}
+          } catch {
+            // Output that merely starts with a brace is not JSON; it is written to the terminal below.
+          }
         }
 
         term.write(event.data);
       };
       sock.onerror = (err) => { console.error('WebSocket Error:', err); };
 
-      sock.onclose = () => {
+      sock.onclose = (closeEvent) => {
         // Bail out if component unmounted or a newer socket has superseded this one
         if (!isMounted || socketRef.current !== sock) return;
-        if (isActiveRef.current && reconnectAttempts < maxReconnects) {
+        if (closeEvent.code === 1008) {
+          // The server refused the session (not signed in, or an invalid session name); retrying cannot help.
+          if (isActiveRef.current) {
+            term.writeln(`\r\n\x1b[31m[Connection refused${closeEvent.reason ? `: ${closeEvent.reason}` : ''}]\x1b[0m`);
+          }
+        } else if (isActiveRef.current && reconnectAttempts < maxReconnects) {
           reconnectAttempts++;
           const delay = Math.min(reconnectAttempts * 1000, 5000);
           term.writeln(
@@ -483,9 +540,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
 
     connect();
 
-    // ── Stream parsing for auto-spawning subagents check ────────────────────
+    // When the setting is on, looks at the last lines of output a second after it settles for a
+    // subagent marker and asks the server which new tmux sessions to attach (at most every 20 s).
     let parseDebounceTimer = null;
     const parseDisposable = term.onWriteParsed(() => {
+      if (!tmuxSettingsRef.current?.autoSpawnSubagents) return;
       if (parseDebounceTimer) clearTimeout(parseDebounceTimer);
       parseDebounceTimer = setTimeout(() => {
         if (tmuxSettingsRef.current?.autoSpawnSubagents) {
@@ -501,13 +560,18 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
                 try {
                   const raw = localStorage.getItem('sovereign_active_session_ids');
                   activeIds = raw ? JSON.parse(raw) : [];
-                } catch {}
+                } catch {
+                  // An unreadable saved list is sent as empty.
+                }
                 fetch('/api/terminal/sessions/sync-subagents', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ active: activeIds }),
                 })
-                  .then((res) => res.json())
+                  .then((res) => {
+                    if (!res.ok) throw new Error(`sync-subagents ${res.status}`);
+                    return res.json();
+                  })
                   .then((data) => {
                     if (data && Array.isArray(data.new_sessions)) {
                       data.new_sessions.forEach((sess) => {
@@ -519,7 +583,9 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
                       });
                     }
                   })
-                  .catch(() => {});
+                  .catch(() => {
+                    showToastRef.current('Subagent sync failed');
+                  });
               }
             }
           }
@@ -534,21 +600,26 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       }
     });
 
-    // Report shell title/CWD changes to parent App state
+    // Reports shell title/CWD changes to the parent
     term.onTitleChange((title) => {
-      if (!title || !onCwdChange) return;
+      if (!title || !onCwdChangeRef.current) return;
       let parsed = title.trim();
       if (parsed.includes(':')) {
         parsed = parsed.split(':').pop().trim();
       }
       if (parsed.startsWith('/') || parsed.startsWith('~')) {
-        onCwdChange(parsed);
+        onCwdChangeRef.current(parsed);
       }
     });
 
-    // ── ResizeObserver ───────────────────────────────────────────────────────
+    // Re-fits on container resizes and completes a connect that was waiting for a layout. A session
+    // that is not the active tab skips the fit; it re-fits when it becomes active.
     let resizeDebounce = null;
     const handleResize = () => {
+      if (connectPending && terminalRef.current && terminalRef.current.clientHeight > 0) {
+        connect();
+      }
+      if (!isActiveRef.current) return;
       performFit();
       clearTimeout(resizeDebounce);
       resizeDebounce = setTimeout(() => {
@@ -563,22 +634,31 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       isMounted = false;
       clearTimeout(reconnectTimeout);
       clearTimeout(resizeDebounce);
+      clearTimeout(swipeResetTimer);
+      clearTimeout(refocusTimer);
+      initialFitTimers.forEach(clearTimeout);
+      cancelAnimationFrame(fitFrame);
       if (parseDebounceTimer) clearTimeout(parseDebounceTimer);
       if (selectionTimer.current) clearTimeout(selectionTimer.current);
       if (fontTimerRef.current) clearTimeout(fontTimerRef.current);
-      try { selectionDisposable.dispose(); } catch (e) {}
-      try { scrollDisposable.dispose(); } catch (e) {}
-      try { parseDisposable.dispose(); } catch (e) {}
+      clearTimeout(injectTimerRef.current);
+      clearTimeout(backspaceTimerRef.current);
+      selectionDisposable.dispose();
+      scrollDisposable.dispose();
+      parseDisposable.dispose();
       resizeObserver.disconnect();
-      if (term.textarea && termTextareaBlurHandlerRef.current) {
-        term.textarea.removeEventListener('blur', termTextareaBlurHandlerRef.current);
+      if (term.textarea && handleTextareaBlur) {
+        term.textarea.removeEventListener('blur', handleTextareaBlur);
       }
       containerEl.removeEventListener('touchstart', handleTouchStart);
       containerEl.removeEventListener('touchmove', handleTouchMove);
       containerEl.removeEventListener('touchend', handleTouchEnd);
-      try { term.clearTextureAtlas(); } catch (e) {}
       if (socketRef.current) socketRef.current.close();
-      try { term.dispose(); } catch (e) {}
+      try {
+        term.dispose();
+      } catch {
+        // Teardown is best effort; the instance is dropped either way.
+      }
     };
   }, []);
 
@@ -605,6 +685,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     }
   }, []);
 
+  // Leaves tmux copy-mode and returns to the live prompt when the stager opens.
   useEffect(() => {
     const handleStagerOpen = () => {
       if (isActiveRef.current) {
@@ -615,50 +696,56 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     return () => window.removeEventListener('sovereign_open_stager', handleStagerOpen);
   }, [ensureLivePrompt]);
 
+  // Sends the input handed down from the touch bar or stager to the active session only: a string is
+  // typed as is; { text, executeImmediately } is typed and, when immediate, followed by Enter. The
+  // effect depends on the input alone, so a re-render cannot send the same input twice.
   useEffect(() => {
-    if (!isActiveRef.current) return; // Strict guard: ONLY active visible tab receives macro/CD inputs
+    if (!isActiveRef.current) return;
     const input = voiceInput;
-    if (input) {
-      if (typeof input === 'object') {
-        const { text, executeImmediately } = input;
-        injectingRef.current = true;
-        try {
-          if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            if (executeImmediately) {
-              socketRef.current.send(text + '\r');
-            } else {
-              socketRef.current.send(text);
-              setTimeout(() => {
-                if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-                  socketRef.current.send(' \x7f');
-                }
-              }, 1000);
-            }
+    if (!input) return;
+    const sock = socketRef.current;
+    const isOpen = sock && sock.readyState === WebSocket.OPEN;
+    if (typeof input === 'object') {
+      const { text, executeImmediately } = input;
+      injectingRef.current = true;
+      try {
+        if (isOpen) {
+          if (executeImmediately) {
+            sock.send(text + '\r');
           } else {
-            showToast('Terminal reconnecting — please retry');
+            sock.send(text);
+            // Staged text is followed a second later by a space and a backspace
+            clearTimeout(backspaceTimerRef.current);
+            backspaceTimerRef.current = setTimeout(() => {
+              const live = socketRef.current;
+              if (live && live.readyState === WebSocket.OPEN) live.send(' \x7f');
+            }, 1000);
           }
-        } catch (e) {
-          console.error('Injection error:', e);
-        } finally {
-          if (xtermInstance.current) {
-            xtermInstance.current.focus();
-          }
-          setTimeout(() => {
-            injectingRef.current = false;
-          }, 100);
-        }
-      } else {
-        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-          socketRef.current.send(input);
         } else {
-          showToast('Terminal reconnecting — please retry');
+          showToastRef.current('Terminal reconnecting — please retry');
         }
+      } catch (e) {
+        console.error('Injection error:', e);
+        showToastRef.current('Could not send to the terminal');
+      } finally {
+        if (xtermInstance.current) {
+          xtermInstance.current.focus();
+        }
+        clearTimeout(injectTimerRef.current);
+        injectTimerRef.current = setTimeout(() => {
+          injectingRef.current = false;
+        }, 100);
       }
+    } else if (isOpen) {
+      sock.send(input);
+    } else {
+      showToastRef.current('Terminal reconnecting — please retry');
     }
-  }, [voiceInput, ensureLivePrompt, showToast]);
+  }, [voiceInput]);
 
 
-  // Buffer extraction handlers for CopyCard
+  // Copy handlers for CopyCard: each takes the text from the terminal buffer and either copies it
+  // to the clipboard ('clip') or hands it to the inspector.
   const handleCopyLastOutput = useCallback((mode) => {
     if (!xtermInstance.current) return;
     const term = xtermInstance.current;
@@ -667,11 +754,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const startLine = Math.max(0, buffer.length - maxLines);
     const text = extractBufferRange(buffer, startLine, buffer.length);
     if (mode === 'clip') {
-      writeToClipboard(text).then(() => showToast('Copied Last Output to Clipboard')).catch(() => showToast('Failed to copy to clipboard'));
+      writeToClipboard(text).then(() => showToastRef.current('Copied Last Output to Clipboard')).catch(() => showToastRef.current('Failed to copy to clipboard'));
     } else if (onInspectText) {
       onInspectText(text, 'Last Command Output');
     }
-  }, [onInspectText, showToast]);
+  }, [onInspectText]);
 
   const handleCopyScreenBuffer = useCallback((mode) => {
     if (!xtermInstance.current) return;
@@ -681,15 +768,15 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const endLine = Math.min(buffer.length, startLine + term.rows);
     const text = extractBufferRange(buffer, startLine, endLine);
     if (mode === 'clip') {
-      writeToClipboard(text).then(() => showToast('Copied Screen Buffer to Clipboard')).catch(() => showToast('Failed to copy to clipboard'));
+      writeToClipboard(text).then(() => showToastRef.current('Copied Screen Buffer to Clipboard')).catch(() => showToastRef.current('Failed to copy to clipboard'));
     } else if (onInspectText) {
       onInspectText(text, 'Screen Buffer');
     }
-  }, [onInspectText, showToast]);
+  }, [onInspectText]);
 
   const handleCopyCustomLines = useCallback((mode, linesOverride) => {
     if (!xtermInstance.current) return;
-    let customCount = typeof linesOverride === 'number' ? linesOverride : 50;
+    const customCount = typeof linesOverride === 'number' ? linesOverride : 50;
 
     const term = xtermInstance.current;
     const buffer = term.buffer.active;
@@ -697,11 +784,11 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
     const startLine = Math.max(0, buffer.length - lineCount);
     const text = extractBufferRange(buffer, startLine, buffer.length);
     if (mode === 'clip') {
-      writeToClipboard(text).then(() => showToast(`Copied ${lineCount} Lines to Clipboard`)).catch(() => showToast('Failed to copy to clipboard'));
+      writeToClipboard(text).then(() => showToastRef.current(`Copied ${lineCount} Lines to Clipboard`)).catch(() => showToastRef.current('Failed to copy to clipboard'));
     } else if (onInspectText) {
       onInspectText(text, `Custom ${lineCount} Lines`);
     }
-  }, [onInspectText, showToast]);
+  }, [onInspectText]);
 
   const scrollToBottom = () => {
     ensureLivePrompt();
@@ -713,9 +800,8 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       className="terminal-wrapper"
       onPointerDownCapture={(e) => {
         if (e.target.closest('.copy-card-container') || e.target.closest('.scroll-bottom-btn')) return;
-        const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
         const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
-        if (tapMode === 'stager' || isStagerOpen) {
+        if (readTapMode() === 'stager' || isStagerOpen) {
           // Intercept pointer before xterm can focus .xterm-helper-textarea
           e.stopPropagation();
         }
@@ -724,8 +810,7 @@ export default function Terminal({ session, isActive, isKeyboardOpen, voiceInput
       onClick={(e) => {
         if (isSwipingRef.current) return;
         if (e.target.closest('.copy-card-container') || e.target.closest('.scroll-bottom-btn')) return;
-        const tapMode = localStorage.getItem('sovereign_stager_tap_redirect') || 'stager';
-        if (tapMode === 'stager') {
+        if (readTapMode() === 'stager') {
           const isStagerOpen = !!document.body.querySelector('.staging-drawer-container');
           if (isStagerOpen) {
             window.dispatchEvent(new CustomEvent('sovereign_close_stager'));
