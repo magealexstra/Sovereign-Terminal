@@ -1,17 +1,13 @@
-src/App.jsx | TS2322 | Type '{ onKeyPress: (text: any) => void; onVoiceInput: (text: any) => void; }' is not assignable to type 'IntrinsicAttributes & { onKeyPress: any; }'.
 src/App.jsx | TS2339 | Property 'addEventListener' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
 src/App.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
 src/App.jsx | TS2339 | Property 'boundingRect' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'overlaysContent' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'removeEventListener' does not exist on type 'unknown'.
-src/App.jsx | TS2739 | Type '{ openDocuments: any[]; activeFilePath: string; onSelectTab: Dispatch<SetStateAction<string>>; onCloseTab: (filepath: any, force?: boolean) => void; onContentChange: (filepath: any, newContent: any) => void; ... 4 more ...; suggestedSaveDir: string; }' is missing the following properties from type '{ activeSession: any; openDocuments: any; activeFilePath: any; onSelectTab: any; onCloseTab: any; onContentChange: any; onSaveFile: any; onGitCommit: any; onReturnToTerminal: any; onSaveAs: any; onRunScript: any; suggestedSaveDir: any; }': activeSession, onReturnToTerminal
 src/components/auth/LoginModal.jsx | TS2322 | Type 'string' is not assignable to type 'number'.
-src/components/explorer/FileExplorer.jsx | TS2322 | Type '{ visible: boolean; selectedItems: any[]; allItems: any[]; clipboardItems: any[]; clipboardMode: any; currentPath: any; onClose: () => void; onNew: () => void; onOpen: (itemPath: any) => void; onOpenInTerminal: (itemPath: any) => void; ... 9 more ...; onDelete: () => void; }' is not assignable to type 'IntrinsicAttributes & { visible: any; selectedItems?: any[]; allItems?: any[]; clipboardItems?: any[]; clipboardMode?: any; onClose: any; onNew: any; onOpen: any; onOpenInTerminal: any; ... 9 more ...; onDelete: any; }'.
 src/components/explorer/FileExplorer.jsx | TS2741 | Property 'path' is missing in type '{ source: any; new_name: any; use_sudo: true; }' but required in type '{ path: any; use_sudo: boolean; }'.
 src/components/explorer/FileExplorer.jsx | TS2741 | Property 'path' is missing in type '{ sources: any[]; destination: any; use_sudo: true; }' but required in type '{ path: any; use_sudo: boolean; }'.
 src/components/explorer/FileExplorer.jsx | TS2741 | Property 'path' is missing in type '{ sources: any[]; destination: any; use_sudo: true; }' but required in type '{ path: any; use_sudo: boolean; }'.
-src/components/explorer/FileViewer.jsx | TS2322 | Type '{ key: any; path: any; name: any; type: any; ffmpegAvailable: any; onNeedFfmpegCheck: () => Promise<any>; }' is not assignable to type 'IntrinsicAttributes & { path: any; name: any; ffmpegAvailable: any; onNeedFfmpegCheck: any; }'.
 src/components/explorer/FileViewer.jsx | TS2353 | Object literal may only specify known properties, and ''--cache-pct'' does not exist in type 'Properties<string | number, string & {}>'.
 src/components/settings/TmuxManager.jsx | TS2339 | Property 'value' does not exist on type 'EventTarget'.
 src/components/settings/TmuxManager.jsx | TS2339 | Property 'value' does not exist on type 'EventTarget'.
@@ -27,6 +23,4 @@ src/components/terminal/TouchBar.jsx | TS2339 | Property 'webkitSpeechRecognitio
 src/components/terminal/terminal/termTheme.js | TS2339 | Property 'replace' does not exist on type 'never'.
 src/context/AppContext.jsx | TS2339 | Property 'sovereign' does not exist on type '{ VitniNordic: { name: string; bgEarth: string; bgCanopy: string; bgPanel: string; bgGrove: string; borderForest: string; borderSage: string; textParchment: string; textMuted: string; textDim: string; ... 20 more ...; brightWhite: string; }; ... 10 more ...; Cyberpunk2077: { ...; }; }'.
 src/context/AppContext.jsx | TS2551 | Property 'nord' does not exist on type '{ VitniNordic: { name: string; bgEarth: string; bgCanopy: string; bgPanel: string; bgGrove: string; borderForest: string; borderSage: string; textParchment: string; textMuted: string; textDim: string; ... 20 more ...; brightWhite: string; }; ... 10 more ...; Cyberpunk2077: { ...; }; }'. Did you mean 'Nord'?
-src/hooks/useSessions.js | TS8024 | JSDoc '@param' tag has name 'activeTerminalPath', but there is no parameter with that name.
-src/hooks/useSessions.js | TS8024 | JSDoc '@param' tag has name 'showToast', but there is no parameter with that name.
 src/main.jsx | TS2339 | Property 'env' does not exist on type 'ImportMeta'.
