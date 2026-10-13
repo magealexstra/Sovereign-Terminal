@@ -47,7 +47,8 @@ This is the simplest method for getting started immediately. The terminal runs i
 * `AUTH_MODE`: Set to `token`.
 * `SERVER_AUTH_TOKEN`: Secret token used for authentication (Default demo token: `1234`).
 * `TZ`: System timezone (e.g. `America/Chicago`).
-* `SAFE_TRASH_MODE`: Enables soft file deletion to `./_temp_trash/` (Default: `true`).
+
+Delete in the file explorer is permanent; Archive moves the item to a `_temp_trash` folder at the workspace or mount root.
 
 **Compose Specification (`docker-compose.yml`):**
 ```yaml
@@ -69,8 +70,6 @@ services:
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
       - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
-      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
-      - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
       - TZ=${TZ:-America/Chicago}
     volumes:
       - ${HOST_WORKSPACE_PATH:-./}:/workspace
@@ -168,7 +167,6 @@ services:
       - TMUX_SOCKET_PATH=${TMUX_SOCKET_PATH:-/tmp/tmux-1000/default}
       - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
-      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
       - TZ=${TZ:-America/Chicago}
     volumes:
       - ${HOST_WORKSPACE_PATH:-./}:/workspace
@@ -239,7 +237,6 @@ services:
       - TMUX_SOCKET_PATH=${TMUX_SOCKET_PATH:-/tmp/tmux-1000/default}
       - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
-      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
       - TZ=${TZ:-America/Chicago}
     volumes:
       - ${HOST_WORKSPACE_PATH:-./}:/workspace

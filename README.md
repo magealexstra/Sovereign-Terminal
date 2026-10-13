@@ -88,8 +88,6 @@ services:
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
       - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
-      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
-      - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
       - TZ=${TZ:-America/Chicago}
       - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
       - SSL_CERT_PATH=${SSL_CERT_PATH:-/etc/ssl/certs/fullchain.pem}

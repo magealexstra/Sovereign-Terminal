@@ -1,46 +1,49 @@
 """
-fs_video.py — Phase 2b Smart Video Streaming (Server-Side Cache)
-=================================================================
-Handles FFmpeg-based remux + caching for video containers that browsers
-can't play directly (MKV, AVI, WMV, etc.) and subtitle extraction.
+fs_video.py - video streaming with a server-side remux cache.
 
-Phase 2b replaces the streaming-pipe approach with a server-side cache:
-  FFmpeg → _cache/<hash>.mp4  → range-served like any static file
+Handles FFmpeg-based remux and caching for video containers that browsers
+can't play directly (MKV, AVI, WMV, etc.) and subtitle extraction:
+  FFmpeg -> _cache/<hash>.mp4  -> range-served like any static file
 
-This gives the browser a real file with a known Content-Length, which means:
-  - Full HTTP Range support → seekable playback, rewind, fast-forward
+A cached file has a known Content-Length, which means:
+  - Full HTTP Range support: seekable playback, rewind, fast-forward
   - Plyr controls work (scrubber, duration, chapter markers)
-  - No zombie FFmpeg processes on client disconnect
   - Cached files are served instantly on repeat access
 
 Mounted at prefix /api/fs alongside fs_api so all routes stay at /api/fs/*.
-Separated from fs_api.py to isolate video logic from filesystem CRUD.
+Kept apart from fs_api.py to isolate video logic from filesystem CRUD.
+Every route checks that the logged-in user can read the file (see fs_api.require_readable).
 """
 
 import hashlib
 import json
+import logging
 import mimetypes
 import os
+import shutil
 import subprocess
 import threading
 import time
+import uuid
 from pathlib import Path
 
 from auth import require_auth
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import Response, StreamingResponse
+from fs_api import get_safe_path, require_readable
+
+logger = logging.getLogger(__name__)
 
 # Every route here reads a file by path, so each one requires a session.
 router = APIRouter(prefix="/api/fs", tags=["video"], dependencies=[Depends(require_auth)])
-
-SOVEREIGN_ROOT = os.getenv("SOVEREIGN_ROOT", str(Path.home()))
 
 # ── Codec sets ────────────────────────────────────────────────────────────────
 # Codecs Chrome can decode from a served file.
 # HEVC excluded: Chrome on Linux silently drops the video track when served via
 # a streaming pipe and plays audio-only.  Native .mp4 HEVC works via range
 # streaming on a real file, but our remux target is always H.264 or VP9.
-# mpeg1video, mpeg2video, mpeg4 (XviD/DivX), wmv2/3 → Phase 3 transcode only.
+# mpeg1video, mpeg2video, mpeg4 (XviD/DivX), wmv2/3 need a full transcode, which
+# is not built.
 BROWSER_SAFE_VIDEO_CODECS = {'h264', 'vp8', 'vp9', 'av1', 'theora'}
 
 MP4_VIDEO_CODECS  = {'h264', 'avc1'}
@@ -53,26 +56,47 @@ WEBM_COPY_AUDIO = {'opus', 'vorbis'}
 # Extensions that require the FFmpeg cache path instead of direct range serving.
 FFMPEG_CONTAINERS = {'mkv', 'avi', 'mpg', 'mpeg', 'wmv', 'm4v', 'flv', '3gp', 'ts', 'vob'}
 
-# Phase 3 gate — software transcode for HEVC, DivX, WMV3, etc.
+# Switch named for a software transcode of HEVC, DivX, WMV3, etc. Nothing reads it yet.
 ENABLE_ADVANCED_TRANSCODE = os.getenv(
     "ENABLE_ADVANCED_TRANSCODE", "false"
 ).lower() in ("true", "1", "yes")
 
+
 # ── Cache config ──────────────────────────────────────────────────────────────
 VIDEO_CACHE_MAX_AGE_H = int(os.getenv("VIDEO_CACHE_MAX_AGE_H", "24"))
 VIDEO_CACHE_MAX_GB    = float(os.getenv("VIDEO_CACHE_MAX_GB", "10"))
+
+# Longest a single remux may run, and how many remuxes may run at once across all files.
+REMUX_TIMEOUT_SECONDS = 600
+MAX_PARALLEL_REMUXES  = max(1, int(os.getenv("VIDEO_MAX_PARALLEL_REMUXES", "2")))
+_remux_slots = threading.BoundedSemaphore(MAX_PARALLEL_REMUXES)
+
+TOOL_CHECK_TIMEOUT_SECONDS = 5
+PROBE_TIMEOUT_SECONDS = 15
+SUBTITLE_TIMEOUT_SECONDS = 30
+CHUNK_BYTES = 65536
 
 # In-process lock table: prevents two simultaneous requests for the same file
 # from both running FFmpeg.  Keyed by cache key string.
 _cache_locks: dict[str, threading.Lock] = {}
 _cache_locks_mutex = threading.Lock()
 
+# Container types mimetypes does not know.
+_EXTRA_VIDEO_MIME = {
+    '.mkv':  'video/x-matroska',
+    '.avi':  'video/x-msvideo',
+    '.wmv':  'video/x-ms-wmv',
+    '.m4v':  'video/mp4',
+    '.flv':  'video/x-flv',
+    '.3gp':  'video/3gpp',
+    '.ts':   'video/mp2t',
+    '.vob':  'video/mpeg',
+    '.mpg':  'video/mpeg',
+    '.mpeg': 'video/mpeg',
+}
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def get_safe_path(target_path: str) -> Path:
-    return Path(target_path).expanduser().resolve()
-
 
 def get_cache_dir() -> Path:
     """Return (and create if needed) the cache directory."""
@@ -86,7 +110,7 @@ def get_cache_key(p: Path) -> str:
     """
     Deterministic cache key: SHA-256 of (absolute path + mtime + size).
     If the source file is modified, the key changes and the stale cache entry
-    is simply ignored (lazy eviction will clean it up later).
+    is simply ignored (eviction cleans it up later).
     """
     stat    = p.stat()
     payload = f"{p.resolve()}|{stat.st_mtime}|{stat.st_size}"
@@ -103,33 +127,42 @@ def _get_file_lock(key: str) -> threading.Lock:
 
 def _sweep_cache(cache_dir: Path) -> None:
     """
-    Lazy eviction — called before each new cache write.
+    Eviction, called before each new cache write.
 
-    Pass 1: Delete .mp4 / .webm files older than VIDEO_CACHE_MAX_AGE_H hours.
+    Pass 1: Delete .mp4 / .webm files not used for VIDEO_CACHE_MAX_AGE_H hours,
+            and .tmp files left behind by a build that was killed.
     Pass 2: If total remaining size still exceeds VIDEO_CACHE_MAX_GB, evict
-            LRU entries (oldest mtime first) until under the cap.
+            least recently used entries first until under the cap.
 
-    Ignores .tmp and .lock files so in-progress writes aren't disrupted.
+    A cache hit refreshes the file's mtime (see _cached_file), so mtime is
+    the time of last use. Recent .tmp files are in-progress builds and are kept.
     """
     max_age_secs = VIDEO_CACHE_MAX_AGE_H * 3600
     max_bytes    = int(VIDEO_CACHE_MAX_GB * 1024 ** 3)
+    stale_tmp    = REMUX_TIMEOUT_SECONDS * 2
     now          = time.time()
 
     survivors: list[tuple[float, int, Path]] = []   # (mtime, size, path)
 
     for f in cache_dir.iterdir():
-        if f.suffix not in ('.mp4', '.webm') or not f.is_file():
+        if f.suffix not in ('.mp4', '.webm', '.tmp') or not f.is_file():
             continue
         try:
             stat = f.stat()
-            if now - stat.st_mtime > max_age_secs:
+            age = now - stat.st_mtime
+            if f.suffix == '.tmp':
+                if age > stale_tmp:
+                    f.unlink(missing_ok=True)
+            elif age > max_age_secs:
                 f.unlink(missing_ok=True)
             else:
                 survivors.append((stat.st_mtime, stat.st_size, f))
-        except OSError:
-            pass
+        except FileNotFoundError:
+            continue   # a build finished or another sweep removed it meanwhile
+        except OSError as exc:
+            logger.warning("Video cache sweep could not process %s: %s", f.name, exc)
 
-    # LRU size cap — sort oldest first and evict until under limit
+    # Size cap: sort oldest first and evict until under limit
     total = sum(sz for _, sz, _ in survivors)
     if total > max_bytes:
         survivors.sort()
@@ -139,8 +172,8 @@ def _sweep_cache(cache_dir: Path) -> None:
             try:
                 f.unlink(missing_ok=True)
                 total -= sz
-            except OSError:
-                pass
+            except OSError as exc:
+                logger.warning("Video cache sweep could not evict %s: %s", f.name, exc)
 
 
 # ── ffprobe ───────────────────────────────────────────────────────────────────
@@ -155,6 +188,8 @@ def _probe_codecs(p: Path) -> dict:
           'audio':     str | None,
           'subtitles': [{ index, lang, label, codec }, ...],
         }
+    A failed probe (ffprobe missing, timed out, unreadable output) is logged and
+    returns the empty result.
     """
     result: dict = {'video': None, 'audio': None, 'subtitles': []}
 
@@ -163,9 +198,12 @@ def _probe_codecs(p: Path) -> dict:
             ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_streams', str(p)],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=PROBE_TIMEOUT_SECONDS,
+            stdin=subprocess.DEVNULL,
+            check=False,
         )
         if proc.returncode != 0:
+            logger.warning("ffprobe exited %s for %s", proc.returncode, p.name)
             return result
 
         data           = json.loads(proc.stdout)
@@ -189,8 +227,9 @@ def _probe_codecs(p: Path) -> dict:
                 })
                 subtitle_index += 1
 
-    except Exception:
-        pass
+    except (OSError, subprocess.TimeoutExpired, ValueError, AttributeError) as exc:
+        logger.warning("ffprobe failed for %s: %s", p.name, exc)
+        return {'video': None, 'audio': None, 'subtitles': []}
 
     return result
 
@@ -215,7 +254,7 @@ def _get_cache_format(video_codec: str, audio_codec: str | None) -> tuple[str, s
             if (audio_codec is None or audio_codec in MP4_COPY_AUDIO)
             else ['-c:a', 'aac', '-b:a', '192k']
         )
-        # Normal MP4 muxer — cache file is complete, no need for frag_keyframe
+        # Normal MP4 muxer: the cache file is complete, no need for frag_keyframe
         return '.mp4', 'video/mp4', audio_args, ['-f', 'mp4']
 
     elif video_codec in WEBM_VIDEO_CODECS:
@@ -230,14 +269,28 @@ def _get_cache_format(video_codec: str, audio_codec: str | None) -> tuple[str, s
         raise ValueError(f"unsupported: {video_codec}")
 
 
+def _cached_file(cache_dir: Path, key: str) -> tuple[Path, str] | None:
+    """Return (path, mime) of the cache entry for key, refreshing its mtime so eviction sees the use."""
+    for ext, mime in (('.mp4', 'video/mp4'), ('.webm', 'video/webm')):
+        candidate = cache_dir / f"{key}{ext}"
+        if candidate.exists():
+            try:
+                os.utime(candidate)
+            except OSError as exc:
+                logger.warning("Could not refresh cache entry %s: %s", candidate.name, exc)
+            return candidate, mime
+    return None
+
+
 def get_or_build_cache(p: Path) -> tuple[Path, str]:
     """
     Return (cache_file_path, mime_type) for the given source file.
 
     Cache hit:  returns instantly (no ffprobe, no FFmpeg).
     Cache miss: probes codecs, runs FFmpeg remux to a .tmp file, renames
-                atomically on success.  The threading.Lock prevents two
-                simultaneous requests from both running FFmpeg for the same key.
+                atomically on success.  A per-key lock stops two requests from
+                both running FFmpeg for the same key (later ones wait, then hit
+                the cache), and MAX_PARALLEL_REMUXES bounds remuxes across files.
 
     Raises HTTPException on all error conditions so FastAPI can return a
     proper JSON error response to the frontend.
@@ -245,60 +298,50 @@ def get_or_build_cache(p: Path) -> tuple[Path, str]:
     cache_dir = get_cache_dir()
     key       = get_cache_key(p)
 
-    # ── Fast path: check both possible cache extensions ──────────────────────
-    for ext, mime in (('.mp4', 'video/mp4'), ('.webm', 'video/webm')):
-        candidate = cache_dir / f"{key}{ext}"
-        if candidate.exists():
-            return candidate, mime
+    hit = _cached_file(cache_dir, key)
+    if hit:
+        return hit
 
-    # ── Slow path: probe → build ─────────────────────────────────────────────
-    # Check FFmpeg availability before the potentially long probe+remux.
-    try:
-        chk = subprocess.run(['ffmpeg', '-version'], capture_output=True, timeout=3)
-        if chk.returncode != 0:
-            raise FileNotFoundError
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    if not shutil.which('ffmpeg'):
         raise HTTPException(status_code=503, detail='FFmpeg is not available on this server.')
 
-    probe       = _probe_codecs(p)
-    video_codec = probe['video']
-    audio_codec = probe['audio']
-
-    if video_codec is None:
-        raise HTTPException(
-            status_code=422,
-            detail='Could not read codec information from this file.',
-        )
-
-    if video_codec not in BROWSER_SAFE_VIDEO_CODECS:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"Video codec '{video_codec}' cannot be played in the browser. "
-                "Set ENABLE_ADVANCED_TRANSCODE=true in .env to enable software "
-                "transcoding, or download the file to play locally."
-            ),
-        )
-
-    try:
-        ext, mime, audio_args, fmt_args = _get_cache_format(video_codec, audio_codec)
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"Unsupported codec: {video_codec}")
-
-    dest = cache_dir / f"{key}{ext}"
-    tmp  = cache_dir / f"{key}.tmp"
-
-    # ── Acquire per-key lock to prevent duplicate remux ──────────────────────
     lock = _get_file_lock(key)
     with lock:
-        # Double-check inside the lock — another thread may have just finished
-        if dest.exists():
-            return dest, mime
+        # Another request may have just finished this build while we waited.
+        hit = _cached_file(cache_dir, key)
+        if hit:
+            return hit
 
-        _sweep_cache(cache_dir)
+        probe       = _probe_codecs(p)
+        video_codec = probe['video']
+        audio_codec = probe['audio']
+
+        if video_codec is None:
+            raise HTTPException(
+                status_code=422,
+                detail='Could not read codec information from this file.',
+            )
+
+        if video_codec not in BROWSER_SAFE_VIDEO_CODECS:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Video codec '{video_codec}' cannot be played in the browser. "
+                    "Set ENABLE_ADVANCED_TRANSCODE=true in .env to enable software "
+                    "transcoding, or download the file to play locally."
+                ),
+            )
+
+        try:
+            ext, mime, audio_args, fmt_args = _get_cache_format(video_codec, audio_codec)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"Unsupported codec: {video_codec}") from exc
+
+        dest = cache_dir / f"{key}{ext}"
+        tmp  = cache_dir / f"{key}.{uuid.uuid4().hex}.tmp"
 
         cmd = [
-            'ffmpeg', '-i', str(p),
+            'ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', str(p),
             '-c:v', 'copy',
             *audio_args,
             '-avoid_negative_ts', 'make_zero',
@@ -306,37 +349,47 @@ def get_or_build_cache(p: Path) -> tuple[Path, str]:
             str(tmp),
         ]
 
-        try:
-            result = subprocess.run(
-                cmd,
-                # Discard stdout and stderr entirely — we only check returncode.
-                # capture_output=True would buffer FFmpeg's verbose progress
-                # output (time, bitrate, frame, speed lines) into RAM for the
-                # entire duration of the remux, which can be hundreds of MB for
-                # long files.
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=600,      # 10 min: generous for large remux, still bounded
-            )
-        except subprocess.TimeoutExpired:
-            tmp.unlink(missing_ok=True)
-            raise HTTPException(status_code=504, detail='FFmpeg remux timed out (>10 min).')
-        except Exception as exc:
-            tmp.unlink(missing_ok=True)
-            raise HTTPException(status_code=500, detail=f'FFmpeg error: {exc}')
+        with _remux_slots:
+            _sweep_cache(cache_dir)
+            try:
+                # stdout is discarded; stderr (errors only, small) is kept for the log.
+                result = subprocess.run(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=REMUX_TIMEOUT_SECONDS,
+                    stdin=subprocess.DEVNULL,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                tmp.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=504,
+                    detail=f'FFmpeg remux timed out (>{REMUX_TIMEOUT_SECONDS // 60} min).',
+                ) from exc
+            except OSError as exc:
+                tmp.unlink(missing_ok=True)
+                raise HTTPException(status_code=500, detail=f'FFmpeg error: {exc}') from exc
 
         if result.returncode != 0 or not tmp.exists():
             tmp.unlink(missing_ok=True)
+            reason = (result.stderr or '').strip().splitlines()
+            logger.warning("FFmpeg remux of %s failed (exit %s): %s", p.name, result.returncode, reason[-1:])
             raise HTTPException(
                 status_code=422,
                 detail='FFmpeg remux failed. The file may be corrupt or use an unsupported codec.',
             )
 
-        tmp.rename(dest)   # Atomic on Linux — no partial file ever served
+        try:
+            tmp.rename(dest)   # Atomic on Linux: no partial file is ever served
+        except OSError as exc:
+            tmp.unlink(missing_ok=True)
+            raise HTTPException(status_code=500, detail=f'Could not store the remuxed file: {exc}') from exc
 
-    # Evict the lock entry once the remux is done. Future requests will hit the
-    # cache file check above and never reach _get_file_lock() for this key.
-    # This prevents the dict from growing unboundedly over long server uptime.
+    # Evict the lock entry once the remux is done. Future requests hit the
+    # cache check above and never reach _get_file_lock() for this key, which
+    # keeps the dict from growing without bound over a long server uptime.
     with _cache_locks_mutex:
         _cache_locks.pop(key, None)
 
@@ -345,38 +398,69 @@ def get_or_build_cache(p: Path) -> tuple[Path, str]:
 
 # ── Range-serving helper ──────────────────────────────────────────────────────
 
+def _parse_range(header: str, file_size: int) -> tuple[int, int] | None:
+    """
+    Parse one HTTP byte range into inclusive (start, end) offsets.
+
+    Returns None when there is no usable range (serve the whole file). Raises 416
+    when the range lies outside the file. Only the first range of a list is used.
+    """
+    unsatisfiable = HTTPException(
+        status_code=416,
+        detail='Requested range not satisfiable',
+        headers={'Content-Range': f'bytes */{file_size}'},
+    )
+    if not header.startswith('bytes='):
+        return None
+    start_str, sep, end_str = header[len('bytes='):].split(',')[0].strip().partition('-')
+    if not sep:
+        return None
+    try:
+        if start_str == '':
+            # Suffix range: the last N bytes.
+            suffix = int(end_str)
+            if suffix <= 0 or file_size == 0:
+                raise unsatisfiable
+            return max(file_size - suffix, 0), file_size - 1
+        start = int(start_str)
+        end   = int(end_str) if end_str.strip() else file_size - 1
+    except ValueError:
+        return None
+    if file_size == 0:
+        raise unsatisfiable
+    if start > end:
+        return None
+    if start >= file_size:
+        raise unsatisfiable
+    return start, min(end, file_size - 1)
+
+
 def _serve_with_range(file_path: Path, mime: str, request: Request) -> StreamingResponse:
     """
     Serve a local file with full HTTP Range support.
     Used for both native files and FFmpeg-cached files.
     """
-    file_size    = file_path.stat().st_size
-    range_header = request.headers.get('range')
+    try:
+        file_size = file_path.stat().st_size
+    except OSError as exc:
+        raise HTTPException(status_code=404, detail='File not found') from exc
 
-    if range_header:
-        try:
-            byte_range         = range_header.replace('bytes=', '').strip()
-            start_str, end_str = byte_range.split('-')
-            start = int(start_str)
-            end   = int(end_str) if end_str.strip() else file_size - 1
-        except (ValueError, AttributeError):
-            start = 0
-            end   = file_size - 1
+    byte_range = _parse_range(request.headers.get('range', ''), file_size)
 
-        end        = min(end, file_size - 1)
+    def _iter(path: Path, offset: int, length: int):
+        with open(path, 'rb') as f:
+            f.seek(offset)
+            remaining = length
+            while remaining > 0:
+                data = f.read(min(CHUNK_BYTES, remaining))
+                if not data:
+                    break
+                remaining -= len(data)
+                yield data
+
+    if byte_range:
+        start, end = byte_range
         chunk_size = end - start + 1
-
-        def _iter(path: Path, s: int, length: int):
-            with open(path, 'rb') as f:
-                f.seek(s)
-                remaining = length
-                while remaining > 0:
-                    data = f.read(min(65536, remaining))
-                    if not data:
-                        break
-                    remaining -= len(data)
-                    yield data
-
         return StreamingResponse(
             _iter(file_path, start, chunk_size),
             status_code=206,
@@ -388,20 +472,12 @@ def _serve_with_range(file_path: Path, mime: str, request: Request) -> Streaming
             },
         )
 
-    # No Range header — stream the full file in 64 KB chunks.
-    # DO NOT pass open(file_path, 'rb') directly to StreamingResponse: uvicorn
+    # No Range header: stream the full file in 64 KB chunks.
+    # The file object is not passed to StreamingResponse directly: uvicorn
     # may buffer the entire response body before sending, turning a large file
     # into an equivalent-sized memory allocation on the server.
-    def _full_iter(path: Path):
-        with open(path, 'rb') as f:
-            while True:
-                data = f.read(65536)
-                if not data:
-                    break
-                yield data
-
     return StreamingResponse(
-        _full_iter(file_path),
+        _iter(file_path, 0, file_size),
         media_type=mime,
         headers={
             'Content-Length': str(file_size),
@@ -412,105 +488,72 @@ def _serve_with_range(file_path: Path, mime: str, request: Request) -> Streaming
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+def _readable_file(path: str, request: Request) -> Path:
+    """Resolve a request path to a regular file the logged-in user may read, or raise 404/403."""
+    p = get_safe_path(path)
+    if not p.is_file():
+        raise HTTPException(status_code=404, detail='File not found')
+    require_readable(request, p)
+    return p
+
+
 @router.get("/stream")
 def stream_file(path: str, request: Request, native: bool = False):
     """
     Universal video stream endpoint.
 
-    native=True (Phase 3a): Client has verified browser can decode this file
-    natively via canPlayType() — serve the original file with range support,
+    native=True: Client has verified browser can decode this file
+    natively via canPlayType() - serve the original file with range support,
     bypassing FFmpeg entirely. Used for HEVC and other codecs that the browser
     can hardware-decode directly.
 
-    Native containers (mp4, webm, mov, …):
+    Native containers (mp4, webm, mov, ...):
         Served directly with HTTP Range support.  Zero processing overhead.
 
-    Non-native containers (mkv, avi, wmv, …):
+    Non-native containers (mkv, avi, wmv, ...):
         Remuxed into a browser-compatible format via FFmpeg and cached on
-        disk.  First open blocks while FFmpeg runs (2–5 s for remux).
+        disk.  First open blocks while FFmpeg runs (2-5 s for remux).
         Subsequent opens are instant from cache.
 
     Returns 422 JSON when the video codec requires full transcoding.
     """
-    p = get_safe_path(path)
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail='File not found')
+    p = _readable_file(path, request)
 
     if native:
-        # Phase 3a: browser already verified codec support via canPlayType().
-        # Serve the original file directly — no FFmpeg, no remux.
         mime, _ = mimetypes.guess_type(str(p))
         if not mime or mime == 'application/octet-stream':
-            # mimetypes doesn't know most video container extensions — provide fallbacks.
-            _ext_mime = {
-                '.mkv':  'video/x-matroska',
-                '.avi':  'video/x-msvideo',
-                '.wmv':  'video/x-ms-wmv',
-                '.m4v':  'video/mp4',
-                '.flv':  'video/x-flv',
-                '.3gp':  'video/3gpp',
-                '.ts':   'video/mp2t',
-                '.vob':  'video/mpeg',
-                '.mpg':  'video/mpeg',
-                '.mpeg': 'video/mpeg',
-            }
-            mime = _ext_mime.get(p.suffix.lower(), 'application/octet-stream')
+            # mimetypes doesn't know most video container extensions.
+            mime = _EXTRA_VIDEO_MIME.get(p.suffix.lower(), 'application/octet-stream')
         return _serve_with_range(p, mime, request)
 
     if _needs_ffmpeg(p):
-        # May block during remux on first open — frontend shows 'caching' state
+        # May block during remux on first open - frontend shows 'caching' state
         cache_file, mime = get_or_build_cache(p)
         return _serve_with_range(cache_file, mime, request)
 
-    # Native file — direct range serving, no FFmpeg
+    # Native file - direct range serving, no FFmpeg
     mime, _ = mimetypes.guess_type(str(p))
     mime    = mime or 'application/octet-stream'
     return _serve_with_range(p, mime, request)
 
 
-@router.get("/stream/status")
-def stream_status(path: str):
-    """
-    Poll the server-side cache status for a given source path.
-    Returns { state: 'cached'|'not_cached', key: str }
-    """
-    p = get_safe_path(path)
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail='File not found')
-
-    cache_dir = get_cache_dir()
-    key       = get_cache_key(p)
-
-    for ext in ('.mp4', '.webm'):
-        if (cache_dir / f"{key}{ext}").exists():
-            return {'state': 'cached', 'key': key}
-
-    return {'state': 'not_cached', 'key': key}
-
-
 @router.get("/stream/probe")
-def stream_probe(path: str):
+def stream_probe(path: str, request: Request):
     """
-    Phase 3a: Return codec info for client-side native playback detection.
+    Return codec info for client-side native playback detection.
 
     Runs ffprobe on the file and returns the video and audio codec names.
     The client uses these to call canPlayType() and decide whether to request
     the file natively (native=1) or fall back to the FFmpeg remux path.
 
-    No transcoding — this endpoint only reads metadata.
+    No transcoding - this endpoint only reads metadata.
     Returns null codec fields gracefully when ffprobe is unavailable.
     """
-    p = get_safe_path(path)
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail='File not found')
+    p = _readable_file(path, request)
 
     size_bytes = p.stat().st_size
 
-    try:
-        chk = subprocess.run(['ffprobe', '-version'], capture_output=True, timeout=3)
-        if chk.returncode != 0:
-            return {'video_codec': None, 'audio_codec': None, 'size_bytes': size_bytes}
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    if not shutil.which('ffprobe'):
         return {'video_codec': None, 'audio_codec': None, 'size_bytes': size_bytes}
 
     probe = _probe_codecs(p)
@@ -529,38 +572,37 @@ def ffmpeg_health():
     Called by the frontend the first time a non-native video file is opened.
     The result is cached in a React ref for the entire browser session.
     """
+    if not shutil.which('ffmpeg'):
+        return {'available': False, 'version': None}
     try:
         result = subprocess.run(
             ['ffmpeg', '-version'],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=TOOL_CHECK_TIMEOUT_SECONDS,
+            stdin=subprocess.DEVNULL,
+            check=False,
         )
-        if result.returncode == 0:
-            first_line = result.stdout.split('\n')[0]
-            parts      = first_line.split(' ')
-            version    = parts[2] if len(parts) > 2 else 'unknown'
-            return {'available': True, 'version': version}
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        logger.warning("ffmpeg -version failed: %s", exc)
         return {'available': False, 'version': None}
-    except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-        return {'available': False, 'version': None}
+    if result.returncode == 0:
+        first_line = result.stdout.split('\n')[0]
+        parts      = first_line.split(' ')
+        version    = parts[2] if len(parts) > 2 else 'unknown'
+        return {'available': True, 'version': version}
+    return {'available': False, 'version': None}
 
 
 @router.get("/subtitles/list")
-def list_subtitle_tracks(path: str):
+def list_subtitle_tracks(path: str, request: Request):
     """
     List embedded subtitle tracks in a video file.
     Returns { tracks: [{ index, lang, label, codec }] } or empty list.
     """
-    p = get_safe_path(path)
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail='File not found')
+    p = _readable_file(path, request)
 
-    try:
-        chk = subprocess.run(['ffprobe', '-version'], capture_output=True, timeout=3)
-        if chk.returncode != 0:
-            return {'tracks': []}
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    if not shutil.which('ffprobe'):
         return {'tracks': []}
 
     probe = _probe_codecs(p)
@@ -568,36 +610,32 @@ def list_subtitle_tracks(path: str):
 
 
 @router.get("/subtitles")
-def get_subtitle_track(path: str, track: int = 0):
+def get_subtitle_track(path: str, request: Request, track: int = Query(0, ge=0)):
     """
     Extract one subtitle track from a video file and return it as WebVTT.
     track: 0-indexed subtitle stream position.
 
-    Uses subprocess.run (fully buffered) — subtitle files are small text and
-    a streaming pipe was causing uvicorn graceful-reload to block when the
-    client disconnected mid-stream.
+    Uses subprocess.run (fully buffered): subtitle files are small text and
+    a streaming pipe made uvicorn graceful-reload block when the client
+    disconnected mid-stream.
     """
-    p = get_safe_path(path)
-    if not p.exists() or not p.is_file():
-        raise HTTPException(status_code=404, detail='File not found')
+    p = _readable_file(path, request)
 
-    try:
-        chk = subprocess.run(['ffmpeg', '-version'], capture_output=True, timeout=3)
-        if chk.returncode != 0:
-            raise FileNotFoundError
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    if not shutil.which('ffmpeg'):
         raise HTTPException(status_code=503, detail='FFmpeg not available')
 
     try:
         result = subprocess.run(
-            ['ffmpeg', '-i', str(p), '-map', f'0:s:{track}', '-f', 'webvtt', 'pipe:1'],
+            ['ffmpeg', '-nostdin', '-v', 'error', '-i', str(p), '-map', f'0:s:{track}', '-f', 'webvtt', 'pipe:1'],
             capture_output=True,
-            timeout=30,
+            timeout=SUBTITLE_TIMEOUT_SECONDS,
+            stdin=subprocess.DEVNULL,
+            check=False,
         )
-    except subprocess.TimeoutExpired:
-        raise HTTPException(status_code=504, detail='Subtitle extraction timed out')
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f'Subtitle extraction failed: {exc}')
+    except subprocess.TimeoutExpired as exc:
+        raise HTTPException(status_code=504, detail='Subtitle extraction timed out') from exc
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f'Subtitle extraction failed: {exc}') from exc
 
     if result.returncode != 0 or not result.stdout:
         raise HTTPException(status_code=422, detail='No subtitle data for this track')

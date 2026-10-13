@@ -22,8 +22,6 @@ services:
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
       - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
-      - SAFE_TRASH_MODE=${SAFE_TRASH_MODE:-true}
-      - ENABLE_PERMANENT_DELETE=${ENABLE_PERMANENT_DELETE:-false}
       - ENABLE_HTTPS=${ENABLE_HTTPS:-false}
       - SSL_CERT_PATH=${SSL_CERT_PATH:-./server/certs/cert.pem}
       - SSL_KEY_PATH=${SSL_KEY_PATH:-./server/certs/key.pem}
