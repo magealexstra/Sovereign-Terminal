@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Trash2, Zap, X, Edit3, Terminal } from 'lucide-react';
 import StagingDrawer from './StagingDrawer';
 import { 
@@ -36,6 +36,11 @@ const KEY_MAPPINGS = {
   '◀': '\x1b[D',
   '►': '\x1b[C',
   '▶': '\x1b[C',
+  '◄': '\x1b[D',
+  '←': '\x1b[D',
+  '→': '\x1b[C',
+  '↓': '\x1b[B',
+  '↑': '\x1b[A',
   'PgUp': '\x1b[5~',
   'PgDn': '\x1b[6~',
   'Home': '\x1b[H',
@@ -502,13 +507,17 @@ export default function TouchBar({ onKeyPress }) {
     }
   };
 
-  // Command Payload Resolver (supports special keys, custom buttons, & raw commands)
-  const getCommandPayload = useCallback((itemKey) => {
+  // Command Payload Resolver. A button is known by its label; what it sends is, in order: a special
+  // key's escape sequence, a custom button's value, the value the caller already holds (a macro tile),
+  // the saved sudo password for a sudo button, then the catalogue value for the label, which falls
+  // back to the label itself as a command.
+  const getCommandPayload = (itemKey, knownValue) => {
     if (KEY_MAPPINGS[itemKey]) return KEY_MAPPINGS[itemKey];
-    if (UNICODE_ARROWS[itemKey]) return UNICODE_ARROWS[itemKey];
 
     const match = customButtons.find(b => (b.label || b.name) === itemKey);
     if (match && match.value) return match.value;
+
+    if (knownValue) return knownValue;
 
     if (itemKey.toLowerCase().includes('sudo')) {
       const savedSudo = sessionStorage.getItem('sovereign_sudo_password');
@@ -516,8 +525,8 @@ export default function TouchBar({ onKeyPress }) {
       return `${savedSudo}\n`;
     }
 
-    return itemKey.endsWith('\n') ? itemKey : `${itemKey}\n`;
-  }, [customButtons]);
+    return resolveLabel(itemKey).value;
+  };
 
   return (
     <>
@@ -817,7 +826,7 @@ export default function TouchBar({ onKeyPress }) {
                         } else {
                           const payload = (macro.isExecutable === false)
                             ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
-                            : getCommandPayload(macro.label);
+                            : getCommandPayload(macro.label, macro.value);
                           onKeyPress(payload);
                         }
                         setShowMacroModal(false);
@@ -938,7 +947,7 @@ export default function TouchBar({ onKeyPress }) {
                       } else {
                         const payload = (macro.isExecutable === false)
                           ? (macro.value ? macro.value.replace(/\n$/, '') : macro.label)
-                          : getCommandPayload(macro.label);
+                          : getCommandPayload(macro.label, macro.value);
                         onKeyPress(payload);
                       }
                       setShowFocusedSuiteModal(false);

@@ -374,7 +374,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
       {/* Editor Viewport or Image Preview Card */}
       <div className="editor-viewport">
         {editorToast && (
-          <div className="editor-toast-banner">
+          <div className="copy-toast">
             <span>{editorToast}</span>
           </div>
         )}
@@ -421,10 +421,9 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
             if (isVirtualDoc) {
               handleOpenSaveAs();
             } else {
+              const name = activeDoc.path.split('/').pop();
               const ok = await onSaveFile(activeDoc.path);
-              if (ok !== false) {
-                triggerToast(`Saved ${activeDoc.path.split('/').pop()}`);
-              }
+              triggerToast(ok !== false ? `Saved ${name}` : `Save failed: ${name}`, ok !== false ? undefined : 4000);
             }
           }}
           title={isVirtualDoc ? 'Save buffer as a new file' : 'Save file'}
@@ -437,9 +436,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
           className="editor-touch-btn commit"
           onClick={async () => {
             const res = await onGitCommit(activeDoc.path);
-            if (res?.message) {
-              triggerToast(res.message);
-            }
+            triggerToast(res?.message || 'Commit failed: the file was not saved or the server refused it', res?.message ? undefined : 4000);
           }}
           disabled={isVirtualDoc}
           style={{ opacity: isVirtualDoc ? 0.35 : 1 }}
@@ -504,10 +501,14 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
                 onClick={async () => {
                   const fileToRun = runConfirmModal;
                   setRunConfirmModal(null);
+                  const name = fileToRun.split('/').pop();
                   const ok = await onSaveFile(fileToRun);
-                  if (ok !== false) {
-                    triggerToast(`Saved ${fileToRun.split('/').pop()}`);
+                  if (ok === false) {
+                    // The file on disk is not what the editor shows, so it is not run.
+                    triggerToast(`Save failed: ${name} was not run`, 4000);
+                    return;
                   }
+                  triggerToast(`Saved ${name}`);
                   executeFile(fileToRun);
                 }}
               >
@@ -529,10 +530,16 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
             <div className="modal-btn-row">
               <button
                 className="submit"
-                onClick={() => {
-                  onSaveFile(closeConfirmModal);
-                  onCloseTab(closeConfirmModal, true);
+                onClick={async () => {
+                  const fileToClose = closeConfirmModal;
                   setCloseConfirmModal(null);
+                  const ok = await onSaveFile(fileToClose);
+                  if (ok === false) {
+                    // The tab holds the only copy of the edits, so it stays open.
+                    triggerToast(`Save failed: ${fileToClose.split('/').pop()} kept open`, 4000);
+                    return;
+                  }
+                  onCloseTab(fileToClose, true);
                 }}
               >
                 Save & Close

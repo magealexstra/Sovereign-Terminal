@@ -175,7 +175,6 @@ export default function App() {
 
   // Session limit toast (replaces the alert() that was inside useSessions)
   const { toast: sessionToast, showToast: showSessionToast } = useToast(3000);
-  const { toast: fileOpenToast, showToast: showFileOpenToast } = useToast(3500);
 
   // Tab 1 Terminal Sessions — all state and handlers live in useSessions
   const [activeTerminalPath, setActiveTerminalPath] = useState('/workspace');
@@ -282,7 +281,7 @@ export default function App() {
           }
           // Binary file → warn and stop. Don't open in editor.
           if (ft.is_binary) {
-            showFileOpenToast('Binary file — right-click in File Manager to download it.');
+            showSessionToast('Binary file — right-click in File Manager to download it.', 3500);
             return;
           }
           // ft.type === 'text' → fall through to editor normally
@@ -350,10 +349,10 @@ export default function App() {
     }
   };
 
+  // Returns the server's reply for the editor to show, or null when the save or the commit failed.
   const handleGitCommit = async (filepath) => {
-    await handleSaveFile(filepath);
-    const commitDoc = openDocuments.find((d) => d.path === filepath);
-    if (!commitDoc || commitDoc.virtual) return null;
+    const saved = await handleSaveFile(filepath);
+    if (!saved) return null;
     try {
       const res = await fetch(`/api/fs/git-commit`, {
         method: 'POST',
@@ -361,9 +360,7 @@ export default function App() {
         body: JSON.stringify({ path: filepath })
       });
       if (res.ok) {
-        const data = await res.json();
-        showSessionToast(data.message);
-        return data;
+        return await res.json();
       }
       return null;
     } catch (e) {
@@ -573,6 +570,13 @@ export default function App() {
         </div>
       </header>
 
+      {/* App-level toast: outside the tab panels, so it shows whichever tab is active */}
+      {sessionToast && (
+        <div className="copy-toast" style={{ top: '4rem', bottom: 'auto' }}>
+          <span>{sessionToast}</span>
+        </div>
+      )}
+
       {/* Tab 1: Multi-Tab WebGL Terminal */}
       <div
         className="tab-content-panel"
@@ -587,11 +591,6 @@ export default function App() {
           height: '100%'
         }}
       >
-        {sessionToast && (
-          <div className="copy-toast" style={{ top: '4rem', bottom: 'auto' }}>
-            <span>{sessionToast}</span>
-          </div>
-        )}
         <SessionTabs
           sessions={sessions}
           activeSession={activeSession}
