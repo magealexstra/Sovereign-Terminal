@@ -1,6 +1,8 @@
 import os
 import secrets
 import logging
+import signal
+import threading
 from datetime import datetime, timezone
 from fastapi import APIRouter, Response, Request, HTTPException, status
 
@@ -18,6 +20,63 @@ if SERVER_AUTH_TOKEN == "sovereign_terminal_token":
     logger.warning("SECURITY WARNING: Using default SERVER_AUTH_TOKEN. Please set SERVER_AUTH_TOKEN environment variable for production deployment.")
 
 SESSION_COOKIE_NAME = "sovereign_session"
+
+# Wrong logins allowed in a row before the server stops itself. A stopped server
+# accepts no connection on its port until someone restarts it by hand, which
+# ends a guessing run for good. 0 turns the limit off.
+try:
+    MAX_LOGIN_ATTEMPTS = max(0, int(os.getenv("MAX_LOGIN_ATTEMPTS", "3")))
+except ValueError:
+    MAX_LOGIN_ATTEMPTS = 3
+
+_failed_logins = 0
+_login_locked = False
+_login_guard = threading.Lock()
+
+# Seconds the stopping server is given to send the lockout reply and close its
+# connections before the process is ended outright.
+_LOCKOUT_REPLY_DELAY = 0.5
+_LOCKOUT_FORCE_EXIT_DELAY = 5.0
+
+
+def _force_exit():
+    os._exit(1)
+
+
+def _shut_down_server():
+    """Stop the server process: ask for a clean stop, then end it if open sockets hold it up."""
+    threading.Timer(_LOCKOUT_FORCE_EXIT_DELAY, _force_exit).start()
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+def _note_failed_login() -> int:
+    """
+    Count one wrong login and return how many are left. At zero the server is
+    marked locked and its shutdown is scheduled just after the reply goes out.
+    """
+    global _failed_logins, _login_locked
+    if MAX_LOGIN_ATTEMPTS == 0:
+        return -1
+    with _login_guard:
+        _failed_logins += 1
+        remaining = MAX_LOGIN_ATTEMPTS - _failed_logins
+        if remaining <= 0 and not _login_locked:
+            _login_locked = True
+            logger.critical(
+                "SECURITY: %d wrong logins in a row. Shutting the server down; restart it by hand to log in again.",
+                _failed_logins,
+            )
+            threading.Timer(_LOCKOUT_REPLY_DELAY, _shut_down_server).start()
+        return max(remaining, 0)
+
+
+def _note_successful_login():
+    global _failed_logins
+    with _login_guard:
+        _failed_logins = 0
+
+
+LOCKED_DETAIL = "Too many wrong logins. The server has shut down and must be restarted by hand."
 
 # Optional OS-specific PAM dependencies (Linux only)
 try:
@@ -133,6 +192,10 @@ def login(payload: dict, response: Response):
     if AUTH_MODE == "disabled":
         return {"status": "authenticated", "message": "Auth disabled by server configuration", "mode": "disabled"}
 
+    # Once locked, no credential is checked again: the server is on its way down.
+    if _login_locked:
+        raise HTTPException(status_code=status.HTTP_423_LOCKED, detail=LOCKED_DETAIL)
+
     cleanup_expired_sessions()
 
     username = payload.get("username", "")
@@ -163,11 +226,17 @@ def login(payload: dict, response: Response):
         authenticated = secrets.compare_digest(password, SERVER_AUTH_TOKEN)
 
     if not authenticated:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
-    
+        remaining = _note_failed_login()
+        if remaining == 0:
+            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail=LOCKED_DETAIL)
+        detail = "Invalid authentication credentials"
+        if remaining > 0:
+            tries = "1 try" if remaining == 1 else f"{remaining} tries"
+            detail += f". {tries} left before the server shuts down."
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
+    _note_successful_login()
+
     # Generate secure random session token
     session_token = secrets.token_hex(32)
     active_sessions[session_token] = {

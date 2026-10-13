@@ -84,6 +84,7 @@ services:
       - PORT=${PORT:-2069}
       - AUTH_MODE=${AUTH_MODE:-token}
       - SERVER_AUTH_TOKEN=${SERVER_AUTH_TOKEN:-1234}
+      - MAX_LOGIN_ATTEMPTS=${MAX_LOGIN_ATTEMPTS:-3}
       - DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-sandbox}
       - PYTHONUNBUFFERED=1
       - SOVEREIGN_ROOT=/workspace
@@ -111,6 +112,8 @@ volumes:
 1. Configure `SERVER_AUTH_TOKEN` in `.env` with a strong cryptographic secret.
 2. Launch container: `docker compose up -d`
 3. Access `http://localhost:2069` and log in with your configured token.
+
+Three wrong logins in a row shut the server down: the port closes and nothing can log in until you restart it by hand (`docker compose up -d`). Change the count with `MAX_LOGIN_ATTEMPTS` in `.env`; `0` turns the limit off.
 
 For PAM modes, Host Passthrough, external drive mounting, and True Baremetal installation steps, consult the complete [USER_GUIDE.md](documentation/USER_GUIDE.md).
 

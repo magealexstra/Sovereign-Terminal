@@ -26,10 +26,12 @@ import threading
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from auth import require_auth
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-router = APIRouter(prefix="/api/fs", tags=["video"])
+# Every route here reads a file by path, so each one requires a session.
+router = APIRouter(prefix="/api/fs", tags=["video"], dependencies=[Depends(require_auth)])
 
 SOVEREIGN_ROOT = os.getenv("SOVEREIGN_ROOT", str(Path.home()))
 

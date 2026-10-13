@@ -20,12 +20,14 @@ import mimetypes
 import subprocess
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, FileResponse
 
+from auth import require_auth
 from fs_api import get_safe_path
 
-router = APIRouter()
+# Every route here reads a file by path, so each one requires a session.
+router = APIRouter(dependencies=[Depends(require_auth)])
 
 # Cover image filenames to check when embedded art is absent, in preference order.
 COVER_NAMES = [
