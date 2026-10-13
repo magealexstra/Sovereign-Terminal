@@ -52,6 +52,7 @@ Thumbs.db
 .directory
 *~
 .agents/
+.claude/
 .oxlintrc.json
 
 # Phase 2b video cache
