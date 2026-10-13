@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -17,6 +17,62 @@ import { openSearchPanel, searchKeymap, search } from '@codemirror/search';
 import { keymap as cmKeymap } from '@codemirror/view';
 import { getFileBrandColor } from '../../utils/fileColors';
 import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
+
+// Wraps a path in single quotes for the shell; a quote inside it is closed,
+// escaped and reopened, so `$`, backticks and `"` in a file name stay literal.
+const shellQuote = (value) => `'${value.replace(/'/g, `'\\''`)}'`;
+
+// The command that runs a file, or null when the extension has no known runner.
+// A file with no extension is assumed to be a shell script.
+const buildRunCommand = (filepath) => {
+  if (!filepath) return null;
+  const fn = filepath.toLowerCase();
+  const quoted = shellQuote(filepath);
+  if (fn.endsWith('.py') || fn.endsWith('.mpy') || fn.endsWith('.upy')) return `python3 ${quoted}`;
+  if (fn.endsWith('.js') || fn.endsWith('.mjs') || fn.endsWith('.cjs')) return `node ${quoted}`;
+  if (fn.endsWith('.sh') || fn.endsWith('.bash')) return `bash ${quoted}`;
+  if (fn.endsWith('.ts') || fn.endsWith('.tsx')) return `npx tsx ${quoted}`;
+  const name = fn.split('/').pop();
+  if (!name.includes('.')) return `bash ${quoted}`;
+  return null;
+};
+
+function getLanguageExtension(filename) {
+  if (!filename) return [markdown()];
+  const fn = filename.toLowerCase();
+  if (fn.endsWith('.js') || fn.endsWith('.jsx') || fn.endsWith('.ts') || fn.endsWith('.tsx')) return [javascript({ jsx: true })];
+  if (fn.endsWith('.py') || fn.endsWith('.mpy') || fn.endsWith('.upy')) return [python()];
+  if (fn.endsWith('.json')) return [json()];
+  if (fn.endsWith('.md')) return [markdown()];
+  if (fn.endsWith('.c') || fn.endsWith('.cpp') || fn.endsWith('.h') || fn.endsWith('.hpp')) return [cpp()];
+  if (fn.endsWith('.rs')) return [rust()];
+  if (fn.endsWith('.html') || fn.endsWith('.htm')) return [html()];
+  if (fn.endsWith('.css')) return [css()];
+  if (fn.endsWith('.xml') || fn.endsWith('.svg')) return [xml()];
+  if (fn.endsWith('.sql')) return [sql()];
+  return [];
+}
+
+// True for compiled or binary formats that must never open in the text editor.
+// Images, video, audio and PDF never get here: the file explorer sends them to the viewer.
+const isBinaryFileName = (filename) => {
+  if (!filename) return false;
+  return /\.(exe|dll|so|bin|class|pyc|o|a|dylib|wasm)$/i.test(filename);
+};
+
+// Content-based binary detection for files whose name gives no hint: a null
+// byte anywhere, or more than 15% non-printable characters in the first 1024.
+const isBinaryContent = (content) => {
+  if (!content || content.length === 0) return false;
+  if (content.includes('\x00')) return true;
+  const sample = content.slice(0, 1024);
+  let nonPrintable = 0;
+  for (let i = 0; i < sample.length; i++) {
+    const code = sample.charCodeAt(i);
+    if (code < 9 || (code > 13 && code < 32) || code === 127) nonPrintable++;
+  }
+  return nonPrintable / sample.length > 0.15;
+};
 
 // Lightweight Markdown HTML Preview Component
 function MarkdownPreview({ content }) {
@@ -100,13 +156,13 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
   const editorTheme = useMemo(() => EditorView.theme({
     '&': {
       height: '100%',
-      backgroundColor: theme?.bgEarth || '#0A1118',
-      color: theme?.textParchment || '#E6EDF0',
-      fontFamily: "'IBM Plex Mono', monospace",
+      backgroundColor: theme?.bgEarth || 'var(--bg-earth)',
+      color: theme?.textParchment || 'var(--text-parchment)',
+      fontFamily: 'var(--font-mono)',
       fontSize: `${editorFontSizePx || 14}px`
     },
     '.cm-content': {
-      caretColor: theme?.accentHighlight || '#88C0D0',
+      caretColor: theme?.accentHighlight || 'var(--accent-highlight)',
       fontSize: `${editorFontSizePx || 14}px`,
       paddingBottom: 'calc(100vh - var(--visual-viewport-height) + 45px)',
       userSelect: 'text',
@@ -117,12 +173,12 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
       webkitUserSelect: 'text'
     },
     '&.cm-focused .cm-cursor': {
-      borderLeftColor: theme?.accentHighlight || '#88C0D0'
+      borderLeftColor: theme?.accentHighlight || 'var(--accent-highlight)'
     },
     '.cm-gutters': {
-      backgroundColor: theme?.bgCanopy || '#141E26',
-      color: theme?.textMuted || '#A3B1B8',
-      borderRight: '1px solid ' + (theme?.borderForest || '#2A3B4C')
+      backgroundColor: theme?.bgCanopy || 'var(--bg-canopy)',
+      color: theme?.textMuted || 'var(--text-muted)',
+      borderRight: '1px solid ' + (theme?.borderForest || 'var(--border-forest)')
     },
     '.cm-scroller': {
       overflow: 'auto !important',
@@ -138,18 +194,21 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     ...(isWordWrap ? [EditorView.lineWrapping] : []),
     search({ top: true }),
     cmKeymap.of(searchKeymap),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [activeDoc?.path, isWordWrap]);
 
-  const buildRunCommand = (filepath) => {
-    if (!filepath) return null;
-    const fn = filepath.toLowerCase();
-    if (fn.endsWith('.py') || fn.endsWith('.mpy') || fn.endsWith('.upy')) return `python3 "${filepath}"`;
-    if (fn.endsWith('.js') || fn.endsWith('.mjs') || fn.endsWith('.cjs')) return `node "${filepath}"`;
-    if (fn.endsWith('.sh') || fn.endsWith('.bash')) return `bash "${filepath}"`;
-    if (fn.endsWith('.ts') || fn.endsWith('.tsx')) return `npx tsx "${filepath}"`;
-    return `bash "${filepath}"`;
-  };
+  // Whether the document is a binary file. Decided once per tab, when it becomes
+  // active: scanning the whole text on every keystroke would cost more the larger
+  // the file, and typing a control character must not swap the editor for the card.
+  const isBinaryDoc = useMemo(
+    () => isBinaryFileName(activeDoc?.name) || isBinaryContent(activeDoc?.content),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeDoc?.path],
+  );
+
+  // A pending long-press must not fire after the editor is gone.
+  useEffect(() => () => clearTimeout(pressTimer.current), []);
+
+  const canRun = buildRunCommand(activeDoc?.path) !== null;
 
   const executeFile = (filepath) => {
     const cmd = buildRunCommand(filepath);
@@ -171,46 +230,6 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
     executeFile(activeDoc.path);
   };
 
-  function getLanguageExtension(filename) {
-    if (!filename) return [markdown()];
-    const fn = filename.toLowerCase();
-    if (fn.endsWith('.js') || fn.endsWith('.jsx') || fn.endsWith('.ts') || fn.endsWith('.tsx')) return [javascript({ jsx: true })];
-    if (fn.endsWith('.py') || fn.endsWith('.mpy') || fn.endsWith('.upy')) return [python()];
-    if (fn.endsWith('.json')) return [json()];
-    if (fn.endsWith('.md')) return [markdown()];
-    if (fn.endsWith('.c') || fn.endsWith('.cpp') || fn.endsWith('.h') || fn.endsWith('.hpp')) return [cpp()];
-    if (fn.endsWith('.rs')) return [rust()];
-    if (fn.endsWith('.html') || fn.endsWith('.htm')) return [html()];
-    if (fn.endsWith('.css')) return [css()];
-    if (fn.endsWith('.xml') || fn.endsWith('.svg')) return [xml()];
-    if (fn.endsWith('.sql')) return [sql()];
-    return [];
-  }
-
-  /**
-   * Returns true for any file that should never open in the text editor.
-   * Covers all viewer-handled types + known binary formats.
-   */
-  const isBinaryOrMediaFile = (filename) => {
-    if (!filename) return false;
-    return /\.(png|jpe?g|webp|gif|bmp|ico|tiff?|avif|svg|mp4|webm|mov|mkv|avi|mpg|mpeg|wmv|m4v|flv|3gp|ts|vob|mp3|wav|flac|ogg|m4a|aac|opus|pdf|exe|dll|so|bin|class|pyc|\.o|\.a|dylib|wasm)$/i.test(filename);
-  };
-
-  /**
-   * Content-based binary detection — fallback for extensionless files.
-   * Checks the first 1024 chars for null bytes or high non-printable ratio.
-   */
-  const isBinaryContent = (content) => {
-    if (!content || content.length === 0) return false;
-    if (content.includes('\x00')) return true;
-    const sample = content.slice(0, 1024);
-    const nonPrintable = sample.split('').filter(c => {
-      const code = c.charCodeAt(0);
-      return code < 9 || (code > 13 && code < 32) || code === 127;
-    }).length;
-    return nonPrintable / sample.length > 0.15;
-  };
-
   // Touch Bar Action Handlers
   const handleFormatContent = () => {
     if (!activeDoc || !activeDoc.content) return;
@@ -225,22 +244,22 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
         onContentChange(activeDoc.path, trimmed);
         triggerToast('Code Formatted');
       }
-    } catch (e) {
+    } catch {
       triggerToast('Format Error: Invalid Data');
     }
   };
 
   // Single-Tap vs Long-Press Tab Close Safeguard
   const handleTabClosePress = (docPath) => {
+    clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => {
       onCloseTab(docPath, true);
     }, 700);
   };
 
+  // Released, moved (the bar is being scrolled) or cancelled: the hold is over.
   const handleTabCloseRelease = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-    }
+    clearTimeout(pressTimer.current);
   };
 
   // Touch Bar Clipboard Handlers (Modern Clipboard API)
@@ -313,8 +332,9 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
               }}
               onClick={() => onSelectTab(doc.path)}
               onTouchStart={() => handleTabClosePress(doc.path)}
-              onTouchEnd={() => handleTabCloseRelease()}
-
+              onTouchEnd={handleTabCloseRelease}
+              onTouchMove={handleTabCloseRelease}
+              onTouchCancel={handleTabCloseRelease}
             >
               {doc.virtual
                 ? <Eye size={13} color="var(--text-muted)" />
@@ -349,9 +369,9 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
           </div>
         )}
 
-        {(isBinaryOrMediaFile(activeDoc.name) || isBinaryContent(activeDoc.content)) ? (
+        {isBinaryDoc ? (
           <div className="image-preview-card">
-            <FileText size={48} color={theme?.accentHighlight || '#88C0D0'} style={{ opacity: 0.5 }} />
+            <FileText size={48} color={theme?.accentHighlight || 'var(--accent-highlight)'} style={{ opacity: 0.5 }} />
             <h3>Binary File</h3>
             <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>{activeDoc.name}</p>
             <span className="image-note">
@@ -362,6 +382,7 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
           <MarkdownPreview content={activeDoc.content || ''} />
         ) : (
           <CodeMirror
+            key={activeDoc.path}
             value={activeDoc.content || ''}
             height="100%"
             onCreateEditor={(view) => { editorViewRef.current = view; }}
@@ -377,8 +398,8 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
         <button
           className="editor-touch-btn run"
           onClick={handleRunClick}
-          disabled={isVirtualDoc}
-          style={{ opacity: isVirtualDoc ? 0.35 : 1 }}
+          disabled={isVirtualDoc || !canRun}
+          style={{ opacity: isVirtualDoc || !canRun ? 0.35 : 1 }}
           title={isVirtualDoc ? 'Save inspect buffer to file before running' : 'Run file in active terminal'}
         >
           <Play size={14} />
@@ -438,7 +459,11 @@ export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab,
 
         <button
           className="editor-touch-btn"
-          onClick={() => { if (editorViewRef.current) openSearchPanel(editorViewRef.current); }}
+          onClick={() => {
+            // The view is gone while the binary card or the Markdown preview is showing.
+            const view = editorViewRef.current;
+            if (view && view.dom.isConnected) openSearchPanel(view);
+          }}
           title="Search document (Ctrl+F)"
         >
           <Search size={14} />

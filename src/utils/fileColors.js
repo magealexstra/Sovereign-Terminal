@@ -7,7 +7,7 @@
  *   - FileViewer.jsx   (tab pill border/glow color)
  *
  * Color families:
- *   Code languages  → official brand colors (unchanged)
+ *   Code languages  → official brand colors
  *   Images          → Cyan/Teal family
  *   Video (native)  → Forest/Emerald Green family
  *   Video (other)   → Sage Green (#5ba386, shared)
@@ -35,7 +35,7 @@ export const getFileBrandColor = (filename) => {
   if (fn.endsWith('.c') || fn.endsWith('.cpp') || fn.endsWith('.h') || fn.endsWith('.hpp')) return '#659AD2';
   if (fn.endsWith('.xml'))                                               return '#F16529';
   if (fn.endsWith('.sql'))                                               return '#CC2927';
-  if (fn.includes('docker') || fn.endsWith('.dockerignore'))             return '#2496ED';
+  if (fn.includes('docker'))                                             return '#2496ED';
 
   /* ── Images — Cyan/Teal family ───────────────────────────────────────────── */
   // SVG: Deep Wine — special case (vector + markup, sandboxed via <img>)

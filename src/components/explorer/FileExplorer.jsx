@@ -1,8 +1,22 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Folder, FileText, ChevronRight, Search, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, TerminalSquare, Clipboard, FileCode, Check, CheckSquare, Square } from 'lucide-react';
 import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 import ExplorerContextMenu from './ExplorerContextMenu';
 import { getFileBrandColor, getFileExtension } from '../../utils/fileColors';
+import { useToast } from '../../hooks/useToast';
+
+const nameCollator = new Intl.Collator(undefined, { sensitivity: 'base' });
+
+// The server's `detail` text when a failed reply carries one, else the status code.
+async function failureText(res) {
+  try {
+    const body = await res.json();
+    if (typeof body?.detail === 'string' && body.detail) return body.detail;
+  } catch {
+    // The body is not JSON; the status code is the best description left.
+  }
+  return `server replied ${res.status}`;
+}
 
 export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, activeTerminalPath, rootDir, currentPath, setCurrentPath, refreshKey }) {
   const [items, setItems] = useState([]);
@@ -19,6 +33,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   const [isSudoer, setIsSudoer] = useState(false);
   const [sudoElevationModal, setSudoElevationModal] = useState(null);
   const [accessDeniedModal, setAccessDeniedModal] = useState(null);
+  const { toast, showToast } = useToast(2000);
 
   // Context menu state
   const [contextMenuVisible, setContextMenuVisible] = useState(false);
@@ -34,6 +49,18 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   const renameInputRef = useRef(null);
   const longPressTimerRef = useRef(null);
   const fetchIdRef = useRef(0);
+  // The path the last successful listing came from. A currentPath that equals it
+  // was set by that listing, so the effect below must not list it again.
+  const loadedPathRef = useRef(null);
+  const seenRefreshKeyRef = useRef(refreshKey);
+
+  // Tells the user an action failed, using the server's reason when it gave one.
+  const reportFailure = async (what, res) => {
+    showToast(`${what} failed: ${await failureText(res)}`, 4000);
+  };
+  const reportError = (what) => {
+    showToast(`${what} failed: the server could not be reached`, 4000);
+  };
 
   useEffect(() => {
     fetch('/api/auth/verify')
@@ -43,7 +70,9 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
           setIsSudoer(!!data.is_sudoer);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Without the answer the explorer simply offers no administrator retry.
+      });
   }, []);
 
   useEffect(() => {
@@ -72,55 +101,68 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         const d = localStorage.getItem('sovereign_copy_destination');
         if (d === 'code') setDestinationMode('code');
         else setDestinationMode('clip');
-      } catch {}
+      } catch {
+        // Storage is blocked; the default destination (clipboard) stays.
+      }
     };
     loadDest();
     window.addEventListener('storage', loadDest);
     return () => window.removeEventListener('storage', loadDest);
   }, []);
 
-  // Clear any in-flight long-press timer when the component unmounts
-  // to prevent a stale callback from firing against an unmounted tree.
+  // On unmount, stop the long-press timer and invalidate any directory fetch still
+  // in flight so a late reply cannot write into an unmounted tree.
   useEffect(() => {
     return () => {
       if (longPressTimerRef.current) {
         clearTimeout(longPressTimerRef.current);
       }
+      fetchIdRef.current++;
     };
   }, []);
 
   const fetchDirectory = async (targetPath) => {
     const fetchId = ++fetchIdRef.current;
     setLoading(true);
-    setItems([]);
-    setSelectedItems([]);
     try {
       const res = await fetch(`/api/fs/tree?path=${encodeURIComponent(targetPath)}`);
       if (fetchId !== fetchIdRef.current) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (fetchId !== fetchIdRef.current) return;
-        setCurrentPath(data.currentPath);
-        try {
-          localStorage.setItem('sovereign_explorer_last_path', data.currentPath);
-        } catch {}
-        setItems(data.items);
-        setSelectedItems([]);
+      if (!res.ok) {
+        // The old listing stays on screen so a folder that cannot be read does not look empty.
+        showToast(`Cannot open folder: ${await failureText(res)}`, 4000);
+        return;
       }
-    } catch (e) {
+      const data = await res.json();
       if (fetchId !== fetchIdRef.current) return;
-      console.error('Failed to fetch directory tree:', e);
+      if (data.currentPath !== loadedPathRef.current) setSearchQuery('');
+      loadedPathRef.current = data.currentPath;
+      setCurrentPath(data.currentPath);
+      try {
+        localStorage.setItem('sovereign_explorer_last_path', data.currentPath);
+      } catch {
+        // Storage can be blocked; the listing itself is unaffected.
+      }
+      setItems(data.items);
+      setSelectedItems([]);
+    } catch {
+      if (fetchId !== fetchIdRef.current) return;
+      showToast('Cannot open folder: the server could not be reached', 4000);
     } finally {
       if (fetchId === fetchIdRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (currentPath === loadedPathRef.current) return;
     fetchDirectory(currentPath);
   }, [currentPath]);
 
+  // A new refreshKey (a file was saved elsewhere) re-lists the folder. The value
+  // present at mount is already covered by the listing above.
   useEffect(() => {
-    if (refreshKey > 0) fetchDirectory(currentPath);
+    if (refreshKey === seenRefreshKeyRef.current) return;
+    seenRefreshKeyRef.current = refreshKey;
+    fetchDirectory(currentPath);
   }, [refreshKey]);
 
   const getBreadcrumbs = () => {
@@ -186,6 +228,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   const handlePaste = useCallback(async () => {
     if (clipboardItems.length === 0 || !clipboardMode) return;
     const endpoint = clipboardMode === 'cut' ? '/api/fs/move' : '/api/fs/copy';
+    const what = clipboardMode === 'cut' ? 'Move' : 'Copy';
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -200,13 +243,15 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         }
         return;
       }
-      if (res.ok) {
-        setClipboardItems([]);
-        setClipboardMode(null);
-        fetchDirectory(currentPath);
+      if (!res.ok) {
+        await reportFailure(what, res);
+        return;
       }
-    } catch (e) {
-      console.error('Paste error:', e);
+      setClipboardItems([]);
+      setClipboardMode(null);
+      fetchDirectory(currentPath);
+    } catch {
+      reportError(what);
     }
   }, [clipboardItems, clipboardMode, currentPath, isSudoer]);
 
@@ -217,9 +262,13 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sources: [itemPath], destination: currentPath }),
       });
-      if (res.ok) fetchDirectory(currentPath);
-    } catch (e) {
-      console.error('Duplicate error:', e);
+      if (!res.ok) {
+        await reportFailure('Duplicate', res);
+        return;
+      }
+      fetchDirectory(currentPath);
+    } catch {
+      reportError('Duplicate');
     }
   }, [currentPath]);
 
@@ -256,18 +305,23 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         setRenameModal({ visible: false, itemPath: '', currentName: '' });
         return;
       }
-      if (res.ok) {
-        setRenameModal({ visible: false, itemPath: '', currentName: '' });
-        setSelectedItems([]);
-        fetchDirectory(currentPath);
+      if (!res.ok) {
+        // The modal stays open and shows the reason beside the name field.
+        setRenameError(await failureText(res));
+        return;
       }
-    } catch (e) {
-      console.error('Rename error:', e);
+      setRenameModal({ visible: false, itemPath: '', currentName: '' });
+      setSelectedItems([]);
+      fetchDirectory(currentPath);
+    } catch {
+      setRenameError('The server could not be reached.');
     }
   };
 
   // ── Compress ───────────────────────────────────────────────────────────────
 
+  // The compress route does not accept use_sudo, so there is no elevated retry
+  // for it; a refusal is shown with the server's reason.
   const handleCompress = useCallback(async () => {
     if (selectedItems.length === 0) return;
     try {
@@ -276,52 +330,73 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sources: selectedItems, destination: currentPath }),
       });
-      if (res.ok) {
-        setSelectedItems([]);
-        fetchDirectory(currentPath);
+      if (!res.ok) {
+        await reportFailure('Compress', res);
+        return;
       }
-    } catch (e) {
-      console.error('Compress error:', e);
+      let archiveName = '';
+      try {
+        const body = await res.json();
+        archiveName = typeof body?.archive === 'string' ? body.archive.split('/').pop() : '';
+      } catch {
+        // The archive was made; only its name is missing from the message.
+      }
+      showToast(archiveName ? `Created ${archiveName}` : 'Archive created');
+      setSelectedItems([]);
+      fetchDirectory(currentPath);
+    } catch {
+      reportError('Compress');
     }
   }, [selectedItems, currentPath]);
 
   const handleCopyName = useCallback(() => {
     if (selectedItems.length === 0) return;
     const names = selectedItems.map((p) => p.split('/').pop()).join('\n');
-    writeToClipboard(names).catch(() => {});
+    writeToClipboard(names).catch(() => showToast('Copy failed'));
   }, [selectedItems]);
 
   const handleCopyPath = useCallback(() => {
     if (selectedItems.length === 0) return;
-    writeToClipboard(selectedItems.join('\n')).catch(() => {});
+    writeToClipboard(selectedItems.join('\n')).catch(() => showToast('Copy failed'));
   }, [selectedItems]);
 
   // ── Archive / Delete ───────────────────────────────────────────────────────
 
-  const handleArchiveSelected = useCallback(async () => {
-    if (selectedItems.length === 0) return;
-    for (const itemPath of selectedItems) {
+  // Sends one request per item and keeps going when an item fails. Items the
+  // server refused with 403 go to the sudo or access-denied dialog afterwards;
+  // other failures are reported once with the first reason. The listing is
+  // refreshed at the end because earlier items may already be gone.
+  const runPerItem = async (endpoint, action, what, paths) => {
+    const denied = [];
+    let failure = null;
+    for (const itemPath of paths) {
       try {
-        const res = await fetch('/api/fs/trash', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: itemPath }),
         });
-        if (res.status === 403) {
-          if (isSudoer) {
-            setSudoElevationModal({ itemPath, action: 'trash' });
-            return;
-          } else {
-            setAccessDeniedModal({ itemPath });
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('Archive error:', e);
+        if (res.status === 403) denied.push(itemPath);
+        else if (!res.ok && failure === null) failure = await failureText(res);
+      } catch {
+        if (failure === null) failure = 'the server could not be reached';
+      }
+    }
+    if (failure !== null) showToast(`${what} failed: ${failure}`, 4000);
+    if (denied.length > 0) {
+      if (isSudoer) {
+        setSudoElevationModal({ itemPath: denied[0], extraPaths: denied.slice(1), action });
+      } else {
+        setAccessDeniedModal({ itemPath: denied[0] });
       }
     }
     setSelectedItems([]);
     fetchDirectory(currentPath);
+  };
+
+  const handleArchiveSelected = useCallback(async () => {
+    if (selectedItems.length === 0) return;
+    await runPerItem('/api/fs/trash', 'trash', 'Archive', selectedItems);
   }, [selectedItems, isSudoer, currentPath]);
 
   const handleDeleteSelected = useCallback(() => {
@@ -332,54 +407,50 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   const executePermanentDelete = async () => {
     setPermanentDeleteModal(false);
     if (selectedItems.length === 0) return;
-    for (const itemPath of selectedItems) {
-      try {
-        const res = await fetch('/api/fs/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: itemPath }),
-        });
-        if (res.status === 403) {
-          if (isSudoer) {
-            setSudoElevationModal({ itemPath, action: 'delete' });
-            return;
-          } else {
-            setAccessDeniedModal({ itemPath });
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('Delete error:', e);
-      }
-    }
-    setSelectedItems([]);
-    fetchDirectory(currentPath);
+    await runPerItem('/api/fs/delete', 'delete', 'Delete', selectedItems);
   };
 
   // ── Sudo Elevation Retry ───────────────────────────────────────────────────
 
   const handleSudoElevatedAction = async () => {
     if (!sudoElevationModal) return;
-    const { itemPath, action, newName } = sudoElevationModal;
+    const { itemPath, extraPaths = [], action, newName } = sudoElevationModal;
     setSudoElevationModal(null);
 
-    let endpoint = '/api/fs/trash';
-    let body = { path: itemPath, use_sudo: true };
-    if (action === 'delete') { endpoint = '/api/fs/delete'; }
-    if (action === 'move')   { endpoint = '/api/fs/move';   body = { sources: clipboardItems, destination: currentPath, use_sudo: true }; }
-    if (action === 'copy')   { endpoint = '/api/fs/copy';   body = { sources: clipboardItems, destination: currentPath, use_sudo: true }; }
-    if (action === 'rename') { endpoint = '/api/fs/rename'; body = { source: itemPath, new_name: newName, use_sudo: true }; }
+    const post = (endpoint, body) => fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
+    let ok = true;
+    let failure = null;
     try {
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-    } catch (e) {
-      console.error('Sudo elevation error:', e);
+      if (action === 'trash' || action === 'delete') {
+        const endpoint = action === 'delete' ? '/api/fs/delete' : '/api/fs/trash';
+        for (const p of [itemPath, ...extraPaths]) {
+          const res = await post(endpoint, { path: p, use_sudo: true });
+          if (!res.ok) {
+            ok = false;
+            if (failure === null) failure = await failureText(res);
+          }
+        }
+      } else {
+        let res;
+        if (action === 'move')   res = await post('/api/fs/move', { sources: clipboardItems, destination: currentPath, use_sudo: true });
+        if (action === 'copy')   res = await post('/api/fs/copy', { sources: clipboardItems, destination: currentPath, use_sudo: true });
+        if (action === 'rename') res = await post('/api/fs/rename', { source: itemPath, new_name: newName, use_sudo: true });
+        if (!res.ok) {
+          ok = false;
+          failure = await failureText(res);
+        }
+      }
+    } catch {
+      ok = false;
+      failure = 'the server could not be reached';
     }
-    if (action === 'move' || action === 'copy') {
+    if (!ok) showToast(`Administrator action failed: ${failure}`, 4000);
+    if (ok && (action === 'move' || action === 'copy')) {
       setClipboardItems([]);
       setClipboardMode(null);
     }
@@ -399,13 +470,16 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: targetPath, type: newItemType }),
       });
-      if (res.ok) {
-        setNewFileModal(false);
-        setNewItemName('');
-        fetchDirectory(currentPath);
+      if (!res.ok) {
+        // The modal stays open so the name can be corrected.
+        await reportFailure('Create', res);
+        return;
       }
-    } catch (e) {
-      console.error('Create error:', e);
+      setNewFileModal(false);
+      setNewItemName('');
+      fetchDirectory(currentPath);
+    } catch {
+      reportError('Create');
     }
   };
 
@@ -417,7 +491,8 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
   };
 
   const handleUpload = async (e) => {
-    const files = e.target.files;
+    const input = e.target;
+    const files = input.files;
     if (!files || files.length === 0) return;
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
@@ -428,9 +503,16 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         method: 'POST',
         body: formData,
       });
-      if (res.ok) fetchDirectory(currentPath);
-    } catch (e) {
-      console.error('Upload error:', e);
+      if (!res.ok) {
+        await reportFailure('Upload', res);
+        return;
+      }
+      fetchDirectory(currentPath);
+    } catch {
+      reportError('Upload');
+    } finally {
+      // Clearing the picker lets the same file be chosen again.
+      input.value = '';
     }
   };
 
@@ -449,17 +531,22 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
 
   // ── Derived state ──────────────────────────────────────────────────────────
 
-  const filteredItems = items
-    .filter((item) => item && item.name)
-    .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
-      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    });
+  const filteredItems = useMemo(() => {
+    const needle = searchQuery.toLowerCase();
+    return items
+      .filter((item) => item && item.name)
+      .filter((item) => item.name.toLowerCase().includes(needle))
+      .sort((a, b) => {
+        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+        return nameCollator.compare(a.name, b.name);
+      });
+  }, [items, searchQuery]);
+
+  const selectedSet = useMemo(() => new Set(selectedItems), [selectedItems]);
 
   const allVisibleSelected =
     filteredItems.length > 0 &&
-    filteredItems.every((item) => selectedItems.includes(item.path));
+    filteredItems.every((item) => selectedSet.has(item.path));
 
   const handleToggleSelectAll = () => {
     if (allVisibleSelected) {
@@ -500,10 +587,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
                 writeToClipboard(pathToCopy).then(() => {
                   setCopied(true);
                   setTimeout(() => setCopied(false), 1500);
-                }).catch(() => {
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1500);
-                });
+                }).catch(() => showToast('Copy failed'));
               } else {
                 if (onCopyPath) onCopyPath(pathToCopy);
               }
@@ -524,7 +608,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
           <button className="tb-btn" onClick={() => setCurrentPath(activeTerminalPath)} title="Snap to Terminal">
             <Terminal size={14} />
           </button>
-          <button className="tb-btn" onClick={() => onOpenTerminal && onOpenTerminal(currentPath)} title="Open New Terminal Here">
+          <button className="tb-btn" onClick={() => { if (onOpenTerminal) onOpenTerminal(currentPath); }} title="Open New Terminal Here">
             <TerminalSquare size={14} />
           </button>
           <button className="tb-btn" onClick={() => fetchDirectory(currentPath)} title="Refresh Directory">
@@ -548,7 +632,12 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
             <Upload size={14} />
             <input type="file" multiple onChange={handleUpload} style={{ display: 'none' }} />
           </label>
-          <button className="tb-btn" onClick={() => setShowSearchModal(true)} title="Tab-Scoped File Search">
+          <button
+            className="tb-btn"
+            style={searchQuery ? { borderColor: 'var(--status-active)' } : undefined}
+            onClick={() => setShowSearchModal(true)}
+            title="Tab-Scoped File Search"
+          >
             <Search size={14} color="var(--accent-mana)" />
           </button>
         </div>
@@ -562,7 +651,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         {filteredItems.map((item) => (
           <div
             key={item.path}
-            className={`tree-item ${selectedItems.includes(item.path) ? 'selected' : ''}`}
+            className={`tree-item ${selectedSet.has(item.path) ? 'selected' : ''}`}
             onTouchStart={() => startLongPress(item)}
             onTouchMove={cancelLongPress}
             onTouchEnd={cancelLongPress}
@@ -578,7 +667,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
             <input
               type="checkbox"
               className="item-checkbox"
-              checked={selectedItems.includes(item.path)}
+              checked={selectedSet.has(item.path)}
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => {
                 e.stopPropagation();
@@ -740,13 +829,19 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
               Permission Denied: Administrator Required
             </h3>
             <p style={{ color: 'var(--text-parchment)', fontSize: '0.88rem', lineHeight: '1.4', margin: '0.85rem 0' }}>
-              System write permission was denied for <strong>{sudoElevationModal.itemPath.split('/').pop()}</strong>. Would you like to proceed as Administrator (sudo)?
+              System write permission was denied for <strong>{sudoElevationModal.itemPath.split('/').pop()}</strong>{sudoElevationModal.extraPaths?.length > 0 && ` and ${sudoElevationModal.extraPaths.length} more`}. Would you like to proceed as Administrator (sudo)?
             </p>
             <div className="modal-btn-row">
               <button type="button" onClick={() => setSudoElevationModal(null)}>Cancel</button>
               <button type="button" className="submit" onClick={handleSudoElevatedAction}>Proceed as Administrator</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="copy-toast" style={{ position: 'fixed', top: '4rem', bottom: 'auto', zIndex: 300 }}>
+          <span>{toast}</span>
         </div>
       )}
 

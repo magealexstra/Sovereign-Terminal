@@ -46,7 +46,10 @@ export const VIEWER_EXTENSIONS = new Set([
  */
 export const getViewerType = (filename) => {
   if (!filename) return 'other';
-  const ext = filename.split('.').pop().toLowerCase();
+  // A name with no dot has no extension; without this a file called "pdf" or "mp4" would match.
+  const dot = filename.lastIndexOf('.');
+  if (dot < 0) return 'other';
+  const ext = filename.slice(dot + 1).toLowerCase();
   if (IMAGE_EXTS.has(ext))        return 'image';
   if (NATIVE_VIDEO_EXTS.has(ext)) return 'video';
   if (FFMPEG_VIDEO_EXTS.has(ext)) return 'video-nopreview';

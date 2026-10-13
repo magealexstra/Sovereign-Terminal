@@ -61,8 +61,8 @@ export default function ExplorerContextMenu({
     : null;
   const singleIsDir = singleItem?.isDir ?? false;
 
-  const close = (fn) => () => { onClose(); fn && fn(); };
-  const closeWith = (fn, arg) => () => { onClose(); fn && fn(arg); };
+  const close = (fn) => () => { onClose(); if (fn) fn(); };
+  const closeWith = (fn, arg) => () => { onClose(); if (fn) fn(arg); };
 
   return (
     <>

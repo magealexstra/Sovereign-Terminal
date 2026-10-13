@@ -19,6 +19,53 @@ function TabIcon({ type, color }) {
   }
 }
 
+/* ─── Shared player helpers ─────────────────────────────────────────────────── */
+
+// How long a player waits for the service worker to finish caching before it
+// offers to stream the file directly.
+const CACHE_TIMEOUT_MS = 45_000;
+
+// True once `isCaching` has stayed true for CACHE_TIMEOUT_MS. Caused by: the
+// service worker being killed mid-download, a failed stream request (the worker
+// reports nothing then), Cache API quota, or a stalled connection.
+function useCachingTimeout(isCaching) {
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isCaching) { setTimedOut(false); return; }
+    const t = setTimeout(() => setTimedOut(true), CACHE_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [isCaching]);
+  return timedOut;
+}
+
+// Overlay shown when caching has taken too long, with a way to skip it.
+function CachingStalledOverlay({ onStreamDirect }) {
+  return (
+    <div className="viewer-video-frame">
+      <div className="viewer-caching-overlay">
+        <span className="viewer-caching-title">Loading is taking longer than expected</span>
+        <span className="viewer-caching-sub">
+          Your browser may not support background caching for files of this size,
+          or your connection is too slow. You can try streaming the file directly.
+        </span>
+        <button className="viewer-stream-direct-btn" onClick={onStreamDirect}>
+          Stream Directly
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Pauses a media element being torn down. A removed element keeps playing
+// (audio included) until it is garbage collected, so the tab would stay audible.
+function stopMedia(el) {
+  try {
+    el.pause();
+  } catch {
+    // The element is already gone; there is nothing left to stop.
+  }
+}
+
 /* ─── Image viewer — pinch-to-zoom + pan + double-tap ──────────────────────── */
 function ImageViewer({ path }) {
   const containerRef = useRef(null);
@@ -30,6 +77,7 @@ function ImageViewer({ path }) {
   const panRef   = useRef({ active: false, moved: false, startX: 0, startY: 0, startTX: 0, startTY: 0 });
 
   const [xform, setXform] = useState({ scale: 1, x: 0, y: 0, animated: false });
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const getDist = (t) => Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY);
@@ -125,6 +173,16 @@ function ImageViewer({ path }) {
     willChange:      'transform',
   };
 
+  if (loadFailed) {
+    return (
+      <div className="viewer-no-preview">
+        <FileImage size={48} color="var(--text-dim)" />
+        <p className="viewer-no-preview-name">{path.split('/').pop()}</p>
+        <span className="viewer-no-preview-note">This image could not be loaded.</span>
+      </div>
+    );
+  }
+
   return (
     <div
       className="viewer-image-scroll"
@@ -140,6 +198,7 @@ function ImageViewer({ path }) {
           className="viewer-image"
           draggable={false}
           style={imgStyle}
+          onError={() => setLoadFailed(true)}
           // SVG served via <img> — browser sandboxes scripts, cannot execute
         />
       </div>
@@ -149,7 +208,8 @@ function ImageViewer({ path }) {
 
 /* ─── Video player — native (Plyr) ─────────────────────────────────────────── */
 // Used for mp4 / webm / mov — formats Chrome streams natively.
-// State machine: 'caching' | 'streaming'
+// State machine: 'caching' | 'streaming'. A caching phase that outlasts
+// CACHE_TIMEOUT_MS offers "Stream Directly".
 function VideoPlayer({ path }) {
   const videoRef  = useRef(null);
   const playerRef = useRef(null);
@@ -180,6 +240,8 @@ function VideoPlayer({ path }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // fire once on mount
+
+  const cachingTimedOut = useCachingTimeout(viewState === 'caching');
 
   // Reactive: transition to streaming once SW reports cached
   useEffect(() => {
@@ -212,12 +274,18 @@ function VideoPlayer({ path }) {
       console.error('[FileViewer] Plyr video init failed:', err);
     }
     return () => {
-      try { playerRef.current?.destroy(); } catch (_) {}
+      try { playerRef.current?.destroy(); } catch {
+        // Plyr may already have torn down its markup; the element is stopped below.
+      }
       playerRef.current = null;
+      stopMedia(el);
     };
   }, [viewState]);
 
   if (viewState === 'caching') {
+    if (cachingTimedOut) {
+      return <CachingStalledOverlay onStreamDirect={() => { autoPlayRef.current = true; setViewState('streaming'); }} />;
+    }
     return (
       <div className="viewer-video-frame">
         <div className="viewer-caching-overlay">
@@ -339,12 +407,6 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   // 'init' | 'caching' | 'streaming' | 'no_ffmpeg' | 'failed'
   const [viewState, setViewState]     = useState('init');
   const [subtitleTracks, setSubtitles] = useState([]);
-  // True when the SW has been caching for longer than CACHE_TIMEOUT_MS without
-  // completing. Caused by: mobile browser killing the SW worker mid-download,
-  // Cache API storage quota exceeded, connection stall, or file too large for
-  // the device's cache budget. Switches the overlay to an actionable message.
-  const [cachingTimedOut, setCachingTimedOut] = useState(false);
-
   const cacheState = useCacheState();
   const isStreamingOnly = cacheState?.[path]?.state === 'skip';
 
@@ -379,7 +441,9 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
             const { video_codec, audio_codec } = await probeRes.json();
             nativeRef.current = canPlayNatively(video_codec, audio_codec);
           }
-        } catch (_) {}
+        } catch {
+          // The probe is optional: without it the file takes the FFmpeg path.
+        }
         if (cancelled) return;
 
         // If the browser can't play natively AND FFmpeg isn't available, give up.
@@ -430,7 +494,9 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
           const data = await res.json();
           if (!cancelled) setSubtitles(data.tracks || []);
         }
-      } catch (_) {}
+      } catch {
+        // Subtitles are optional; the video plays without them.
+      }
     }
 
     init();
@@ -443,12 +509,7 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   // ── Caching timeout ────────────────────────────────────────────────────────
   // If the SW hasn't reported 'cached' within CACHE_TIMEOUT_MS, surface an
   // actionable message instead of leaving the user stuck indefinitely.
-  const CACHE_TIMEOUT_MS = 45_000;
-  useEffect(() => {
-    if (viewState !== 'caching') { setCachingTimedOut(false); return; }
-    const t = setTimeout(() => setCachingTimedOut(true), CACHE_TIMEOUT_MS);
-    return () => clearTimeout(t);
-  }, [viewState]);
+  const cachingTimedOut = useCachingTimeout(viewState === 'caching');
 
   // ── Reactive cacheState watcher ───────────────────────────────────────────
   // Transitions 'caching' → 'streaming' once the SW broadcasts completion.
@@ -482,8 +543,11 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
     }
 
     return () => {
-      try { playerRef.current?.destroy(); } catch (_) {}
+      try { playerRef.current?.destroy(); } catch {
+        // Plyr may already have torn down its markup; the element is stopped below.
+      }
       playerRef.current = null;
+      stopMedia(el);
     };
   }, [viewState]);
 
@@ -528,23 +592,7 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
 
   if (viewState === 'caching') {
     if (cachingTimedOut) {
-      return (
-        <div className="viewer-video-frame">
-          <div className="viewer-caching-overlay">
-            <span className="viewer-caching-title">Loading is taking longer than expected</span>
-            <span className="viewer-caching-sub">
-              Your browser may not support background caching for files of this size,
-              or your connection is too slow. You can try streaming the file directly.
-            </span>
-            <button
-              className="viewer-stream-direct-btn"
-              onClick={() => { autoPlayRef.current = true; setViewState('streaming'); }}
-            >
-              Stream Directly
-            </button>
-          </div>
-        </div>
-      );
+      return <CachingStalledOverlay onStreamDirect={() => { autoPlayRef.current = true; setViewState('streaming'); }} />;
     }
     return (
       <div className="viewer-video-frame">
@@ -596,26 +644,26 @@ function AudioPlayer({ path, filename }) {
   const playerRef = useRef(null);
 
   const [meta, setMeta]     = useState(null);   // { title, artist, album, format, bits_per_sample, sample_rate }
-  const [artUrl, setArtUrl] = useState(null);   // string URL or null (no art found)
   const [artError, setArtError] = useState(false);
 
-  // Fetch metadata and art in parallel on mount.
-  // Art: set the URL directly — the <img> onError handler in the JSX below
+  // Art: the URL is used directly — the <img> onError handler in the JSX below
   // catches 404s cleanly, saving a redundant HEAD request (and a second full
   // ffprobe + ffmpeg run) on every audio file open.
+  const artUrl = `/api/fs/audio-art?path=${encodeURIComponent(path)}`;
+
+  // Fetch metadata on mount; a reply that arrives after unmount is dropped.
   useEffect(() => {
     let cancelled = false;
-    const encoded = encodeURIComponent(path);
 
-    fetch(`/api/fs/audio-meta?path=${encoded}`)
+    fetch(`/api/fs/audio-meta?path=${encodeURIComponent(path)}`)
       .then(r => r.ok ? r.json() : null)
       .then(metaData => {
         if (cancelled) return;
         if (metaData) setMeta(metaData);
       })
-      .catch(() => {});
-
-    if (!cancelled) setArtUrl(`/api/fs/audio-art?path=${encoded}`);
+      .catch(() => {
+        // Tags are optional; the card falls back to the file name.
+      });
 
     return () => { cancelled = true; };
   }, [path]);
@@ -632,8 +680,11 @@ function AudioPlayer({ path, filename }) {
       console.error('[FileViewer] Plyr audio init failed:', err);
     }
     return () => {
-      try { playerRef.current?.destroy(); } catch (_) {}
+      try { playerRef.current?.destroy(); } catch {
+        // Plyr may already have torn down its markup; the element is stopped below.
+      }
       playerRef.current = null;
+      stopMedia(el);
     };
   }, []);
 
@@ -660,7 +711,7 @@ function AudioPlayer({ path, filename }) {
         {/* Top row: art panel + metadata */}
         <div className="viewer-audio-top">
           <div className="viewer-audio-art-panel">
-            {artUrl && !artError
+            {!artError
               ? <img
                   src={artUrl}
                   alt="Album art"
@@ -772,14 +823,15 @@ export default function FileViewer({
   const checkFfmpeg = useCallback(async () => {
     if (ffmpegRef.current !== null) return ffmpegRef.current;
     try {
-      const res  = await fetch('/api/fs/ffmpeg-health');
+      const res = await fetch('/api/fs/ffmpeg-health');
+      // A failed check says nothing about FFmpeg, so it is not remembered: the
+      // next video file asks again.
+      if (!res.ok) return false;
       const data = await res.json();
-      ffmpegRef.current = data.available;
-      setFfmpegAvailable(data.available);
-      return data.available;
+      ffmpegRef.current = !!data.available;
+      setFfmpegAvailable(!!data.available);
+      return !!data.available;
     } catch {
-      ffmpegRef.current = false;
-      setFfmpegAvailable(false);
       return false;
     }
   }, []);
