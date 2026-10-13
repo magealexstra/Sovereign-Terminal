@@ -41,11 +41,7 @@ export default function ButtonHeader({
         <button
           type="button"
           className="studio-action-btn studio-action-btn--save"
-          onClick={() => {
-            if (window.dispatchEvent) {
-              window.dispatchEvent(new CustomEvent('sovereign_save_studio_buttons'));
-            }
-          }}
+          onClick={() => window.dispatchEvent(new CustomEvent('sovereign_save_studio_buttons'))}
         >
           <Save size={14} />
           <span>SAVE</span>

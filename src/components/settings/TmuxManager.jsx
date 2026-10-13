@@ -3,6 +3,9 @@ import { RefreshCw, Terminal as TermIcon, X, Zap, Link2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatSessionDisplayName } from '../../hooks/useSessions';
 
+// Keys that move a range slider; releasing one commits the new value.
+const SLIDER_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
+
 export default function TmuxManager() {
   const { tmuxSettings, setTmuxSettings, syncUserSettingsToServer, setActiveMainTab } = useApp();
 
@@ -12,10 +15,16 @@ export default function TmuxManager() {
   const [serverOnline, setServerOnline] = useState(false);
   const [actionMsg, setActionMsg]       = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
+  // Scrollback value while the slider is being dragged; the setting itself changes once, on release.
+  const [scrollbackDraft, setScrollbackDraft] = useState(null);
 
   const flashTimerRef = useRef(null);
+  const mountedRef = useRef(true);
+  // Last value sent per performance setting, so one slider release is applied once.
+  const appliedPerfRef = useRef({});
 
   const flash = (msg) => {
+    if (!mountedRef.current) return;
     setActionMsg(msg);
     if (flashTimerRef.current) {
       clearTimeout(flashTimerRef.current);
@@ -24,7 +33,9 @@ export default function TmuxManager() {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       if (flashTimerRef.current) {
         clearTimeout(flashTimerRef.current);
       }
@@ -46,8 +57,10 @@ export default function TmuxManager() {
     setLoading(true);
     try {
       const res = await fetch('/api/terminal/sessions');
+      if (!mountedRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        if (!mountedRef.current) return;
         setDetail(data.detail || []);
         setSessionCount((data.sessions || []).length);
         setServerOnline(true);
@@ -55,9 +68,9 @@ export default function TmuxManager() {
         setServerOnline(false);
       }
     } catch {
-      setServerOnline(false);
+      if (mountedRef.current) setServerOnline(false);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -73,8 +86,7 @@ export default function TmuxManager() {
       } else {
         flash(`Failed to kill session "${id}"`);
       }
-    } catch (err) {
-      console.error('Failed to kill session:', err);
+    } catch {
       flash(`Failed to kill session "${id}"`);
     }
   };
@@ -84,8 +96,8 @@ export default function TmuxManager() {
     try {
       const raw = localStorage.getItem('sovereign_active_session_ids');
       activeIds = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      console.error('Error reading active session IDs:', err);
+    } catch {
+      // An unreadable list is sent as empty; the sweep still runs.
     }
     try {
       const res = await fetch('/api/terminal/sessions/sweep', {
@@ -101,37 +113,55 @@ export default function TmuxManager() {
       } else {
         flash('Failed to sweep zombie sessions');
       }
-    } catch (err) {
-      console.error('Failed to sweep zombie sessions:', err);
+    } catch {
       flash('Failed to sweep zombie sessions');
     }
   };
 
-  const updateBehavior = (key, value) => {
+  // The new value is passed to the sync explicitly: the stored copy is written
+  // inside a state updater that React may not have run yet.
+  const updateBehavior = async (key, value) => {
     setTmuxSettings({ [key]: value });
-    syncUserSettingsToServer();
+    const saved = await syncUserSettingsToServer({ tmux: { ...tmuxSettings, [key]: value } });
+    if (!saved) flash('Failed to save tmux settings to the server');
   };
 
   const applyPerfConfig = async (key, value) => {
+    // A touch release is followed by an emulated mouse release; the repeat sends nothing.
+    if (appliedPerfRef.current[key] === value) return;
+    appliedPerfRef.current[key] = value;
     setTmuxSettings({ [key]: value });
-    syncUserSettingsToServer();
+    const syncing = syncUserSettingsToServer({ tmux: { ...tmuxSettings, [key]: value } });
     const body = {};
     if (key === 'scrollbackLines') body.historyLimit = value;
     if (key === 'escapeTimeMs')    body.escapeTimeMs  = value;
+    let applied = false;
     try {
       const res = await fetch('/api/terminal/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        flash('Failed to apply performance config');
-      }
-    } catch (err) {
-      console.error('Failed to apply performance config:', err);
+      applied = res.ok;
+    } catch {
+      applied = false;
+    }
+    const saved = await syncing;
+    if (!applied) {
+      // Let the same value be sent again on the next release.
+      delete appliedPerfRef.current[key];
       flash('Failed to apply performance config');
+    } else if (!saved) {
+      flash('Failed to save tmux settings to the server');
     }
   };
+
+  const commitScrollback = (value) => {
+    setScrollbackDraft(null);
+    applyPerfConfig('scrollbackLines', value);
+  };
+
+  const scrollbackValue = scrollbackDraft ?? (tmuxSettings?.scrollbackLines ?? 10000);
 
   const dotClass = !serverOnline
     ? 'tmux-status-dot offline'
@@ -277,7 +307,7 @@ export default function TmuxManager() {
             </div>
             <div className="tmux-slider-col">
               <span className="tmux-slider-value">
-                {(tmuxSettings?.scrollbackLines ?? 10000).toLocaleString()} lines
+                {scrollbackValue.toLocaleString()} lines
               </span>
               <input
                 type="range"
@@ -285,10 +315,16 @@ export default function TmuxManager() {
                 min={2000}
                 max={100000}
                 step={1000}
-                value={tmuxSettings?.scrollbackLines ?? 10000}
-                onChange={(e) => setTmuxSettings({ scrollbackLines: parseInt(e.target.value) })}
-                onMouseUp={(e) => applyPerfConfig('scrollbackLines', parseInt(e.target.value))}
-                onTouchEnd={(e) => applyPerfConfig('scrollbackLines', parseInt(e.target.value))}
+                value={scrollbackValue}
+                onChange={(e) => setScrollbackDraft(parseInt(e.currentTarget.value, 10))}
+                onMouseUp={(e) => commitScrollback(parseInt(e.currentTarget.value, 10))}
+                onTouchEnd={(e) => commitScrollback(parseInt(e.currentTarget.value, 10))}
+                onKeyUp={(e) => {
+                  if (SLIDER_KEYS.has(e.key)) commitScrollback(parseInt(e.currentTarget.value, 10));
+                }}
+                onBlur={(e) => {
+                  if (scrollbackDraft !== null) commitScrollback(parseInt(e.currentTarget.value, 10));
+                }}
               />
               <div className="tmux-slider-range">
                 <span>2,000</span><span>100,000</span>
@@ -310,8 +346,8 @@ export default function TmuxManager() {
                 min={0}
                 max={500}
                 value={tmuxSettings?.escapeTimeMs ?? 10}
-                onChange={(e) => setTmuxSettings({ escapeTimeMs: parseInt(e.target.value) || 0 })}
-                onBlur={(e) => applyPerfConfig('escapeTimeMs', parseInt(e.target.value) || 0)}
+                onChange={(e) => setTmuxSettings({ escapeTimeMs: parseInt(e.currentTarget.value, 10) || 0 })}
+                onBlur={(e) => applyPerfConfig('escapeTimeMs', parseInt(e.currentTarget.value, 10) || 0)}
               />
               <span className="tmux-unit">ms</span>
             </div>

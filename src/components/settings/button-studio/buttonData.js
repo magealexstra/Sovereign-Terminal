@@ -1,5 +1,5 @@
-// Static button data — extracted from ButtonStudio.jsx to keep the component
-// focused on UI logic only. Add new prebuilt categories or default buttons here.
+// Static button data shared by the Button Studio, the Layout Builder and the touch bar:
+// the default buttons, the prebuilt command categories and the key preset lists.
 
 // Default buttons loaded when no localStorage save exists
 export const DEFAULT_BUTTONS = [
@@ -312,3 +312,7 @@ export const KEY_LINE_PRESETS = [
   { id: 'line7', label: '^R (History)', value: '\x12' },
   { id: 'line8', label: '^L (Clear)', value: '\x0c' },
 ];
+
+// Arrow and enter glyphs; a button labelled with one of these is drawn as an icon-style button.
+const GLYPH_SYMBOLS = ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'];
+export const isGlyphSymbol = (str) => GLYPH_SYMBOLS.includes(str);

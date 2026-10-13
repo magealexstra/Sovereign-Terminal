@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Terminal as TermIcon, FileCode, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function SurfaceSettingsModal({ isOpen, onClose }) {
+export default function SurfaceSettingsModal({ isOpen, onClose, showToast }) {
   const {
     theme,
     deviceBaselinePx,
@@ -135,7 +135,7 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
   };
 
   // Commit and Save globally
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     setTerminalBgLightness(draftTermLightness);
     setTerminalMixColor(draftTermMixColor);
     setTerminalScaleMultiplier(draftTermScale);
@@ -148,7 +148,7 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
     setInputMixColor(draftInMixColor);
     setInputScaleMultiplier(draftInScale);
 
-    syncUserSettingsToServer({
+    const saving = syncUserSettingsToServer({
       terminalBgLightness: draftTermLightness,
       terminalMixColor:    draftTermMixColor,
       terminalScaleMultiplier: draftTermScale,
@@ -161,6 +161,9 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
     });
 
     onClose();
+    if (!(await saving)) {
+      showToast('Could not save to the server; the change is kept on this device only', 4000);
+    }
   };
 
   const currentLightnessPct = parseInt(getActiveLightness(), 10) || 0;

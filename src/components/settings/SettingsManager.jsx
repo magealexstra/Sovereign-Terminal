@@ -1,6 +1,7 @@
 import React, { useState, Component } from 'react';
 import { Palette, Edit3, Grid, AlertTriangle, Terminal as TmuxTabIcon } from 'lucide-react';
 
+import { useToast } from '../../hooks/useToast';
 import ThemeSettings from './ThemeSettings';
 import ButtonStudio from './ButtonStudio';
 import LayoutBuilder from './LayoutBuilder';
@@ -69,8 +70,17 @@ export default function SettingsManager() {
   const [activeSubTab, setActiveSubTab] = useState('themes');
   const [resetCount, setResetCount] = useState(0);
 
+  // One toast for the sub-tabs that report failed saves; it outlives a sub-tab switch.
+  const { toast, showToast } = useToast(3000);
+
   return (
     <div className="settings-master-container">
+      {toast && (
+        <div className="copy-toast" style={{ top: '1rem', bottom: 'auto' }}>
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* Equal-Distribution Dynamic Sub-Tab Bar */}
       <div className="settings-subtabs-bar">
         {SUB_TABS.map(({ id, label, Icon }) => (
@@ -89,8 +99,8 @@ export default function SettingsManager() {
       {/* Active Sub-Tab Viewport protected by ErrorBoundary */}
       <div className="settings-content-viewport">
         <ErrorBoundary key={`${activeSubTab}-${resetCount}`} onReset={() => setResetCount((c) => c + 1)}>
-          {activeSubTab === 'themes' && <ThemeSettings />}
-          {activeSubTab === 'studio' && <ButtonStudio />}
+          {activeSubTab === 'themes' && <ThemeSettings showToast={showToast} />}
+          {activeSubTab === 'studio' && <ButtonStudio showToast={showToast} />}
           {activeSubTab === 'layout' && <LayoutBuilder />}
           {activeSubTab === 'tmux'   && <TmuxManager />}
         </ErrorBoundary>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, ArrowLeft, ArrowRight, Zap, RotateCcw } from 'lucide-react';
-import { PREBUILT_CATEGORIES } from './button-studio/buttonData';
+import { PREBUILT_CATEGORIES, isGlyphSymbol } from './button-studio/buttonData';
 import { useToast } from '../../hooks/useToast';
 import { useApp } from '../../context/AppContext';
 
@@ -17,14 +17,16 @@ const loadMacroSuiteOverrides = () => {
             overrides[key] = parsed;
           }
         }
-      } catch {}
+      } catch {
+        // A corrupt override is skipped; that suite shows its factory defaults.
+      }
     });
   }
   return overrides;
 };
 
-// Helper to identify directional arrows and return icons
-const isGlyphSymbol = (str) => ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'].includes(str);
+// Button labels that open a command launcher and get the launcher styling.
+const LAUNCHER_NAMES = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'];
 
 /* ==========================================================================
    SUB-COMPONENTS FOR LAYOUT BUILDER
@@ -141,7 +143,7 @@ function ButtonPoolGrid({
       <div className="available-chips-grid" onClick={handleContainerClick}>
         {poolItems.map((item, idx) => {
           const isSelected = selectedPoolItem === item;
-          const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
+          const isLauncher = LAUNCHER_NAMES.includes(item);
 
           const customStyle = customButtonStyles[item];
           return (
@@ -187,7 +189,7 @@ function TouchBarPreviewStrip({
         <div className="live-bar-strip" onClick={handleContainerClick}>
           {touchBarSlots.map((item, idx) => {
             const isSelected = selectedBarIndex === idx;
-            const isLauncher = ['AGY', 'CLD', 'HMS', 'APT', 'DOC', 'GIT', 'SYS', 'NET', 'PY', 'TMX'].includes(item);
+            const isLauncher = LAUNCHER_NAMES.includes(item);
 
             const customStyle = customButtonStyles[item];
             return (
@@ -372,7 +374,9 @@ export default function LayoutBuilder() {
 
       // Refresh in-memory macro suite overrides cache
       setMacroSuiteOverrides(loadMacroSuiteOverrides());
-    } catch {}
+    } catch {
+      // Unreadable saved buttons leave the lists as they were.
+    }
   };
 
   useEffect(() => {
@@ -385,8 +389,13 @@ export default function LayoutBuilder() {
     };
   }, []);
 
+  // Tells the user when the server did not keep a layout or button change.
+  const reportServerSave = (saved) => {
+    if (!saved) showToast('Could not save to the server; the change is kept on this device only', 4000);
+  };
+
   // Save layout for the active macro suite
-  const saveLayout = (newSlots) => {
+  const saveLayout = async (newSlots) => {
     setTouchBarSlots(newSlots);
     try {
       const storageKey = selectedMacroSuite === 'PRIMARY' ? 'sovereign_layout_slots' : `sovereign_macro_suite_${selectedMacroSuite}`;
@@ -400,9 +409,11 @@ export default function LayoutBuilder() {
       window.dispatchEvent(new Event('storage'));
       // Persist primary hotbar layout to server profile so it survives storage clears
       if (selectedMacroSuite === 'PRIMARY') {
-        syncUserSettingsToServer({ layoutSlots: newSlots });
+        reportServerSave(await syncUserSettingsToServer({ layoutSlots: newSlots }));
       }
-    } catch {}
+    } catch {
+      showToast('Could not store the layout on this device', 4000);
+    }
   };
 
   // Select a pool chip (must press Add button to append to TouchBar)
@@ -444,7 +455,7 @@ export default function LayoutBuilder() {
   };
 
   // Remove button from active TouchBar or Delete custom button
-  const handleRemove = (e) => {
+  const handleRemove = async (e) => {
     if (e) e.stopPropagation();
     
     if (selectedBarIndex !== null) {
@@ -464,24 +475,34 @@ export default function LayoutBuilder() {
           localStorage.setItem('sovereign_buttons', JSON.stringify(buttons));
           window.dispatchEvent(new Event('storage'));
           window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
-          syncUserSettingsToServer({ buttons });
-          showToast(`Deleted custom button '${selectedPoolItem}'`);
+          const deleted = selectedPoolItem;
           setSelectedPoolItem(null);
           loadCustomButtons();
+          showToast(`Deleted custom button '${deleted}'`);
+          reportServerSave(await syncUserSettingsToServer({ buttons }));
         }
-      } catch {}
+      } catch {
+        showToast('Could not delete the custom button', 4000);
+      }
     }
   };
 
   // Reset active suite to factory defaults (PRIMARY or PREBUILT_CATEGORIES)
-  const handleReset = (e) => {
+  const handleReset = async (e) => {
     if (e) e.stopPropagation();
     if (selectedMacroSuite === 'PRIMARY') {
-      localStorage.removeItem('sovereign_layout_slots');
+      try {
+        localStorage.removeItem('sovereign_layout_slots');
+      } catch {
+        showToast('Could not reset the layout on this device', 4000);
+        return;
+      }
       setTouchBarSlots(['ESC', 'TAB', '^C', '-', '/']);
       window.dispatchEvent(new Event('storage'));
       setSelectedBarIndex(null);
       showToast('Primary layout reset to defaults');
+      // The saved profile must forget the old layout too, or it comes back at the next sign-in.
+      reportServerSave(await syncUserSettingsToServer());
       return;
     }
     if (!Object.keys(PREBUILT_CATEGORIES).includes(selectedMacroSuite)) return;
@@ -496,7 +517,9 @@ export default function LayoutBuilder() {
       window.dispatchEvent(new Event('storage'));
       setSelectedBarIndex(null);
       showToast(`${selectedMacroSuite} suite reset to defaults`);
-    } catch {}
+    } catch {
+      showToast('Could not reset the suite on this device', 4000);
+    }
   };
 
   // Deselect active selections when clicking any blank space

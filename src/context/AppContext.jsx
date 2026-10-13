@@ -10,6 +10,9 @@ const DEFAULT_TMUX_SETTINGS = {
   escapeTimeMs: 10
 };
 
+// Base font size by device class: wider screens get 13px, phones 10px.
+const getDeviceBaseline = () => (window.innerWidth >= 768 ? 13 : 10);
+
 export function AppProvider({ children }) {
   const [activeMainTab, setActiveMainTab] = useState('terminal');
 
@@ -50,7 +53,9 @@ export function AppProvider({ children }) {
   const _writeProfileCache = (uname, data) => {
     try {
       localStorage.setItem(_getCacheKey(uname), JSON.stringify(data));
-    } catch {}
+    } catch {
+      // The cache is only a speed layer; without storage the server copy is used.
+    }
   };
 
   // Exposed to App.jsx — called during logout to wipe this user's cache so
@@ -58,7 +63,9 @@ export function AppProvider({ children }) {
   const clearUserCache = (uname) => {
     try {
       localStorage.removeItem(_getCacheKey(uname || username));
-    } catch {}
+    } catch {
+      // Storage unavailable: there is no cache to clear.
+    }
   };
 
   // ── Settings Application ──────────────────────────────────────────────────
@@ -74,7 +81,7 @@ export function AppProvider({ children }) {
     }
 
     if (settings.activeThemeKey) {
-      const allThemes = { ...DEFAULT_THEME_PRESETS, ...(settings.customThemes || {}) };
+      const allThemes = { ...DEFAULT_THEME_PRESETS, ...settings.customThemes };
       if (allThemes[settings.activeThemeKey]) {
         setThemeState(allThemes[settings.activeThemeKey]);
         try { localStorage.setItem('sovereign_active_theme_key', settings.activeThemeKey); } catch {}
@@ -105,7 +112,7 @@ export function AppProvider({ children }) {
       try { localStorage.setItem('sovereign_tmux_settings', JSON.stringify(settings.tmux)); } catch {}
     }
 
-    // Font scale persistence — the primary fix for settings not surviving page close.
+    // Font scale multipliers from the saved profile; only positive numbers are accepted.
     if (typeof settings.terminalScaleMultiplier === 'number' && settings.terminalScaleMultiplier > 0) {
       setTerminalScaleMultiplier(settings.terminalScaleMultiplier);
     }
@@ -150,36 +157,43 @@ export function AppProvider({ children }) {
   };
 
   // ── Custom Theme Saver & Deleter ──────────────────────────────────────────
+  // Returns true when the custom theme list was stored on this device.
   const saveCustomTheme = (customThemeObject) => {
     const themeKey = `Custom_${Date.now()}`;
     const formattedTheme = { ...customThemeObject, isCustom: true };
     const updatedThemes = { ...themes, [themeKey]: formattedTheme };
     setThemes(updatedThemes);
-    setTheme(formattedTheme);
+    // The new theme becomes the active one, so its key is stored as the active key.
+    setTheme(formattedTheme, themeKey);
     try {
       const userCustomOnly = Object.fromEntries(
         Object.entries(updatedThemes).filter(([k, v]) => k.startsWith('Custom_') || v?.isCustom)
       );
       localStorage.setItem('sovereign_custom_themes', JSON.stringify(userCustomOnly));
-    } catch (e) {
-      console.error('Failed to save theme to localStorage:', e);
+      return true;
+    } catch {
+      return false;
     }
   };
 
+  // Returns { found, stored }: whether a custom theme matched, and whether the new list was stored on this device.
   const deleteCustomTheme = (themeKeyOrName) => {
     const matchingEntry = Object.entries(themes).find(
       ([k, v]) => (k === themeKeyOrName || v?.name === themeKeyOrName) && (k.startsWith('Custom_') || v?.isCustom)
     );
-    if (!matchingEntry) return false;
+    if (!matchingEntry) return { found: false, stored: true };
 
     const [targetKey, targetTheme] = matchingEntry;
     const updatedThemes = { ...themes };
     delete updatedThemes[targetKey];
     setThemes(updatedThemes);
 
-    if (theme?.name === targetTheme?.name) {
-      const fallback = updatedThemes.nord || updatedThemes.sovereign || Object.values(updatedThemes)[0];
-      if (fallback) setThemeState(fallback);
+    // The deleted theme was in use when it is the active object or the stored active key.
+    let activeKey = null;
+    try { activeKey = localStorage.getItem('sovereign_active_theme_key'); } catch { /* unreadable: compare by object only */ }
+    if (theme === targetTheme || activeKey === targetKey) {
+      const fallbackKey = updatedThemes.VitniNordic ? 'VitniNordic' : Object.keys(updatedThemes)[0];
+      if (fallbackKey) setTheme(updatedThemes[fallbackKey], fallbackKey);
     }
 
     try {
@@ -187,15 +201,14 @@ export function AppProvider({ children }) {
         Object.entries(updatedThemes).filter(([k, v]) => k.startsWith('Custom_') || v?.isCustom)
       );
       localStorage.setItem('sovereign_custom_themes', JSON.stringify(userCustomOnly));
-    } catch (e) {
-      console.error('Failed to update custom themes in localStorage:', e);
+    } catch {
+      return { found: true, stored: false };
     }
 
-    return true;
+    return { found: true, stored: true };
   };
 
   // ── Dynamic Device Baseline ───────────────────────────────────────────────
-  const getDeviceBaseline = () => window.innerWidth >= 768 ? 13 : 10;
   const [deviceBaselinePx, setDeviceBaselinePx] = useState(getDeviceBaseline);
 
   useEffect(() => {
@@ -259,6 +272,9 @@ export function AppProvider({ children }) {
   // partialSettings overrides specific fields — used when calling immediately
   // after a setState (before the state update has propagated to the closure),
   // e.g. syncUserSettingsToServer({ terminalScaleMultiplier: newValue }).
+  //
+  // Resolves to true when the server accepted the profile and false when the
+  // request failed or was rejected, so callers can tell the user.
 
   const syncUserSettingsToServer = async (partialSettings = {}) => {
     try {
@@ -290,23 +306,30 @@ export function AppProvider({ children }) {
         ...partialSettings         // overrides for values set in the same render cycle
       };
 
-      await fetch('/api/user/settings', {
+      const res = await fetch('/api/user/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      // Mirror authoritative payload to namespaced cache
+      // Mirror the payload to the namespaced cache even when the server refused it,
+      // so this device keeps the user's latest choices.
       if (username) {
         _writeProfileCache(username, payload);
       }
-    } catch {}
+      return res.ok;
+    } catch {
+      return false;
+    }
   };
 
   // ── Profile Fetch ─────────────────────────────────────────────────────────
   // Two-stage restore:
   //   1. Apply namespaced cache immediately — zero visible flash on return visits.
   //   2. Fetch server profile (authoritative) — overwrites cache if anything changed.
+  //
+  // Resolves to false when the server profile could not be read; the cached
+  // profile stays applied in that case.
 
   const fetchUserSettings = async (uname) => {
     const effectiveUser = uname || username;
@@ -320,21 +343,25 @@ export function AppProvider({ children }) {
     // Stage 2: server fetch (authoritative)
     try {
       const res = await fetch('/api/user/settings');
-      if (res.ok) {
-        const data = await res.json();
-        const settings = data.settings || {};
-        if (Object.keys(settings).length > 0) {
-          _applySettingsObject(settings);
-          // Update cache with latest authoritative data
-          _writeProfileCache(effectiveUser, settings);
-        }
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.status === 'error') return false;
+      const settings = data.settings || {};
+      if (Object.keys(settings).length > 0) {
+        _applySettingsObject(settings);
+        // Update cache with latest authoritative data
+        _writeProfileCache(effectiveUser, settings);
       }
-    } catch {}
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   // ── Reset to Defaults ─────────────────────────────────────────────────────
+  // Resolves like syncUserSettingsToServer: true when the server kept the reset.
   const resetToDefault = () => {
-    setDeviceBaselinePx(16);
+    setDeviceBaselinePx(getDeviceBaseline());
     setTheme(DEFAULT_THEME_PRESETS.VitniNordic, 'VitniNordic');
     setTerminalScaleMultiplier(1.0);
     setEditorScaleMultiplier(1.0);
@@ -345,7 +372,7 @@ export function AppProvider({ children }) {
     setEditorMixColor('#FFFFFF');
     setInputBgLightness('6%');
     setInputMixColor(null);
-    syncUserSettingsToServer({
+    return syncUserSettingsToServer({
       activeThemeKey: 'VitniNordic',
       terminalScaleMultiplier: 1.0,
       editorScaleMultiplier: 1.0,
@@ -368,16 +395,19 @@ export function AppProvider({ children }) {
         themes,
         setTheme: (newTheme, themeKey) => {
           setTheme(newTheme, themeKey);
-          syncUserSettingsToServer();
+          return syncUserSettingsToServer();
         },
-        saveCustomTheme: (customThemeObject) => {
-          saveCustomTheme(customThemeObject);
-          syncUserSettingsToServer();
+        // Resolves to true when the theme was stored on this device and on the server.
+        saveCustomTheme: async (customThemeObject) => {
+          const stored = saveCustomTheme(customThemeObject);
+          const synced = await syncUserSettingsToServer();
+          return stored && synced;
         },
-        deleteCustomTheme: (themeKeyOrName) => {
-          const res = deleteCustomTheme(themeKeyOrName);
-          syncUserSettingsToServer();
-          return res;
+        // Resolves to true when a custom theme was removed and the change was stored on this device and on the server.
+        deleteCustomTheme: async (themeKeyOrName) => {
+          const { found, stored } = deleteCustomTheme(themeKeyOrName);
+          const synced = await syncUserSettingsToServer();
+          return found && stored && synced;
         },
         fetchUserSettings,
         syncUserSettingsToServer,

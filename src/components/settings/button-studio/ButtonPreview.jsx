@@ -1,10 +1,9 @@
 import React from 'react';
+import { isGlyphSymbol } from './buttonData';
 
 /**
  * ButtonPreview — Center region live interactive button preview component for Button Studio.
  */
-const isGlyphSymbol = (str) => ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'].includes(str);
-
 export default function ButtonPreview({ activeBtn }) {
   if (!activeBtn) return null;
 

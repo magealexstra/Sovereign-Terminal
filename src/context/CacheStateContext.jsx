@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 // State shape: { [path]: { state: 'downloading'|'cached'|'skip', percent: 0-100 } }
 // 'path' is the raw file path string from the SW postMessage (e.g. '/srv/media/file.mkv')
@@ -18,16 +18,21 @@ function cacheReducer(state, action) {
   }
 }
 
-// Module-level singleton — allows main.jsx to dispatch without being inside the React tree
+// Module-level singleton — allows main.jsx to dispatch without being inside the React tree.
+// It holds the mounted provider's dispatch and is empty while no provider is mounted.
 let _dispatch = null;
-function _setCacheDispatch(fn) { _dispatch = fn; }
 export function dispatchCacheMessage(action) { if (_dispatch) _dispatch(action); }
 
 export function CacheStateProvider({ children }) {
   const [cacheState, dispatch] = useReducer(cacheReducer, {});
-  
-  // Set the singleton so external code (main.jsx) can dispatch
-  _setCacheDispatch(dispatch);
+
+  // Set the singleton so external code (main.jsx) can dispatch, and clear it when the provider unmounts.
+  useEffect(() => {
+    _dispatch = dispatch;
+    return () => {
+      if (_dispatch === dispatch) _dispatch = null;
+    };
+  }, [dispatch]);
 
   return (
     <CacheStateContext.Provider value={cacheState}>

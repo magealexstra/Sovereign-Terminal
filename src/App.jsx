@@ -21,29 +21,45 @@ export default function App() {
   const { activeMainTab, setActiveMainTab, fetchUserSettings, setUsername, clearUserCache } = useApp();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
+  // App-level toast: session limits, file open and save results, sign-in and logout problems
+  const { toast: sessionToast, showToast: showSessionToast } = useToast(3000);
+
+  // The saved profile could not be read from the server; the cached copy stays in use.
+  const loadProfile = async (uname) => {
+    const ok = await fetchUserSettings(uname);
+    if (!ok) showSessionToast('Could not load your saved settings from the server', 4000);
+  };
+
   const [rootDir, setRootDir] = useState('');
   const [explorerPath, setExplorerPath] = useState('');
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  const [configFailed, setConfigFailed] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchConfig = async () => {
       try {
         const res = await fetch('/api/config');
+        if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
+          if (cancelled) return;
           if (data.rootDir) {
             setRootDir(data.rootDir);
             setActiveTerminalPath(data.rootDir);
             setExplorerPath(data.rootDir);
           }
+        } else {
+          setConfigFailed(true);
         }
-      } catch (e) {
-        console.error('Failed to load system config:', e);
+      } catch {
+        if (!cancelled) setConfigFailed(true);
       } finally {
-        setIsLoadingConfig(false);
+        if (!cancelled) setIsLoadingConfig(false);
       }
     };
     fetchConfig();
+    return () => { cancelled = true; };
   }, []);
 
   // Authentication State & Session Verification
@@ -53,41 +69,47 @@ export default function App() {
   const [authMode, setAuthMode] = useState('token');
 
   useEffect(() => {
+    let cancelled = false;
     const fetchAuthMode = async () => {
       try {
         const modeRes = await fetch('/api/auth/mode');
         if (modeRes.ok) {
           const modeData = await modeRes.json();
-          setAuthMode(modeData.auth_mode || 'token');
+          if (!cancelled) setAuthMode(modeData.auth_mode || 'token');
         }
-      } catch {}
+      } catch {
+        // The mode is only a hint for the login form; the verify reply below also carries it.
+      }
     };
     fetchAuthMode();
 
     const verifyAuth = async () => {
       try {
         const res = await fetch('/api/auth/verify');
+        if (cancelled) return;
         if (res.ok) {
           const data = await res.json();
+          if (cancelled) return;
           const uname = data.username || 'default';
           setUsername(uname);
           setIsAuthenticated(true);
           setAuthEnabled(data.auth_enabled !== false);
           if (data.auth_mode) setAuthMode(data.auth_mode);
           // Call directly with username — avoids stale closure from state timing
-          fetchUserSettings(uname);
+          loadProfile(uname);
         } else {
           setIsAuthenticated(false);
           const headerMode = res.headers.get('X-Auth-Mode');
           if (headerMode) setAuthMode(headerMode);
         }
       } catch {
-        setIsAuthenticated(false);
+        if (!cancelled) setIsAuthenticated(false);
       } finally {
-        setIsAuthVerified(true);
+        if (!cancelled) setIsAuthVerified(true);
       }
     };
     verifyAuth();
+    return () => { cancelled = true; };
   }, []);
 
   const [showBrandMenu, setShowBrandMenu] = useState(false);
@@ -104,11 +126,24 @@ export default function App() {
   }, [showBrandMenu]);
 
   const handleLogout = async () => {
+    // The session cookie stays valid until the server drops it, so a failed request leaves the user signed in.
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch {}
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (!res.ok) throw new Error('logout rejected');
+    } catch {
+      setShowBrandMenu(false);
+      showSessionToast('Logout failed — the server did not respond', 4000);
+      return;
+    }
     clearUserCache();       // wipe namespaced cache — device returns to defaults
     sessionStorage.clear();
+    // Open documents belong to the signed-out user; the next login starts with none.
+    setOpenDocuments([]);
+    setActiveFilePath('');
+    setViewerDocs([]);
+    setActiveViewerPath('');
+    setHasViewerMounted(false);
+    setExplorerSubTab('tree');
     setIsAuthenticated(false);
     setUsername('');
     setShowBrandMenu(false);
@@ -120,7 +155,9 @@ export default function App() {
     if ('virtualKeyboard' in navigator) {
       try {
         navigator.virtualKeyboard.overlaysContent = true;
-      } catch (e) {}
+      } catch {
+        // Not every browser lets the page opt in; the visual viewport fallback below still works.
+      }
     }
 
     const handleViewportResize = () => {
@@ -173,9 +210,6 @@ export default function App() {
     };
   }, []);
 
-  // Session limit toast (replaces the alert() that was inside useSessions)
-  const { toast: sessionToast, showToast: showSessionToast } = useToast(3000);
-
   // Tab 1 Terminal Sessions — all state and handlers live in useSessions
   const [activeTerminalPath, setActiveTerminalPath] = useState('/workspace');
   const {
@@ -187,6 +221,14 @@ export default function App() {
     handleCloseSession,
     handleTerminalInput,
   } = useSessions(activeTerminalPath, showSessionToast, rootDir);
+
+  // The toast is drawn by the signed-in shell, so a config failure is announced once the shell is showing.
+  useEffect(() => {
+    if (configFailed && isAuthenticated) {
+      showSessionToast('Could not load the system configuration — file paths may be missing', 5000);
+    }
+  }, [configFailed, isAuthenticated, showSessionToast]);
+
   const [openDocuments, setOpenDocuments] = useState([]);
   const [activeFilePath, setActiveFilePath] = useState('');
   const [explorerSubTab, setExplorerSubTab] = useState('tree');
@@ -197,6 +239,10 @@ export default function App() {
   const [viewerDocs, setViewerDocs] = useState([]);
   const [activeViewerPath, setActiveViewerPath] = useState('');
   const [hasViewerMounted, setHasViewerMounted] = useState(false);
+
+  // The settings chunk is loaded the first time the Settings tab is opened, then kept mounted.
+  const [hasSettingsMounted, setHasSettingsMounted] = useState(false);
+  if (activeMainTab === 'settings' && !hasSettingsMounted) setHasSettingsMounted(true);
 
   // Dispatch layout reflow on return to Terminal tab to snap absolute footers/stagers to bottom: 3.5rem
   useEffect(() => {
@@ -215,33 +261,36 @@ export default function App() {
 
   // One-Time Welcome Screen: Load OPERATION_MANUAL.md after login
   useEffect(() => {
-    // Only run this logic if the user is successfully authenticated
-    if (!isAuthenticated) return;
+    // Wait for the sign-in and for the root directory: the manual's path is built from it.
+    if (!isAuthenticated || !rootDir) return;
 
     // Check if the user has already seen the manual in this browser
     const hasSeenManual = localStorage.getItem('hasSeenManual');
-    if (!hasSeenManual) {
-      // Fetch the live manual from the container's hard drive
-      fetch(`/api/fs/read?path=${rootDir}/documentation/OPERATION_MANUAL.md`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data && data.content) {
-            // Open the manual as a new tab
-            setOpenDocuments([{
-              name: 'OPERATION_MANUAL.md',
-              path: `${rootDir}/documentation/OPERATION_MANUAL.md`,
-              isModified: false,
-              content: data.content
-            }]);
-            setActiveFilePath(`${rootDir}/documentation/OPERATION_MANUAL.md`);
-            
-            // Mark it as seen so it never auto-opens again
-            localStorage.setItem('hasSeenManual', 'true');
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isAuthenticated]);
+    if (hasSeenManual) return;
+
+    let cancelled = false;
+    const manualPath = `${rootDir}/documentation/OPERATION_MANUAL.md`;
+    // Fetch the live manual from the container's hard drive
+    fetch(`/api/fs/read?path=${encodeURIComponent(manualPath)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data || !data.content) return;
+        // Open the manual as a new tab
+        setOpenDocuments((prev) => (
+          prev.some((d) => d.path === manualPath)
+            ? prev
+            : [...prev, { name: 'OPERATION_MANUAL.md', path: manualPath, isModified: false, content: data.content }]
+        ));
+        setActiveFilePath(manualPath);
+
+        // Mark it as seen so it never auto-opens again
+        localStorage.setItem('hasSeenManual', 'true');
+      })
+      .catch(() => {
+        // The welcome manual is optional; it is tried again at the next sign-in.
+      });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, rootDir]);
 
   // File Explorer & CodeEditor Handlers
   const handleOpenFile = async (filepath) => {
@@ -250,10 +299,9 @@ export default function App() {
 
     // Route recognized media/viewer extensions directly to the Viewer tab
     if (viewerType !== 'other' && VIEWER_EXTENSIONS.has(filename.split('.').pop().toLowerCase())) {
-      const alreadyOpen = viewerDocs.find(d => d.path === filepath);
-      if (!alreadyOpen) {
-        setViewerDocs(prev => [...prev, { path: filepath, name: filename, type: viewerType }]);
-      }
+      setViewerDocs(prev => (
+        prev.some(d => d.path === filepath) ? prev : [...prev, { path: filepath, name: filename, type: viewerType }]
+      ));
       setActiveViewerPath(filepath);
       setHasViewerMounted(true);
       setExplorerSubTab('viewer');
@@ -270,10 +318,9 @@ export default function App() {
           // Viewable type → route to Viewer
           if (ft.type === 'image' || ft.type === 'video' || ft.type === 'audio' || ft.type === 'pdf') {
             const mType = magicTypeToViewerType(ft.type, ft.ext);
-            const alreadyOpen = viewerDocs.find(d => d.path === filepath);
-            if (!alreadyOpen) {
-              setViewerDocs(prev => [...prev, { path: filepath, name: filename, type: mType }]);
-            }
+            setViewerDocs(prev => (
+              prev.some(d => d.path === filepath) ? prev : [...prev, { path: filepath, name: filename, type: mType }]
+            ));
             setActiveViewerPath(filepath);
             setHasViewerMounted(true);
             setExplorerSubTab('viewer');
@@ -286,8 +333,8 @@ export default function App() {
           }
           // ft.type === 'text' → fall through to editor normally
         }
-      } catch (e) {
-        console.warn('filetype detection failed, opening in editor:', e);
+      } catch {
+        // The type probe is only a hint; on failure the file opens in the editor.
       }
     }
 
@@ -301,20 +348,23 @@ export default function App() {
 
     try {
       const res = await fetch(`/api/fs/read?path=${encodeURIComponent(filepath)}`);
-      if (res.ok) {
-        const data = await res.json();
-        const newDoc = {
-          name: filename,
-          path: filepath,
-          content: data.content,
-          isModified: false
-        };
-        setOpenDocuments([...openDocuments, newDoc]);
-        setActiveFilePath(filepath);
-        setExplorerSubTab('editor');
+      if (!res.ok) {
+        showSessionToast(`Could not open ${filename}`, 3500);
+        return;
       }
-    } catch (e) {
-      console.error('Failed to open file:', e);
+      const data = await res.json();
+      const newDoc = {
+        name: filename,
+        path: filepath,
+        content: data.content,
+        isModified: false
+      };
+      // Edits made while the read was in flight, or a second open of the same file, must not be overwritten.
+      setOpenDocuments((prev) => (prev.some((d) => d.path === filepath) ? prev : [...prev, newDoc]));
+      setActiveFilePath(filepath);
+      setExplorerSubTab('editor');
+    } catch {
+      showSessionToast(`Could not open ${filename}`, 3500);
     }
   };
 
@@ -343,8 +393,7 @@ export default function App() {
         return true;
       }
       return false;
-    } catch (e) {
-      console.error('Save error:', e);
+    } catch {
       return false;
     }
   };
@@ -363,8 +412,7 @@ export default function App() {
         return await res.json();
       }
       return null;
-    } catch (e) {
-      console.error('Git commit error:', e);
+    } catch {
       return null;
     }
   };
@@ -407,7 +455,7 @@ export default function App() {
       setActiveFilePath(realPath);
       setTreeRefreshKey((k) => k + 1);
       showSessionToast(`Saved as ${realPath.split('/').pop()}`);
-    } catch (e) {
+    } catch {
       showSessionToast('Save As failed — connection error');
     }
   };
@@ -432,8 +480,8 @@ export default function App() {
 
     const filtered = openDocuments.filter((d) => d.path !== filepath);
     setOpenDocuments(filtered);
-    if (activeFilePath === filepath && filtered.length > 0) {
-      setActiveFilePath(filtered[0].path);
+    if (activeFilePath === filepath) {
+      setActiveFilePath(filtered.length > 0 ? filtered[0].path : '');
     }
   };
 
@@ -485,7 +533,7 @@ export default function App() {
                 setUsername(uname);
                 if (data.auth_mode) setAuthMode(data.auth_mode);
                 setIsAuthenticated(true);
-                fetchUserSettings(uname);
+                loadProfile(uname);
               } else {
                 setIsAuthenticated(true); // fallback — no profile load
               }
@@ -712,9 +760,11 @@ export default function App() {
 
       {/* Tab 3: Settings, Themes & Button Studio */}
       <div className="tab-content-panel" style={{ display: activeMainTab === 'settings' ? 'flex' : 'none' }}>
-        <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading tab...</div>}>
-          <SettingsManager />
-        </React.Suspense>
+        {hasSettingsMounted && (
+          <React.Suspense fallback={<div className="tab-loading-spinner" style={{ padding: '2rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Loading tab...</div>}>
+            <SettingsManager />
+          </React.Suspense>
+        )}
       </div>
     </div>
     </CacheStateProvider>

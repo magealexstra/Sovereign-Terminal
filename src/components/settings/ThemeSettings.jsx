@@ -35,7 +35,7 @@ const SHELL_COLOR_KEYS = [
 
 const ALL_COLOR_KEYS = [...TERMINAL_COLOR_KEYS, ...SHELL_COLOR_KEYS];
 
-export default function ThemeSettings() {
+export default function ThemeSettings({ showToast }) {
   const {
     theme,
     setTheme,
@@ -46,6 +46,7 @@ export default function ThemeSettings() {
   } = useApp();
 
   const [editingTheme, setEditingTheme] = useState(null);
+  const [editingKey, setEditingKey] = useState(null);
   const [customName, setCustomName] = useState('My Sovereign Custom');
   const [selectedColorKey, setSelectedColorKey] = useState(null);
   const [showSurfaceModal, setShowSurfaceModal] = useState(false);
@@ -62,22 +63,35 @@ export default function ThemeSettings() {
   }, []);
 
 
+  const closeModal = () => {
+    setEditingTheme(null);
+    setEditingKey(null);
+    setSelectedColorKey(null);
+    setConfirmDelete(false);
+    if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);
+  };
+
+  // Tells the user when the server did not keep a settings change.
+  const reportSave = (saved) => {
+    if (!saved) showToast('Could not save to the server; the change is kept on this device only', 4000);
+  };
+
   const openCustomizeModal = (t) => {
     setCustomName(t.name);
+    setEditingKey(Object.keys(themes || {}).find((k) => themes[k] === t) ?? null);
     setEditingTheme({ ...t });
     setSelectedColorKey('black');
     setConfirmDelete(false);
   };
 
-  const handleSaveModal = () => {
+  const handleSaveModal = async () => {
     if (!editingTheme) return;
-    saveCustomTheme({ ...editingTheme, name: customName || 'My Custom Theme' });
-    setEditingTheme(null);
-    setSelectedColorKey(null);
-    setConfirmDelete(false);
+    const saving = saveCustomTheme({ ...editingTheme, name: customName || 'My Custom Theme' });
+    closeModal();
+    reportSave(await saving);
   };
 
-  const handleDeleteModal = () => {
+  const handleDeleteModal = async () => {
     if (!editingTheme) return;
     if (!confirmDelete) {
       setConfirmDelete(true);
@@ -85,21 +99,16 @@ export default function ThemeSettings() {
       confirmDeleteTimerRef.current = setTimeout(() => setConfirmDelete(false), 3000);
       return;
     }
-    deleteCustomTheme(editingTheme.name);
-    setConfirmDelete(false);
-    setEditingTheme(null);
-    setSelectedColorKey(null);
+    const deleting = deleteCustomTheme(editingKey);
+    closeModal();
+    reportSave(await deleting);
   };
 
-  const isCustomTheme = editingTheme && Object.entries(themes || {}).some(
-    ([k, v]) => v?.name === editingTheme?.name && (k.startsWith('Custom_') || v?.isCustom)
-  );
-
-  const closeModal = () => {
-    setEditingTheme(null);
-    setSelectedColorKey(null);
-    setConfirmDelete(false);
+  const handleResetDefault = async () => {
+    reportSave(await resetToDefault());
   };
+
+  const isCustomTheme = !!editingKey && (editingKey.startsWith('Custom_') || !!themes?.[editingKey]?.isCustom);
 
   const selectedLabel = selectedColorKey
     ? ALL_COLOR_KEYS.find(c => c.key === selectedColorKey)?.label
@@ -136,7 +145,7 @@ export default function ThemeSettings() {
 
         <div className="native-theme-grid">
           {Object.entries(themes || {}).map(([key, t]) => {
-            const isActive = theme && theme.name === t.name;
+            const isActive = theme === t;
             return (
               <div
                 key={key}
@@ -147,7 +156,7 @@ export default function ThemeSettings() {
                   borderColor: t.accentMana || 'var(--accent-mana)',
                   boxShadow: isActive ? `0 0 12px ${t.accentHighlight || 'var(--accent-highlight)'}` : 'none'
                 }}
-                onClick={() => setTheme(t)}
+                onClick={async () => reportSave(await setTheme(t, key))}
               >
                 <div className="native-theme-header">
                   <span className="native-theme-title">{t.name}</span>
@@ -178,6 +187,7 @@ export default function ThemeSettings() {
       <SurfaceSettingsModal
         isOpen={showSurfaceModal}
         onClose={() => setShowSurfaceModal(false)}
+        showToast={showToast}
       />
 
       {/* ── 3. Theme Customizer Modal ───────────────────────────────────────── */}
@@ -324,7 +334,7 @@ export default function ThemeSettings() {
 
             {/* Actions */}
             <div className="modal-btn-row surface-modal-footer" style={{ marginTop: '0.75rem' }}>
-              <button type="button" className="btn-surface-reset" onClick={resetToDefault}>
+              <button type="button" className="btn-surface-reset" onClick={handleResetDefault}>
                 Reset Default
               </button>
               <button type="button" className="btn-surface-save" onClick={handleSaveModal}>

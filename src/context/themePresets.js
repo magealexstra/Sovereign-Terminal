@@ -1,6 +1,5 @@
-// Static theme preset data — extracted from AppContext.jsx to keep the
-// context module focused on React state and side-effect logic only.
-// Add new built-in presets here; custom user themes are stored in localStorage.
+// Built-in theme presets, keyed by preset id. Custom user themes are kept separately
+// in localStorage and the server profile, and are merged over these at load.
 
 export const DEFAULT_THEME_PRESETS = {
   VitniNordic: {

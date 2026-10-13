@@ -6,13 +6,16 @@ import ButtonHeader from './button-studio/ButtonHeader';
 import ButtonPreview from './button-studio/ButtonPreview';
 import AuditionConsole from './button-studio/AuditionConsole';
 
-export default function ButtonStudio() {
+export default function ButtonStudio({ showToast }) {
   const { theme, syncUserSettingsToServer } = useApp();
 
   const saveToastTimerRef = useRef(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       if (saveToastTimerRef.current) {
         clearTimeout(saveToastTimerRef.current);
       }
@@ -31,7 +34,9 @@ export default function ButtonStudio() {
     try {
       const saved = localStorage.getItem('sovereign_cust_button');
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch {
+      // Unreadable saved data falls back to the default CUST button.
+    }
     return { label: 'CUST', value: 'set number of lines to copy (50)' };
   });
 
@@ -77,7 +82,7 @@ export default function ButtonStudio() {
 
   const activeBtn = {
     ...defaultFallbackBtn,
-    ...(rawBtn || {}),
+    ...rawBtn,
     width: typeof rawBtn?.width === 'number' && !isNaN(rawBtn.width) ? rawBtn.width : 3.2,
     height: typeof rawBtn?.height === 'number' && !isNaN(rawBtn.height) ? rawBtn.height : 2.0,
     shape: rawBtn?.shape || 'rounded',
@@ -185,23 +190,36 @@ export default function ButtonStudio() {
     if (!alreadyExists) {
       const updated = [...customSwatches, hex];
       setCustomSwatches(updated);
-      try { localStorage.setItem('sovereign_custom_swatches', JSON.stringify(updated)); } catch {}
+      try {
+        localStorage.setItem('sovereign_custom_swatches', JSON.stringify(updated));
+      } catch {
+        showToast('Could not store the swatch on this device', 4000);
+      }
     }
   };
 
-  const handleSaveButtons = () => {
+  // "Saved!" shows only once the buttons are stored on this device and the server has accepted them.
+  const handleSaveButtons = async () => {
     try {
       localStorage.setItem('sovereign_buttons', JSON.stringify(buttons));
       localStorage.setItem('sovereign_cust_button', JSON.stringify(custButton));
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
-      syncUserSettingsToServer({ buttons, custButton });
-      setSaveToast(true);
-      if (saveToastTimerRef.current) {
-        clearTimeout(saveToastTimerRef.current);
-      }
-      saveToastTimerRef.current = setTimeout(() => setSaveToast(false), 2000);
-    } catch {}
+    } catch {
+      showToast('Could not store the buttons on this device', 4000);
+      return;
+    }
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
+    const synced = await syncUserSettingsToServer({ buttons, custButton });
+    if (!synced) {
+      showToast('Could not save to the server; the buttons are kept on this device only', 4000);
+      return;
+    }
+    if (!mountedRef.current) return;
+    setSaveToast(true);
+    if (saveToastTimerRef.current) {
+      clearTimeout(saveToastTimerRef.current);
+    }
+    saveToastTimerRef.current = setTimeout(() => setSaveToast(false), 2000);
   };
 
   const handleClearAudition = () => {
@@ -212,7 +230,7 @@ export default function ButtonStudio() {
     const handleSaveEvent = () => handleSaveButtons();
     window.addEventListener('sovereign_save_studio_buttons', handleSaveEvent);
     return () => window.removeEventListener('sovereign_save_studio_buttons', handleSaveEvent);
-  }, [buttons, custButton]);
+  }, [buttons, custButton, syncUserSettingsToServer, showToast]);
 
   const handleSelectPresetOrCustom = (selectedKey) => {
     if (selectedKey === 'cust-button') {

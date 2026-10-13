@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Lock, KeyRound, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 /**
@@ -14,6 +14,13 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
   const isPam = authMode === 'pam';
 
   const [saveSudoPass, setSaveSudoPass] = useState(false);
+
+  // A successful login unmounts this modal while the request handler is still finishing.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,20 +39,25 @@ export default function LoginModal({ authMode = 'token', onLoginSuccess }) {
       });
 
       if (res.ok) {
-        if (saveSudoPass && password) {
-          sessionStorage.setItem('sovereign_sudo_password', password);
-        } else {
-          sessionStorage.removeItem('sovereign_sudo_password');
+        try {
+          if (saveSudoPass && password) {
+            sessionStorage.setItem('sovereign_sudo_password', password);
+          } else {
+            sessionStorage.removeItem('sovereign_sudo_password');
+          }
+        } catch {
+          // Session storage can be blocked; the login itself succeeded, only the quick sudo entry is lost.
         }
-        onLoginSuccess();
+        // Stay busy until the parent has verified the session, so the form cannot be sent twice.
+        await onLoginSuccess();
       } else {
         const data = await res.json().catch(() => ({}));
         setErrorMsg(data.detail || (isPam ? 'Invalid Linux OS username or password' : 'Invalid authentication token'));
       }
-    } catch (err) {
-      setErrorMsg('Failed to connect to authentication server');
+    } catch {
+      if (mountedRef.current) setErrorMsg('Failed to connect to authentication server');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
