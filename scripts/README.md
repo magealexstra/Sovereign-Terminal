@@ -20,6 +20,7 @@ scripts/.venv/bin/pip install -r scripts/requirements-dev.txt
 | Job | Command |
 | :-- | :-- |
 | Lint (oxlint) | `npm run lint` |
+| Type check of the JavaScript, against a baseline | `npm run typecheck [-- --update]` |
 | Dead and over-exported code, by area (knip) | `npm run dead [-- --area <n>]` |
 | Every reference to a symbol, by the type checker | `npm run morph:refs -- <name> [--file <declaring-file>]` |
 | Who imports a file, transitively, and import cycles | `npm run graph -- <file-or-dir> [--depth N]` |
@@ -27,6 +28,11 @@ scripts/.venv/bin/pip install -r scripts/requirements-dev.txt
 | Comments that tell history instead of describing the code | `npm run comments:check -- <file or folder> ...` |
 | Unused Python in `server/` (vulture) | `npm run py:dead` |
 | Python lint in `server/` (ruff) | `npm run py:lint [-- --statistics]` |
+
+`npm run typecheck` runs the TypeScript checker over the plain JavaScript. The findings the code
+already carries are listed in `scripts/typecheck/typecheck.baseline.txt`; the command fails only on
+a finding the baseline lacks, so a change may not add one. After fixing some, `-- --update` rewrites
+the baseline. Never use `--update` to pass a new finding.
 
 ## Editing (ts-morph)
 
@@ -55,7 +61,7 @@ to run against a scratch copy of the tree; the copy needs `scripts/tsconfig.json
   Every top-level declaration must be mapped, or pass `--rest`. The original moves to
   `_temp_trash/morph.split/`. Each submodule gets a stub header to rewrite.
 
-Run `npm run lint` and `npm run build` after any edit.
+Run `npm run lint`, `npm run typecheck` and `npm run build` after any edit.
 
 ## Limits
 
@@ -76,5 +82,6 @@ Run `npm run lint` and `npm run build` after any edit.
 | `scripts/dead/` | the knip runner and the areas it groups by |
 | `scripts/graph/` | the importer graph (dependency-cruiser) |
 | `scripts/commentCheck/` | the comment check |
+| `scripts/typecheck/` | the type check runner and its baseline |
 | `scripts/knip.json`, `scripts/dependency-cruiser.cjs`, `scripts/tsconfig.json` | tool configuration |
 | `scripts/requirements-dev.txt` | the Python tools |

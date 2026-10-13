@@ -11,6 +11,7 @@
     "dead": "node scripts/dead/dead.run.mjs",
     "graph": "node scripts/graph/graph.importers.mjs",
     "comments:check": "node scripts/commentCheck/commentCheck.run.mjs",
+    "typecheck": "node scripts/typecheck/typecheck.run.mjs",
     "morph:rename": "tsx scripts/morph/morph.rename.ts",
     "morph:move": "tsx scripts/morph/morph.move.ts",
     "morph:refs": "tsx scripts/morph/morph.refs.ts",
