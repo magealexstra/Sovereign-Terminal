@@ -7,7 +7,19 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dead": "node scripts/dead/dead.run.mjs",
+    "graph": "node scripts/graph/graph.importers.mjs",
+    "comments:check": "node scripts/commentCheck/commentCheck.run.mjs",
+    "morph:rename": "tsx scripts/morph/morph.rename.ts",
+    "morph:move": "tsx scripts/morph/morph.move.ts",
+    "morph:refs": "tsx scripts/morph/morph.refs.ts",
+    "morph:unexport": "tsx scripts/morph/morph.unexport.ts",
+    "morph:check": "tsx scripts/morph/morph.checkImports.ts",
+    "morph:extract": "tsx scripts/morph/morph.extract.ts",
+    "morph:split": "tsx scripts/morph/morph.split.ts",
+    "py:dead": "scripts/.venv/bin/vulture server --exclude .venv,venv,_cache,__pycache__ --ignore-decorators '@router.*,@app.*' --min-confidence 60",
+    "py:lint": "scripts/.venv/bin/ruff check server --exclude .venv,venv,_cache"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",
@@ -32,10 +44,16 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "dependency-cruiser": "18.4.0",
+    "knip": "6.38.0",
     "oxlint": "^1.71.0",
+    "ts-morph": "^28.0.0",
+    "tsx": "4.23.15",
+    "typescript": "^5.7.3",
     "vite": "^8.1.1"
   }
 }

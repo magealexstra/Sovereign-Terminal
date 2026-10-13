@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.jsx",
+    "vite.config.js",
+    "public/sw.js",
+    "scripts/morph/morph.*.ts",
+    "scripts/*/*.{run,importers}.mjs"
+  ],
+  "project": [
+    "src/**/*.{js,jsx}",
+    "public/sw.js",
+    "vite.config.js",
+    "scripts/**/*.{ts,mjs}"
+  ],
+  "ignore": [
+    "_temp_trash/**",
+    "dist/**",
+    "testing/**"
+  ],
+  "ignoreDependencies": [
+    "dependency-cruiser"
+  ]
+}

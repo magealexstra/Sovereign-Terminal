@@ -23,13 +23,18 @@ We are actively asking the community for help with the following specific items:
 
 
 
+## Developer Tools
+
+The repository carries a set of read-only checks (dead code, import graph, references, comment check, Python lint) and structural edit commands (rename, move, extract, split) built on ts-morph. They are listed with their commands in [`scripts/README.md`](../scripts/README.md). `npm install` sets them up; the two Python tools need one extra step described there.
+
 ## How to Submit a Pull Request
 
 1. Fork the repository and create your branch from `main`.
 2. Ensure you are running locally on port `2069` using `docker compose up --build`.
 3. Test your changes thoroughly on **both** Desktop and Mobile (using Chrome DevTools device mode, or a physical device on your LAN).
-4. Update the `README.md` or `USER_GUIDE.md` if your change adds new functionality.
-5. Submit the PR with a clear description of the problem solved and a screenshot/video if it is a UI change.
+4. Run `npm run lint` and `npm run build`; both must pass.
+5. Update the `README.md` or `USER_GUIDE.md` if your change adds new functionality.
+6. Submit the PR with a clear description of the problem solved and a screenshot/video if it is a UI change.
 
 ## Bug Reports
 
