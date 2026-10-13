@@ -5,7 +5,7 @@ src/App.jsx | TS2339 | Property 'boundingRect' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'overlaysContent' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'removeEventListener' does not exist on type 'unknown'.
 src/components/auth/LoginModal.jsx | TS2322 | Type 'string' is not assignable to type 'number'.
-src/components/explorer/FileViewer.jsx | TS2353 | Object literal may only specify known properties, and ''--cache-pct'' does not exist in type 'Properties<string | number, string & {}>'.
+src/components/explorer/FileViewer/FileViewer.shell.jsx | TS2353 | Object literal may only specify known properties, and ''--cache-pct'' does not exist in type 'Properties<string | number, string & {}>'.
 src/components/terminal/CopyCard.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
 src/components/terminal/CopyCard.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
 src/components/terminal/Terminal.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
@@ -14,6 +14,6 @@ src/components/terminal/Terminal.jsx | TS2339 | Property 'closest' does not exis
 src/components/terminal/Terminal.jsx | TS2339 | Property 'closest' does not exist on type 'EventTarget'.
 src/components/terminal/Terminal.jsx | TS2339 | Property 'closest' does not exist on type 'EventTarget'.
 src/components/terminal/Terminal.jsx | TS2339 | Property 'closest' does not exist on type 'EventTarget'.
-src/components/terminal/TouchBar.jsx | TS2339 | Property 'webkitSpeechRecognition' does not exist on type 'Window & typeof globalThis'.
+src/components/terminal/TouchBar/TouchBar.shell.jsx | TS2339 | Property 'webkitSpeechRecognition' does not exist on type 'Window & typeof globalThis'.
 src/components/terminal/terminal/termTheme.js | TS2339 | Property 'replace' does not exist on type 'never'.
 src/main.jsx | TS2339 | Property 'env' does not exist on type 'ImportMeta'.

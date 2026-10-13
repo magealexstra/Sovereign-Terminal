@@ -1,96 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Trash2, Zap, X, Edit3, Terminal } from 'lucide-react';
-import StagingDrawer from './StagingDrawer';
-import { 
-  PREBUILT_CATEGORIES,
-  KEY_NAV_PRESETS,
-  KEY_FN_PRESETS,
-  KEY_SYM_PRESETS,
-  KEY_MODE_PRESETS,
-  KEY_LINE_PRESETS
-} from '../settings/button-studio/buttonData';
+/**
+ * The touch bar: the key row, voice dictation into the stager, label resolution, custom button and suite loading from saved settings, and the macro modals' state.
+ */
 
-// Special keys are looked up by label before anything else. Their escape sequences come from the
-// button presets so each is defined once; the old arrow glyphs and names are kept as aliases for
-// labels saved on buttons and layouts.
-const PRESET_KEY_VALUES = Object.fromEntries(
-  [...KEY_NAV_PRESETS, ...KEY_FN_PRESETS, ...KEY_SYM_PRESETS, ...KEY_MODE_PRESETS].map((b) => [b.label, b.value])
-);
-const keysFromPresets = (labels) => Object.fromEntries(labels.map((label) => [label, PRESET_KEY_VALUES[label]]));
-const aliasesOf = (presetLabel, aliases) => Object.fromEntries(aliases.map((alias) => [alias, PRESET_KEY_VALUES[presetLabel]]));
-
-const KEY_MAPPINGS = {
-  ...keysFromPresets([
-    'ESC', 'TAB', 'DEL', '-', '|', '~', '/',
-    'PgUp', 'PgDn', 'Home', 'End', 'Ctrl+Left', 'Ctrl+Right', 'Shift+Tab', 'Backspace', '⏎',
-    ...Array.from({ length: 12 }, (_, i) => `F${i + 1}`),
-  ]),
-  '^C': '\x03',
-  '^Z': '\x1a',
-  'sudo': 'sudo ',
-  'exit': 'exit\n',
-  'Enter': PRESET_KEY_VALUES['⏎'],
-  ...aliasesOf('▲', ['ArrowUp', '▲ Up', '↑']),
-  ...aliasesOf('▼', ['ArrowDown', '▼ Down', '↓']),
-  ...aliasesOf('◀', ['ArrowLeft', '◀ Left', '◄', '←']),
-  ...aliasesOf('▶', ['ArrowRight', '► Right', '▶ Right', '►', '→']),
-  ...keysFromPresets(['▲', '▼', '◀', '▶']),
-};
-
-const isGlyphSymbol = (str) => ['▲', '▼', '◀', '▶', '⏎', '◄', '►', '↑', '↓', '←', '→'].includes(str);
-
-const getSavedSudo = () => {
-  try {
-    return sessionStorage.getItem('sovereign_sudo_password');
-  } catch {
-    return null;
-  }
-};
-
-// The macro modal's group tabs and the suites under each.
-const GROUPS = {
-  AI: { label: 'AI', suites: ['AGY', 'CLD', 'HMS'] },
-  EDIT: { label: 'EDIT', suites: ['VIM', 'TXT', 'FILE'] },
-  PKG: { label: 'PKG', suites: ['APT', 'PAC', 'YUM'] },
-  SYS: { label: 'SYS', suites: ['DOC', 'GIT', 'SYS', 'NET', 'PY', 'NPM', 'TMX'] },
-  KEY: { label: 'KEY', suites: ['KEY_NAV', 'KEY_FN', 'KEY_SYM', 'KEY_MODE', 'KEY_LINE'] },
-};
-
-// Display names for the keyboard suites in the sub-suite bar; other suites show their own key.
-const SUB_LABELS = {
-  KEY_NAV: 'NAV',
-  KEY_FN: 'FN',
-  KEY_SYM: 'SYM',
-  KEY_MODE: 'MODE',
-  KEY_LINE: 'LINE'
-};
-
-// The built-in command suites by name, with an id on each button; the keyboard suites come from the presets.
-const commandSuites = {
-  AGY: PREBUILT_CATEGORIES.AGY.items.map((item, idx) => ({ id: `agy${idx}`, ...item })),
-  CLD: PREBUILT_CATEGORIES.CLD.items.map((item, idx) => ({ id: `cld${idx}`, ...item })),
-  HMS: PREBUILT_CATEGORIES.HMS.items.map((item, idx) => ({ id: `hms${idx}`, ...item })),
-
-  VIM: PREBUILT_CATEGORIES.VIM.items.map((item, idx) => ({ id: `vim${idx + 1}`, ...item })),
-  FILE: PREBUILT_CATEGORIES.FILE.items.map((item, idx) => ({ id: `file${idx + 1}`, ...item })),
-  TXT: PREBUILT_CATEGORIES.TXT.items.map((item, idx) => ({ id: `txt${idx + 1}`, ...item })),
-  APT: PREBUILT_CATEGORIES.APT.items.map((item, idx) => ({ id: `apt${idx + 1}`, ...item })),
-  PAC: PREBUILT_CATEGORIES.PAC.items.map((item, idx) => ({ id: `pac${idx + 1}`, ...item })),
-  YUM: PREBUILT_CATEGORIES.YUM.items.map((item, idx) => ({ id: `yum${idx + 1}`, ...item })),
-  DOC: PREBUILT_CATEGORIES.DOC.items.map((item, idx) => ({ id: `doc${idx + 1}`, ...item })),
-  GIT: PREBUILT_CATEGORIES.GIT.items.map((item, idx) => ({ id: `git${idx + 1}`, ...item })),
-  SYS: PREBUILT_CATEGORIES.SYS.items.map((item, idx) => ({ id: `sys${idx + 1}`, ...item })),
-  NET: PREBUILT_CATEGORIES.NET.items.map((item, idx) => ({ id: `net${idx + 1}`, ...item })),
-  PY: PREBUILT_CATEGORIES.PY.items.map((item, idx) => ({ id: `py${idx + 1}`, ...item })),
-  NPM: PREBUILT_CATEGORIES.NPM.items.map((item, idx) => ({ id: `npm${idx + 1}`, ...item })),
-  TMX: PREBUILT_CATEGORIES.TMX.items.map((item, idx) => ({ id: `tmx${idx + 1}`, ...item })),
-
-  KEY_NAV: KEY_NAV_PRESETS,
-  KEY_FN: KEY_FN_PRESETS,
-  KEY_SYM: KEY_SYM_PRESETS,
-  KEY_MODE: KEY_MODE_PRESETS,
-  KEY_LINE: KEY_LINE_PRESETS
-};
+import { useState, useRef, useEffect } from 'react';
+import { Mic, MicOff, Trash2, Zap, Edit3 } from 'lucide-react';
+import StagingDrawer from '../StagingDrawer';
+import { PREBUILT_CATEGORIES } from '../../settings/button-studio/buttonData';
+import { KEY_MAPPINGS, getSavedSudo, isGlyphSymbol } from './TouchBar.keys';
+import { GROUPS, commandSuites } from './TouchBar.suites';
+import { MacroModal } from './TouchBar.macroModal';
+import { FocusedSuiteModal } from './TouchBar.focusedSuiteModal';
 
 export default function TouchBar({ onKeyPress }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -716,251 +635,34 @@ export default function TouchBar({ onKeyPress }) {
 
       {/* Command Suite Modal with Categorized Sub-Tabs */}
       {showMacroModal && (
-        <div
-          className="macro-modal-overlay"
-          onTouchStart={(e) => e.preventDefault()}
-          onPointerDown={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setShowMacroModal(false)}
-        >
-          <div
-            className="macro-modal-content"
-            onTouchStart={(e) => e.preventDefault()}
-            onPointerDown={(e) => e.preventDefault()}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="macro-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Zap size={16} color="var(--status-active)" />
-                <h3>{selectedSuite.replace('KEY_', '')} TOOLKIT</h3>
-              </div>
-
-              <div className="macro-target-toggle">
-                <button
-                  type="button"
-                  className={`target-pill ${macroTarget === 'stager' ? 'active' : ''}`}
-                  onPointerDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMacroTargetToggle('stager');
-                  }}
-                  title="Route macro selection to Command Stager"
-                >
-                  <Edit3 size={11} />
-                  <span>STAGER</span>
-                </button>
-                <button
-                  type="button"
-                  className={`target-pill ${macroTarget === 'terminal' ? 'active' : ''}`}
-                  onPointerDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMacroTargetToggle('terminal');
-                  }}
-                  title="Route macro selection directly to Terminal PTY"
-                >
-                  <Terminal size={11} />
-                  <span>PTY</span>
-                </button>
-              </div>
-
-              <button className="close-modal-btn" onPointerDown={(e) => e.preventDefault()} onClick={() => setShowMacroModal(false)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Primary Category Group Selector Bar */}
-            <div className="suite-selector-scroll">
-              {Object.keys(effectiveGroups).map((groupKey) => {
-                const isActive = primaryGroup === groupKey;
-                return (
-                  <button
-                    key={groupKey}
-                    type="button"
-                    className={`suite-tab-pill ${isActive ? 'active' : ''}`}
-                    onPointerDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setPrimaryGroup(groupKey);
-                      const defaultSub = effectiveGroups[groupKey].suites[0];
-                      setSelectedSuite(defaultSub);
-                    }}
-                  >
-                    {effectiveGroups[groupKey].label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Sub-Suite Selector Bar for Active Group */}
-            {effectiveGroups[primaryGroup] && (
-              <div className="sub-suite-bar">
-                {effectiveGroups[primaryGroup].suites.map((subKey) => {
-                  const isSubActive = selectedSuite === subKey;
-                  return (
-                    <button
-                      key={subKey}
-                      type="button"
-                      className={`sub-suite-pill ${isSubActive ? 'active' : ''}`}
-                      onPointerDown={(e) => e.preventDefault()}
-                      onClick={() => setSelectedSuite(subKey)}
-                    >
-                      {SUB_LABELS[subKey] || subKey}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Selected Suite Macro Grid */}
-            <div className="macro-grid-3x4" style={{ marginTop: '0.75rem' }}>
-              {activeSuiteButtons.map((macro) => {
-                const isLauncher = macro.isSuiteLauncher || customMacroSuites.includes(macro.label) || Object.keys(commandSuites).includes(macro.label);
-
-                return (
-                  <button
-                    key={macro.id}
-                    className={`macro-grid-btn ${macro.shape || ''} ${isGlyphSymbol(macro.label) ? 'glyph-icon-btn' : ''}`}
-                    style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
-                      background: macro.bg || undefined,
-                      color: macro.text || undefined,
-                      borderColor: macro.border || undefined,
-                      width: macro.width ? `${macro.width}rem` : undefined,
-                      height: macro.height ? `${macro.height}rem` : undefined,
-                    } : {}}
-                    onPointerDown={(e) => e.preventDefault()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      if (isLauncher) {
-                        const targetGroup = Object.keys(effectiveGroups).find(g =>
-                          effectiveGroups[g].suites.includes(macro.label)
-                        ) || 'AI';
-                        setPrimaryGroup(targetGroup);
-                        setSelectedSuite(macro.label);
-                      } else {
-                        handleMacroPress(macro);
-                        setShowMacroModal(false);
-                      }
-                    }}
-                  >
-                    {macro.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <MacroModal
+          setShowMacroModal={setShowMacroModal}
+          selectedSuite={selectedSuite}
+          macroTarget={macroTarget}
+          handleMacroTargetToggle={handleMacroTargetToggle}
+          effectiveGroups={effectiveGroups}
+          primaryGroup={primaryGroup}
+          setPrimaryGroup={setPrimaryGroup}
+          setSelectedSuite={setSelectedSuite}
+          activeSuiteButtons={activeSuiteButtons}
+          customMacroSuites={customMacroSuites}
+          handleMacroPress={handleMacroPress}
+        />
       )}
 
       {/* Focused Suite Modal — opens when a custom suite bar button is tapped */}
       {showFocusedSuiteModal && (
-        <div
-          className="macro-modal-overlay"
-          onTouchStart={(e) => e.preventDefault()}
-          onPointerDown={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setShowFocusedSuiteModal(false)}
-        >
-          <div
-            className="macro-modal-content"
-            onTouchStart={(e) => e.preventDefault()}
-            onPointerDown={(e) => e.preventDefault()}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="macro-modal-header">
-              <button
-                className="focused-suite-title-reset"
-                onPointerDown={(e) => e.preventDefault()}
-                onClick={() => setFocusedSubSuite(null)}
-                title="Tap to return to root suite view"
-              >
-                <h3>{focusedSuiteName}</h3>
-              </button>
-
-              <div className="macro-target-toggle">
-                <button
-                  type="button"
-                  className={`target-pill ${macroTarget === 'stager' ? 'active' : ''}`}
-                  onPointerDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMacroTargetToggle('stager');
-                  }}
-                  title="Route macro selection to Command Stager"
-                >
-                  <Edit3 size={11} />
-                  <span>STAGER</span>
-                </button>
-                <button
-                  type="button"
-                  className={`target-pill ${macroTarget === 'terminal' ? 'active' : ''}`}
-                  onPointerDown={(e) => e.preventDefault()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMacroTargetToggle('terminal');
-                  }}
-                  title="Route macro selection directly to Terminal PTY"
-                >
-                  <Terminal size={11} />
-                  <span>PTY</span>
-                </button>
-              </div>
-
-              <button className="close-modal-btn" onPointerDown={(e) => e.preventDefault()} onClick={() => setShowFocusedSuiteModal(false)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Chip tabs for nested macro suites (self-filtered: root suite never shows in its own chips) */}
-            {focusedChips.length > 0 && (
-              <div className="sub-suite-bar">
-                {focusedChips.map(chip => (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    className={`sub-suite-pill ${focusedSubSuite === chip.label ? 'active' : ''}`}
-                    onPointerDown={(e) => e.preventDefault()}
-                    onClick={() => setFocusedSubSuite(chip.label)}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Command button grid */}
-            <div className="macro-grid-3x4" style={{ marginTop: '0.75rem' }}>
-              {focusedRegularButtons.length === 0 && focusedChips.length === 0 ? (
-                <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem', padding: '0.5rem', gridColumn: '1 / -1' }}>
-                  No buttons in this suite yet. Add some in the Layout tab.
-                </span>
-              ) : (
-                focusedRegularButtons.map(macro => (
-                  <button
-                    key={macro.id}
-                    className={`macro-grid-btn ${macro.shape || ''} ${isGlyphSymbol(macro.label) ? 'glyph-icon-btn' : ''}`}
-                    style={macro.bg || macro.text || macro.border || macro.width || macro.height ? {
-                      background: macro.bg || undefined,
-                      color: macro.text || undefined,
-                      borderColor: macro.border || undefined,
-                      width: macro.width ? `${macro.width}rem` : undefined,
-                      height: macro.height ? `${macro.height}rem` : undefined,
-                    } : {}}
-                    onPointerDown={(e) => e.preventDefault()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      handleMacroPress(macro);
-                      setShowFocusedSuiteModal(false);
-                    }}
-                  >
-                    {macro.label}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
+        <FocusedSuiteModal
+          setShowFocusedSuiteModal={setShowFocusedSuiteModal}
+          setFocusedSubSuite={setFocusedSubSuite}
+          focusedSuiteName={focusedSuiteName}
+          macroTarget={macroTarget}
+          handleMacroTargetToggle={handleMacroTargetToggle}
+          focusedChips={focusedChips}
+          focusedSubSuite={focusedSubSuite}
+          focusedRegularButtons={focusedRegularButtons}
+          handleMacroPress={handleMacroPress}
+        />
       )}
 
       {/* Mic error toast (non-blocking) */}
