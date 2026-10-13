@@ -7,22 +7,22 @@
  *
  * Separation of NATIVE vs FFMPEG video:
  *   - NATIVE_VIDEO_EXTS  → Chrome plays directly, uses VideoPlayer + Plyr
- *   - FFMPEG_VIDEO_EXTS  → routed to Viewer but shows NoPreview card until Phase 2
+ *   - FFMPEG_VIDEO_EXTS  → routed to Viewer, played through the FFmpeg cache path
  */
 
-export const IMAGE_EXTS = new Set([
+const IMAGE_EXTS = new Set([
   'png','jpg','jpeg','webp','gif','svg','bmp','ico','tiff','avif',
 ]);
 
-export const NATIVE_VIDEO_EXTS = new Set(['mp4','webm','mov']);
+const NATIVE_VIDEO_EXTS = new Set(['mp4','webm','mov']);
 
 export const FFMPEG_VIDEO_EXTS = new Set([
   'mkv','avi','mpg','mpeg','wmv','m4v','flv','3gp','ts','vob',
 ]);
 
-export const VIDEO_EXTS = new Set([...NATIVE_VIDEO_EXTS, ...FFMPEG_VIDEO_EXTS]);
+const VIDEO_EXTS = new Set([...NATIVE_VIDEO_EXTS, ...FFMPEG_VIDEO_EXTS]);
 
-export const AUDIO_EXTS = new Set([
+const AUDIO_EXTS = new Set([
   'mp3','wav','flac','ogg','m4a','aac','opus',
 ]);
 
@@ -39,7 +39,7 @@ export const VIEWER_EXTENSIONS = new Set([
  *
  * 'image'           → ImageViewer
  * 'video'           → VideoPlayer (Plyr, native browser formats)
- * 'video-nopreview' → NoPreview card ("not supported for in-browser playback")
+ * 'video-nopreview' → SmartVideoPlayer (FFmpeg cache path)
  * 'audio'           → AudioPlayer (Plyr)
  * 'pdf'             → PdfViewer (iframe)
  * 'other'           → falls through to text editor (or binary guard)

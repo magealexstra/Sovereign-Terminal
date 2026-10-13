@@ -1,5 +1,5 @@
 /**
- * parseCopyLines — Robust parser and auto-healing validator for CUST scrollback lines.
+ * parseCopyLines — Robust parser for CUST scrollback line counts.
  *
  * Supports:
  *   1. Raw integers: "500", "0", "1000" -> returns 500, 0, 1000
@@ -29,14 +29,4 @@ export function parseCopyLines(rawString) {
 
   // Case 3: Fallback for malformed inputs
   return 50;
-}
-
-/**
- * isValidCopyFunctionFormat — Checks if a function string is valid.
- * Used by ButtonStudio for auto-healing onBlur.
- */
-export function isValidCopyFunctionFormat(rawString) {
-  if (typeof rawString !== 'string' || rawString.trim().length === 0) return false;
-  const trimmed = rawString.trim();
-  return /^\d+$/.test(trimmed) || /\((\d+)\)/.test(trimmed);
 }

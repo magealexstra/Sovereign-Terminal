@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
@@ -10,12 +10,13 @@ import { html } from '@codemirror/lang-html';
 import { css } from '@codemirror/lang-css';
 import { xml } from '@codemirror/lang-xml';
 import { sql } from '@codemirror/lang-sql';
-import { Save, GitCommit, Copy, Clipboard, X, FileText, Image as ImageIcon, Eye, Code, WrapText, Wand2, Search, Play } from 'lucide-react';
+import { Save, GitCommit, Copy, Clipboard, X, FileText, Eye, Code, WrapText, Wand2, Search, Play } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../hooks/useToast';
 import { openSearchPanel, searchKeymap, search } from '@codemirror/search';
 import { keymap as cmKeymap } from '@codemirror/view';
 import { getFileBrandColor } from '../../utils/fileColors';
+import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 
 // Lightweight Markdown HTML Preview Component
 function MarkdownPreview({ content }) {
@@ -75,7 +76,7 @@ function MarkdownPreview({ content }) {
   return <div className="markdown-preview-pane">{elements}</div>;
 }
 
-export default function CodeEditor({ activeSession, openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onReturnToTerminal, onSaveAs, onRunScript, suggestedSaveDir }) {
+export default function CodeEditor({ openDocuments, activeFilePath, onSelectTab, onCloseTab, onContentChange, onSaveFile, onGitCommit, onSaveAs, onRunScript, suggestedSaveDir }) {
   const { theme, editorFontSizePx } = useApp();
   const { toast: editorToast, showToast: triggerToast } = useToast(2000);
   const [closeConfirmModal, setCloseConfirmModal] = useState(null);
@@ -95,8 +96,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
   // Memoize the CodeMirror theme so EditorView.theme() is only called when the
   // palette or font size actually changes. Without this, a new theme object (and
   // a new <style> block injected by CodeMirror into the document head) is created
-  // on every render — the source of the +4,746 CSSStyleRule accumulation in
-  // heap snapshots.
+  // on every render, and the style rules accumulate.
   const editorTheme = useMemo(() => EditorView.theme({
     '&': {
       height: '100%',
@@ -237,28 +237,10 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
     }, 700);
   };
 
-  const handleTabCloseRelease = (docPath, isModified) => {
+  const handleTabCloseRelease = () => {
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
-  };
-
-  // Fallback copy helper for non-secure HTTP contexts where navigator.clipboard is disabled.
-  const writeToClipboard = (text) => {
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
-    }
-    return new Promise((resolve, reject) => {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      ok ? resolve() : reject(new Error('execCommand copy failed'));
-    });
   };
 
   // Touch Bar Clipboard Handlers (Modern Clipboard API)
@@ -309,18 +291,6 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
     );
   }
 
-  if (!activeDoc) {
-    return (
-      <div className="code-editor-workspace" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-          <FileText size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
-          <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-parchment)', fontSize: '1.1rem' }}>No File Selected</h3>
-          <p style={{ margin: 0, fontSize: '0.9rem' }}>Select a file from the Files tab to open it in CodeMirror 6</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="code-editor-workspace">
       {/* Dynamic Multi-Document Tab Bar */}
@@ -343,7 +313,7 @@ export default function CodeEditor({ activeSession, openDocuments, activeFilePat
               }}
               onClick={() => onSelectTab(doc.path)}
               onTouchStart={() => handleTabClosePress(doc.path)}
-              onTouchEnd={() => handleTabCloseRelease(doc.path, doc.isModified)}
+              onTouchEnd={() => handleTabCloseRelease()}
 
             >
               {doc.virtual

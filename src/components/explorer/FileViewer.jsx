@@ -4,11 +4,8 @@ import 'plyr/dist/plyr.css';
 import { Film, Music, FileImage, File, X, Loader } from 'lucide-react';
 import { getFileBrandColor } from '../../utils/fileColors';
 
-import { IMAGE_EXTS, VIDEO_EXTS, AUDIO_EXTS, VIEWER_EXTENSIONS, getViewerType } from '../../utils/viewerTypes';
+import { FFMPEG_VIDEO_EXTS } from '../../utils/viewerTypes';
 import { useCacheState } from '../../context/CacheStateContext';
-
-// Re-export for external consumers
-export { getViewerType, VIEWER_EXTENSIONS };
 
 /* ─── Tab icon per type ─────────────────────────────────────────────────────── */
 function TabIcon({ type, color }) {
@@ -246,23 +243,20 @@ function VideoPlayer({ path }) {
 /* ─── Smart Video Player — non-native ────────────────────────────────────────── */
 // Used for video-nopreview types (mkv, avi, wmv, etc.) that need the FFmpeg cache path.
 //
-// Pre-Cache Then Play: the video element never mounts until the file is fully
-// cached. React fires a SW postMessage to kick off backgroundCache, then watches
-// CacheStateContext. When the SW reports 'cached' the player transitions to
-// 'streaming' and mounts the <video> into a guaranteed warm cache hit.
+// Pre-Cache Then Play: React fires a SW postMessage to kick off backgroundCache,
+// then watches CacheStateContext. When the SW reports 'cached' (or 'skip') the
+// player transitions to 'streaming' and mounts the <video>, normally into a warm
+// cache hit. Without a controlling service worker, or when the user picks
+// "Stream Directly", it mounts the <video> without waiting for the cache.
 //
 // State machine:
 //   init → (ffmpeg check + cacheState snapshot) →
 //     no_ffmpeg  — FFmpeg not installed
 //     caching    — SW is downloading; progress overlay shown, no <video>
-//     streaming  — file fully cached; Plyr initialized
+//     streaming  — <video> mounted and Plyr initialized
 //     failed     — 4xx/5xx or unsupported codec
 
-// Extensions that route through the FFmpeg cache path on the server.
-// Mirrors FFMPEG_CONTAINERS in server/fs_video.py.
-const FFMPEG_EXTS = new Set(['mkv', 'avi', 'mpg', 'mpeg', 'wmv', 'm4v', 'flv', '3gp', 'ts', 'vob']);
-
-// ── Phase 3a: Native codec detection ──────────────────────────────────────────
+// ── Native codec detection ──────────────────────────────────────────
 // Maps ffprobe codec_name (exact lowercase strings) to the MIME/codec string
 // that HTMLVideoElement.canPlayType() understands.
 // Codecs with no browser support (wmv3, vc1) are intentionally omitted —
@@ -319,8 +313,8 @@ function canPlayNatively(videoCodec, audioCodec) {
 
 // ── SW cache trigger ───────────────────────────────────────────────────────────
 // Tell the SW to start background-caching this path.
-// native=true: cache the original file via &native=1 (Phase 3a native path).
-// native=false (default): cache the FFmpeg-remuxed output (Phase 2b/2c path).
+// native=true: cache the original file via &native=1 (native path).
+// native=false (default): cache the FFmpeg-remuxed output (remux path).
 // The SW derives the normalized URL from (path + native flag) using URLSearchParams
 // so the cache key always matches what the fetch handler produces.
 function triggerSwCache(path, native = false) {
@@ -329,7 +323,6 @@ function triggerSwCache(path, native = false) {
 }
 
 function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
-  const failCountRef = useRef(0);
   const videoRef     = useRef(null);
   const playerRef    = useRef(null);
   const sessionId    = useRef(Date.now()).current;
@@ -339,7 +332,7 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   const autoPlayRef = useRef(false);
 
   // Set to true by init() when /stream/probe + canPlayNatively() confirms the
-  // browser can decode this file without FFmpeg (Phase 3a native path).
+  // browser can decode this file without FFmpeg (native path).
   // Must be set before any setViewState() call so videoSrc is correct at render.
   const nativeRef = useRef(false);
 
@@ -356,7 +349,7 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   const isStreamingOnly = cacheState?.[path]?.state === 'skip';
 
   const ext        = path.split('.').pop()?.toLowerCase() ?? '';
-  const needsRemux = FFMPEG_EXTS.has(ext);
+  const needsRemux = FFMPEG_VIDEO_EXTS.has(ext);
   // baseUrl: cache key root (no sid, no native flag — those are appended per use-site).
   const baseUrl          = `/api/fs/stream?path=${encodeURIComponent(path)}`;
   // effectiveBaseUrl: appends &native=1 when the probe confirmed native support.
@@ -378,7 +371,7 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
         if (available === null) available = await onNeedFfmpegCheck();
         if (cancelled) return;
 
-        // Phase 3a: ask the server what codecs the file uses, then check
+        // Ask the server what codecs the file uses, then check
         // whether this browser can decode them natively (no FFmpeg needed).
         try {
           const probeRes = await fetch(`/api/fs/stream/probe?path=${encodeURIComponent(path)}`);
@@ -467,8 +460,8 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
   }, [cacheState, path, viewState]);
 
   // ── Plyr init — runs once when we enter 'streaming' ───────────────────────
-  // At this point the SW has a complete cached response — the first range
-  // request from the <video> element is guaranteed to hit warm cache.
+  // Normally the SW already holds a complete cached response, so the first range
+  // request from the <video> element hits the cache.
   useEffect(() => {
     if (viewState !== 'streaming') return;
     const el = videoRef.current;
@@ -496,7 +489,6 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
 
   // ── Event handlers ─────────────────────────────────────────────────────────
   const handleError = () => {
-    failCountRef.current += 1;
     setViewState('failed');
   };
 
@@ -530,11 +522,6 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
         <span className="viewer-no-preview-note">
           This format is not supported for in-browser playback. Right-click to download.
         </span>
-        {failCountRef.current >= 3 && (
-          <span className="viewer-no-preview-hint">
-            If you recently installed FFmpeg, a page refresh may be required.
-          </span>
-        )}
       </div>
     );
   }
@@ -569,7 +556,7 @@ function SmartVideoPlayer({ path, name, ffmpegAvailable, onNeedFfmpegCheck }) {
     );
   }
 
-  // 'streaming': video element mounts only here — guaranteed warm cache
+  // 'streaming': the video element mounts only here
   return (
     <div className="viewer-video-frame">
       {isStreamingOnly && (
@@ -811,7 +798,7 @@ export default function FileViewer({
     switch (type) {
       case 'image':           return <ImageViewer key={path} path={path} />;
       case 'video':           return <VideoPlayer       key={path} path={path} />;
-      case 'video-nopreview': return <SmartVideoPlayer  key={path} path={path} name={name} type={type} ffmpegAvailable={ffmpegAvailable} onNeedFfmpegCheck={checkFfmpeg} />;
+      case 'video-nopreview': return <SmartVideoPlayer  key={path} path={path} name={name} ffmpegAvailable={ffmpegAvailable} onNeedFfmpegCheck={checkFfmpeg} />;
       case 'audio':           return <AudioPlayer     key={path} path={path} filename={name} />;
       case 'pdf':             return <PdfViewer       key={path} path={path} />;
       default:                return <NoPreview       filename={name} type={type} />;

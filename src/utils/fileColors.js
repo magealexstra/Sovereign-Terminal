@@ -6,11 +6,11 @@
  *   - FileExplorer.jsx (extension column text color)
  *   - FileViewer.jsx   (tab pill border/glow color)
  *
- * Color families (approved Aug 2026):
+ * Color families:
  *   Code languages  → official brand colors (unchanged)
  *   Images          → Cyan/Teal family
  *   Video (native)  → Forest/Emerald Green family
- *   Video (legacy)  → Sage Green (#5ba386, shared)
+ *   Video (other)   → Sage Green (#5ba386, shared)
  *   Audio           → Muted Violet/Purple family
  *   PDF             → Dark Gold (#d6a013)
  *   SVG             → Deep Wine (#800946) — special case: vector + markup
@@ -57,9 +57,9 @@ export const getFileBrandColor = (filename) => {
   if (fn.endsWith('.mkv'))                                               return '#04523a';
   if (fn.endsWith('.avi'))                                               return '#178767';
   if (fn.endsWith('.mpg') || fn.endsWith('.mpeg'))                       return '#599404';
-  // Legacy video formats — shared sage green
+  // Remaining video formats — shared sage green
   if (fn.endsWith('.wmv') || fn.endsWith('.m4v') || fn.endsWith('.flv')
-    || fn.endsWith('.3gp') || fn.endsWith('.ts')  || fn.endsWith('.vob')) return '#5ba386';
+    || fn.endsWith('.3gp') || fn.endsWith('.vob')) return '#5ba386';
 
   /* ── Audio — Muted Violet/Purple family ──────────────────────────────────── */
   if (fn.endsWith('.mp3'))                                               return '#6443b0';

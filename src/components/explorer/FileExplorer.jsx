@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Folder, FileText, ChevronRight, Search, Download, Upload, RefreshCw, Home, CornerLeftUp, Terminal, TerminalSquare, Clipboard, FileCode, Check, CheckSquare, Square } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
 import { writeToClipboard } from '../terminal/terminal/writeToClipboard';
 import ExplorerContextMenu from './ExplorerContextMenu';
 import { getFileBrandColor, getFileExtension } from '../../utils/fileColors';
@@ -150,7 +149,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
     }
   }, []);
 
-  const startLongPress = useCallback((_, item = null) => {
+  const startLongPress = useCallback((item = null) => {
     cancelLongPress();
     longPressTimerRef.current = setTimeout(() => {
       if (item && !selectedItems.includes(item.path)) {
@@ -564,7 +563,7 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
           <div
             key={item.path}
             className={`tree-item ${selectedItems.includes(item.path) ? 'selected' : ''}`}
-            onTouchStart={() => startLongPress(null, item)}
+            onTouchStart={() => startLongPress(item)}
             onTouchMove={cancelLongPress}
             onTouchEnd={cancelLongPress}
             onContextMenu={(e) => handleContextMenuOpen(e, item)}
@@ -605,7 +604,6 @@ export default function FileExplorer({ onCopyPath, onOpenFile, onOpenTerminal, a
         allItems={items}
         clipboardItems={clipboardItems}
         clipboardMode={clipboardMode}
-        currentPath={currentPath}
         onClose={() => setContextMenuVisible(false)}
         onNew={() => setNewFileModal(true)}
         onOpen={handleOpenItem}

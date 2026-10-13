@@ -14,7 +14,6 @@ import {
  *   allItems         {object[]} Full directory listing [{name, isDir, path, size}]
  *   clipboardItems   {string[]} Staged clipboard paths
  *   clipboardMode    {string}   'cut' | 'copy' | null
- *   currentPath      {string}   Current directory path
  *   onClose          {fn}       Close the menu
  *   onNew            {fn}       Open the new file/folder modal
  *   onOpen           {fn(path)}
