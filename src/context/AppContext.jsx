@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { DEFAULT_THEME_PRESETS } from './themePresets';
 
-// Re-export so any file importing DEFAULT_THEME_PRESETS from AppContext.jsx
-// continues to work without changes.
-export { DEFAULT_THEME_PRESETS };
-
 const AppContext = createContext(null);
 
 const DEFAULT_TMUX_SETTINGS = {
@@ -17,10 +13,9 @@ const DEFAULT_TMUX_SETTINGS = {
 export function AppProvider({ children }) {
   const [activeMainTab, setActiveMainTab] = useState('terminal');
 
-  // All user settings initialize from hardcoded defaults only.
-  // No localStorage is read on mount — this prevents cross-user contamination
-  // when a different user logs in on a shared device.
-  // fetchUserSettings() is responsible for restoring all persisted state after auth.
+  // The provider's own state starts from hardcoded defaults and reads no localStorage on mount,
+  // so a different user logging in on a shared device inherits nothing.
+  // fetchUserSettings() restores the persisted state after auth.
   const [themes, setThemes] = useState(DEFAULT_THEME_PRESETS);
   const [theme, setThemeState] = useState(DEFAULT_THEME_PRESETS.VitniNordic);
   const [tmuxSettings, setTmuxSettingsState] = useState(DEFAULT_TMUX_SETTINGS);
@@ -214,9 +209,6 @@ export function AppProvider({ children }) {
 
   const terminalFontSizePx = Math.round(deviceBaselinePx * terminalScaleMultiplier);
   const editorFontSizePx   = Math.round(deviceBaselinePx * editorScaleMultiplier);
-  const iconSizeSm = Math.max(12, Math.round(deviceBaselinePx * 0.95));
-  const iconSizeMd = Math.max(14, Math.round(deviceBaselinePx * 1.1));
-  const iconSizeLg = Math.max(18, Math.round(deviceBaselinePx * 1.3));
 
   // ── CSS Custom Properties ─────────────────────────────────────────────────
   useEffect(() => {
@@ -390,7 +382,6 @@ export function AppProvider({ children }) {
         fetchUserSettings,
         syncUserSettingsToServer,
         resetToDefault,
-        username,
         setUsername,
         clearUserCache,
         deviceBaselinePx,
@@ -414,23 +405,8 @@ export function AppProvider({ children }) {
         setInputMixColor,
         tmuxSettings,
         setTmuxSettings,
-        terminalFontSizePx,
         editorFontSizePx,
-        iconSizeSm,
-        iconSizeMd,
-        iconSizeLg,
-        fontSizeTerminal: terminalFontSizePx,
-        setFontSizeTerminal: (val) => {
-          if (typeof val === 'number' && val > 2) {
-            setTerminalScaleMultiplier(val / deviceBaselinePx);
-          }
-        },
-        fontSizeEditor: editorFontSizePx,
-        setFontSizeEditor: (val) => {
-          if (typeof val === 'number' && val > 2) {
-            setEditorScaleMultiplier(val / deviceBaselinePx);
-          }
-        }
+        fontSizeTerminal: terminalFontSizePx
       }}
     >
       {children}

@@ -158,7 +158,7 @@ export default function SurfaceSettingsModal({ isOpen, onClose }) {
       inputBgLightness:    draftInLightness,
       inputMixColor:       draftInMixColor,
       inputScaleMultiplier: draftInScale,
-    }).catch(err => console.error('Server sync error:', err));
+    });
 
     onClose();
   };

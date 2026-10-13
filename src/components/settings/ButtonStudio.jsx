@@ -195,9 +195,7 @@ export default function ButtonStudio() {
       localStorage.setItem('sovereign_cust_button', JSON.stringify(custButton));
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
-      if (typeof syncUserSettingsToServer === 'function') {
-        syncUserSettingsToServer({ buttons, custButton }).catch(err => console.error('Server sync error:', err));
-      }
+      syncUserSettingsToServer({ buttons, custButton });
       setSaveToast(true);
       if (saveToastTimerRef.current) {
         clearTimeout(saveToastTimerRef.current);

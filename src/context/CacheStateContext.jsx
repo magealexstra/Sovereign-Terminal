@@ -4,7 +4,6 @@ import React, { createContext, useContext, useReducer } from 'react';
 // 'path' is the raw file path string from the SW postMessage (e.g. '/srv/media/file.mkv')
 
 const CacheStateContext = createContext(null);
-const CacheDispatchContext = createContext(null);
 
 function cacheReducer(state, action) {
   switch (action.type) {
@@ -21,7 +20,7 @@ function cacheReducer(state, action) {
 
 // Module-level singleton — allows main.jsx to dispatch without being inside the React tree
 let _dispatch = null;
-export function _setCacheDispatch(fn) { _dispatch = fn; }
+function _setCacheDispatch(fn) { _dispatch = fn; }
 export function dispatchCacheMessage(action) { if (_dispatch) _dispatch(action); }
 
 export function CacheStateProvider({ children }) {
@@ -32,9 +31,7 @@ export function CacheStateProvider({ children }) {
 
   return (
     <CacheStateContext.Provider value={cacheState}>
-      <CacheDispatchContext.Provider value={dispatch}>
-        {children}
-      </CacheDispatchContext.Provider>
+      {children}
     </CacheStateContext.Provider>
   );
 }

@@ -44,9 +44,6 @@ export default defineConfig(({ mode }) => {
               if (id.includes('@codemirror') || id.includes('@lezer')) {
                 return 'vendor-codemirror';
               }
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
-              }
               return 'vendor-utils';
             }
           },

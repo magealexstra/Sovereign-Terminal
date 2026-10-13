@@ -39,9 +39,7 @@ export default function TmuxManager() {
     window.dispatchEvent(new CustomEvent('sovereign_attach_session', {
       detail: { sessionName: selectedSession, forceTakeover: isAttachedElsewhere }
     }));
-    if (setActiveMainTab) {
-      setActiveMainTab('terminal');
-    }
+    setActiveMainTab('terminal');
   };
 
   const fetchSessions = useCallback(async () => {
@@ -111,12 +109,12 @@ export default function TmuxManager() {
 
   const updateBehavior = (key, value) => {
     setTmuxSettings({ [key]: value });
-    syncUserSettingsToServer().catch(err => console.error('Server sync error:', err));
+    syncUserSettingsToServer();
   };
 
   const applyPerfConfig = async (key, value) => {
     setTmuxSettings({ [key]: value });
-    syncUserSettingsToServer().catch(err => console.error('Server sync error:', err));
+    syncUserSettingsToServer();
     const body = {};
     if (key === 'scrollbackLines') body.historyLimit = value;
     if (key === 'escapeTimeMs')    body.escapeTimeMs  = value;

@@ -639,7 +639,6 @@ export default function App() {
 
         <TouchBar
           onKeyPress={handleTerminalInput}
-          onVoiceInput={handleTerminalInput}
         />
       </div>
 

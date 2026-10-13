@@ -400,19 +400,9 @@ export default function LayoutBuilder() {
       window.dispatchEvent(new Event('storage'));
       // Persist primary hotbar layout to server profile so it survives storage clears
       if (selectedMacroSuite === 'PRIMARY') {
-        syncUserSettingsToServer({ layoutSlots: newSlots }).catch(err => console.error('Server sync error:', err));
+        syncUserSettingsToServer({ layoutSlots: newSlots });
       }
     } catch {}
-  };
-
-  // Add item directly to TouchBar with toast feedback and highlight in preview strip
-  const handleAddDirect = (itemKey) => {
-    if (!itemKey || itemKey === '(No Custom Buttons Created Yet)') return;
-    const updated = [...touchBarSlots, itemKey];
-    saveLayout(updated);
-    setSelectedBarIndex(updated.length - 1);
-    setSelectedPoolItem(itemKey);
-    showToast(`Added '${itemKey}' to TouchBar`);
   };
 
   // Select a pool chip (must press Add button to append to TouchBar)
@@ -474,9 +464,7 @@ export default function LayoutBuilder() {
           localStorage.setItem('sovereign_buttons', JSON.stringify(buttons));
           window.dispatchEvent(new Event('storage'));
           window.dispatchEvent(new CustomEvent('sovereign_custom_buttons_updated'));
-          if (typeof syncUserSettingsToServer === 'function') {
-            syncUserSettingsToServer({ buttons }).catch(err => console.error('Server sync error:', err));
-          }
+          syncUserSettingsToServer({ buttons });
           showToast(`Deleted custom button '${selectedPoolItem}'`);
           setSelectedPoolItem(null);
           loadCustomButtons();
@@ -526,14 +514,12 @@ export default function LayoutBuilder() {
     if (selectedCategory === 'CUSTOM') {
       items = customButtons;
       if (items.length === 0) items = ['(No Custom Buttons Created Yet)'];
-    } else if (PREBUILT_CATEGORIES[selectedCategory]) {
+    } else {
       // Show current saved state of this suite from state cache; fall back to factory defaults if no override exists
       const saved = macroSuiteOverrides[selectedCategory];
       items = (Array.isArray(saved) && saved.length > 0)
         ? [selectedCategory, ...saved]
         : [selectedCategory, ...PREBUILT_CATEGORIES[selectedCategory].items.map((i) => i.label)];
-    } else {
-      items = Object.entries(PREBUILT_CATEGORIES).flatMap(([key, cat]) => [key, ...cat.items.map((i) => i.label)]);
     }
 
     return items;

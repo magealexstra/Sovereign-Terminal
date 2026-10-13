@@ -51,14 +51,10 @@ export default function ThemeSettings() {
   const [showSurfaceModal, setShowSurfaceModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const appliedToastTimerRef = useRef(null);
   const confirmDeleteTimerRef = useRef(null);
 
   useEffect(() => {
     return () => {
-      if (appliedToastTimerRef.current) {
-        clearTimeout(appliedToastTimerRef.current);
-      }
       if (confirmDeleteTimerRef.current) {
         clearTimeout(confirmDeleteTimerRef.current);
       }
@@ -82,7 +78,7 @@ export default function ThemeSettings() {
   };
 
   const handleDeleteModal = () => {
-    if (!editingTheme || !deleteCustomTheme) return;
+    if (!editingTheme) return;
     if (!confirmDelete) {
       setConfirmDelete(true);
       if (confirmDeleteTimerRef.current) clearTimeout(confirmDeleteTimerRef.current);

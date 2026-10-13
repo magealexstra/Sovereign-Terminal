@@ -15,8 +15,8 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   });
 
   // Forward SW postMessages into CacheStateContext global state.
-  // dispatchCacheMessage is a module-level singleton — safe to call before
-  // React mounts because the context provider sets it synchronously on render.
+  // dispatchCacheMessage is a module-level singleton that the cache provider fills on render.
+  // The provider is mounted only once the user is logged in; a message sent while it is not mounted is discarded.
   navigator.serviceWorker.addEventListener('message', (event) => {
     const { type, path, percent } = event.data ?? {};
     if (!type || !path) return;
