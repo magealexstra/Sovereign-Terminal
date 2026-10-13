@@ -5,12 +5,7 @@ src/App.jsx | TS2339 | Property 'boundingRect' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'overlaysContent' does not exist on type 'unknown'.
 src/App.jsx | TS2339 | Property 'removeEventListener' does not exist on type 'unknown'.
 src/components/auth/LoginModal.jsx | TS2322 | Type 'string' is not assignable to type 'number'.
-src/components/explorer/FileExplorer.jsx | TS2741 | Property 'path' is missing in type '{ source: any; new_name: any; use_sudo: true; }' but required in type '{ path: any; use_sudo: boolean; }'.
-src/components/explorer/FileExplorer.jsx | TS2741 | Property 'path' is missing in type '{ sources: any[]; destination: any; use_sudo: true; }' but required in type '{ path: any; use_sudo: boolean; }'.
-src/components/explorer/FileExplorer.jsx | TS2741 | Property 'path' is missing in type '{ sources: any[]; destination: any; use_sudo: true; }' but required in type '{ path: any; use_sudo: boolean; }'.
 src/components/explorer/FileViewer.jsx | TS2353 | Object literal may only specify known properties, and ''--cache-pct'' does not exist in type 'Properties<string | number, string & {}>'.
-src/components/settings/TmuxManager.jsx | TS2339 | Property 'value' does not exist on type 'EventTarget'.
-src/components/settings/TmuxManager.jsx | TS2339 | Property 'value' does not exist on type 'EventTarget'.
 src/components/terminal/CopyCard.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
 src/components/terminal/CopyCard.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
 src/components/terminal/Terminal.jsx | TS2339 | Property 'blur' does not exist on type 'Element'.
@@ -21,6 +16,4 @@ src/components/terminal/Terminal.jsx | TS2339 | Property 'closest' does not exis
 src/components/terminal/Terminal.jsx | TS2339 | Property 'closest' does not exist on type 'EventTarget'.
 src/components/terminal/TouchBar.jsx | TS2339 | Property 'webkitSpeechRecognition' does not exist on type 'Window & typeof globalThis'.
 src/components/terminal/terminal/termTheme.js | TS2339 | Property 'replace' does not exist on type 'never'.
-src/context/AppContext.jsx | TS2339 | Property 'sovereign' does not exist on type '{ VitniNordic: { name: string; bgEarth: string; bgCanopy: string; bgPanel: string; bgGrove: string; borderForest: string; borderSage: string; textParchment: string; textMuted: string; textDim: string; ... 20 more ...; brightWhite: string; }; ... 10 more ...; Cyberpunk2077: { ...; }; }'.
-src/context/AppContext.jsx | TS2551 | Property 'nord' does not exist on type '{ VitniNordic: { name: string; bgEarth: string; bgCanopy: string; bgPanel: string; bgGrove: string; borderForest: string; borderSage: string; textParchment: string; textMuted: string; textDim: string; ... 20 more ...; brightWhite: string; }; ... 10 more ...; Cyberpunk2077: { ...; }; }'. Did you mean 'Nord'?
 src/main.jsx | TS2339 | Property 'env' does not exist on type 'ImportMeta'.
