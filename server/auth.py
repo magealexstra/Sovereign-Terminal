@@ -1,10 +1,11 @@
+import logging
 import os
 import secrets
-import logging
 import signal
 import threading
-from datetime import datetime, timezone
-from fastapi import APIRouter, Response, Request, HTTPException, status
+from datetime import UTC, datetime
+
+from fastapi import APIRouter, HTTPException, Request, Response, status
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,14 @@ if SERVER_AUTH_TOKEN == "sovereign_terminal_token":
     logger.warning("SECURITY WARNING: Using default SERVER_AUTH_TOKEN. Please set SERVER_AUTH_TOKEN environment variable for production deployment.")
 
 SESSION_COOKIE_NAME = "sovereign_session"
+
+# A login stays valid this long; the cookie and the in-memory record expire together.
+SESSION_MAX_AGE_SECONDS = 30 * 24 * 3600
+
+# True when the server itself terminates TLS. The session cookie is marked Secure
+# only then, so a plain-HTTP server (behind a proxy that adds TLS, or on a LAN)
+# still gets a cookie the browser keeps.
+ENABLE_HTTPS = os.getenv("ENABLE_HTTPS", "false").lower() in ("true", "1", "yes")
 
 # Wrong logins allowed in a row before the server stops itself. A stopped server
 # accepts no connection on its port until someone restarts it by hand, which
@@ -112,15 +121,29 @@ except ImportError:
 # Active valid session tokens in memory mapping session_token -> metadata dict
 active_sessions = {}
 
-def cleanup_expired_sessions(max_age_seconds: int = 30 * 24 * 3600):
+
+def cleanup_expired_sessions(max_age_seconds: int = SESSION_MAX_AGE_SECONDS):
     """Evict expired session tokens from active_sessions dictionary."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expired = [
         token for token, data in active_sessions.items()
         if (now - data.get("created_at", now)).total_seconds() > max_age_seconds
     ]
     for token in expired:
-        del active_sessions[token]
+        active_sessions.pop(token, None)
+
+
+def session_for_token(token: str | None) -> dict | None:
+    """Return the metadata of a live session token, or None when it is unknown or expired."""
+    data = active_sessions.get(token) if token else None
+    if data is None:
+        return None
+    created_at = data.get("created_at")
+    if created_at is not None and (datetime.now(UTC) - created_at).total_seconds() > SESSION_MAX_AGE_SECONDS:
+        active_sessions.pop(token, None)
+        return None
+    return data
+
 
 def is_user_sudoer(username: str) -> bool:
     """Check if Linux username belongs to administrative groups (sudo, wheel, or root)."""
@@ -136,51 +159,75 @@ def is_user_sudoer(username: str) -> bool:
                 continue
     return False
 
-def authenticate_pam(username: str, password: str) -> bool:
-    """Validate username & password against Linux system PAM module."""
-    # Attempt direct shadow verification first (most reliable in Docker)
-    try:
-        if spwd:
-            shadow_info = spwd.getspnam(username)
-            if shadow_info.sp_pwdp not in ('', '!', '*'):
-                if crypt:
-                    hashed_input = crypt.crypt(password, shadow_info.sp_pwdp)
-                    if hashed_input == shadow_info.sp_pwdp:
-                        return True
-                elif sha512_crypt:
-                    if sha512_crypt.verify(password, shadow_info.sp_pwdp):
-                        return True
-    except Exception as e:
-        logger.error(f"Shadow hash verification bypassed: {e}")
-        pass
 
+class PamError(Exception):
+    """The PAM stack could not be asked (module missing or crashed), as opposed to a wrong password."""
+
+
+def _shadow_hash_matches(username: str, password: str) -> bool:
+    """Check the password against /etc/shadow directly; False when that route is unavailable or does not match."""
+    if not spwd:
+        return False
+    try:
+        stored = spwd.getspnam(username).sp_pwdp
+    except KeyError:
+        return False
+    except (PermissionError, OSError) as e:
+        logger.warning("Shadow hash verification skipped: %s", e)
+        return False
+    if stored in ("", "!", "*"):
+        return False
+    try:
+        if crypt:
+            hashed_input = crypt.crypt(password, stored)
+            return bool(hashed_input) and secrets.compare_digest(hashed_input, stored)
+        if sha512_crypt:
+            return sha512_crypt.verify(password, stored)
+    except (ValueError, TypeError, OSError) as e:
+        logger.warning("Shadow hash verification skipped: %s", e)
+    return False
+
+
+def authenticate_pam(username: str, password: str) -> bool:
+    """Validate username & password against Linux system PAM module. Raises PamError when PAM cannot be used."""
+    # Direct shadow verification first (most reliable in Docker)
+    if _shadow_hash_matches(username, password):
+        return True
+
+    if not pam and not pamela:
+        raise PamError("Neither 'pam' nor 'pamela' modules are installed.")
     try:
         if pam:
-            p = pam.pam()
-            return p.authenticate(username, password, service='common-auth')
-        elif pamela:
-            return pamela.authenticate(username, password, service='common-auth')
-        else:
-            raise ImportError("Neither 'pam' nor 'pamela' modules are installed.")
+            return pam.pam().authenticate(username, password, service='common-auth')
+        return pamela.authenticate(username, password, service='common-auth')
     except Exception as e:
-        logger.error(f"PAM authentication fatal error: {e}")
-        raise Exception(f"Server misconfiguration: PAM module crashed ({e})")
+        # The PAM bindings raise whatever their C layer does; every failure becomes a PamError.
+        logger.exception("PAM authentication fatal error")
+        raise PamError(f"PAM module crashed ({e})") from e
+
 
 def is_authenticated(request: Request) -> bool:
     if AUTH_MODE == "disabled":
         return True
-    cleanup_expired_sessions()
-    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
-    if not cookie_token:
-        return False
-    return cookie_token in active_sessions
+    return session_for_token(request.cookies.get(SESSION_COOKIE_NAME)) is not None
 
-def require_auth(request: Request):
-    if not is_authenticated(request):
+
+def require_auth(request: Request) -> dict:
+    """Router dependency: 401 without a live session, otherwise the session's metadata.
+
+    The dict carries 'username' and 'mode'. With auth disabled there is no session, and
+    the answer is a fixed admin record so callers can read 'username' either way.
+    """
+    if AUTH_MODE == "disabled":
+        return {"mode": "disabled", "username": "admin"}
+    session_info = session_for_token(request.cookies.get(SESSION_COOKIE_NAME))
+    if session_info is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required"
         )
+    return session_info
+
 
 @router.get("/mode")
 def get_auth_mode():
@@ -188,7 +235,7 @@ def get_auth_mode():
     return {"auth_mode": AUTH_MODE, "auth_enabled": AUTH_MODE != "disabled"}
 
 @router.post("/login")
-def login(payload: dict, response: Response):
+def login(payload: dict, request: Request, response: Response):
     if AUTH_MODE == "disabled":
         return {"status": "authenticated", "message": "Auth disabled by server configuration", "mode": "disabled"}
 
@@ -200,6 +247,11 @@ def login(payload: dict, response: Response):
 
     username = payload.get("username", "")
     password = payload.get("password", "")
+    if not isinstance(username, str) or not isinstance(password, str):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username and password must be text"
+        )
 
     authenticated = False
     if AUTH_MODE == "pam":
@@ -210,12 +262,12 @@ def login(payload: dict, response: Response):
             )
         try:
             authenticated = authenticate_pam(username, password)
-        except Exception as e:
-            logger.error(f"PAM authentication failed: {e}", exc_info=True)
+        except PamError as e:
+            logger.exception("PAM authentication failed")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Authentication service internal error"
-            )
+            ) from e
     else:
         # Default AUTH_MODE == "token"
         if not password:
@@ -223,7 +275,7 @@ def login(payload: dict, response: Response):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Password token required"
             )
-        authenticated = secrets.compare_digest(password, SERVER_AUTH_TOKEN)
+        authenticated = secrets.compare_digest(password.encode(), SERVER_AUTH_TOKEN.encode())
 
     if not authenticated:
         remaining = _note_failed_login()
@@ -237,31 +289,32 @@ def login(payload: dict, response: Response):
 
     _note_successful_login()
 
+    # Logging in again from the same browser takes over its session record, so records do not pile up.
+    active_sessions.pop(request.cookies.get(SESSION_COOKIE_NAME), None)
+
     # Generate secure random session token
     session_token = secrets.token_hex(32)
     active_sessions[session_token] = {
         "mode": AUTH_MODE,
         "username": username if AUTH_MODE == "pam" else "admin",
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(UTC)
     }
-    
+
     # Set HttpOnly SameSite=Strict cookie
-    enable_https = os.getenv("ENABLE_HTTPS", "false").lower() in ("true", "1", "yes")
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_token,
         httponly=True,
         samesite="strict",
-        secure=enable_https,
-        max_age=30 * 24 * 3600 # 30 days session
+        secure=ENABLE_HTTPS,
+        max_age=SESSION_MAX_AGE_SECONDS
     )
     return {"status": "authenticated", "mode": AUTH_MODE}
 
 @router.get("/verify")
 def verify(request: Request):
     if is_authenticated(request):
-        cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
-        session_info = active_sessions.get(cookie_token, {})
+        session_info = active_sessions.get(request.cookies.get(SESSION_COOKIE_NAME), {})
         username = session_info.get("username", "admin")
         sudoer = is_user_sudoer(username) if AUTH_MODE == "pam" else True
         return {
@@ -279,9 +332,7 @@ def verify(request: Request):
 
 @router.post("/logout")
 def logout(request: Request, response: Response):
-    cookie_token = request.cookies.get(SESSION_COOKIE_NAME)
-    if cookie_token in active_sessions:
-        del active_sessions[cookie_token]
-    response.delete_cookie(SESSION_COOKIE_NAME)
+    active_sessions.pop(request.cookies.get(SESSION_COOKIE_NAME), None)
+    response.delete_cookie(SESSION_COOKIE_NAME, httponly=True, samesite="strict", secure=ENABLE_HTTPS)
     return {"status": "logged_out"}
 
