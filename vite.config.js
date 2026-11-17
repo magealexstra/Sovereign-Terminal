@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       host: '0.0.0.0',
+      // SovereignTerminal's UI port in the kaup port map; if it is taken, the start fails.
+      port: 5176,
+      strictPort: true,
       proxy: {
         '/api': backendHttp,
         '/ws': {
